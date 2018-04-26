@@ -11,11 +11,11 @@ int main() {
     inode *inode1 = malloc(sizeof(inode));
 
     //set fields
-    inode1->filename[0] = 'T';
-    inode1->filename[1] = 'e';
-    inode1->filename[2] = 's';
-    inode1->filename[3] = 't';
-    inode1->filename[4] = '\0';
+    // inode1->filename[0] = 'T';
+    // inode1->filename[1] = 'e';
+    // inode1->filename[2] = 's';
+    // inode1->filename[3] = 't';
+    // inode1->filename[4] = '\0';
     inode1->disk_identifier = 0;
     inode1->parent_inode_index = -1;
     inode1->next_inode = -1;
@@ -30,7 +30,7 @@ int main() {
     inode1->permission = SUPER; //TODO: see how struct affects this?
     inode1->inode_index = 0; //index in the inode region
     inode1->dblocks[0] = 0;
-    inode1->access = READ;
+    // inode1->access = READ;
     //dont need any other blocks, since this is one block sized
 
     FILE *disk_image = fopen("Disk Image", "w+");
@@ -65,6 +65,37 @@ int main() {
     fwrite(allOfInputFile, inputFileSize, 1, disk_image);
     fclose(disk_image);
 
+    /* typedef struct cluster {
+        boolean read;
+        boolean write;
+        boolean execute;
+    } cluster;
+
+    //TODO: ask dianna about how to model this value? (byte operators)
+    typedef struct permission_value {
+        struct cluster cluster_owner;
+        struct cluster cluster_group;
+        struct cluster cluster_others;
+    } permission_value;
+    */
+
+    //test f_open
+    permission_value *permissions = malloc(sizeof(permission_value));
+    permissions->cluster_owner = malloc(sizeof(cluster));
+    permissions->cluster_owner->read = TRUE;
+    permissions->cluster_owner->write = TRUE;
+    permissions->cluster_owner->execute = TRUE;
+    permissions->cluster_group = malloc(sizeof(cluster));
+    permissions->cluster_group->read = TRUE;
+    permissions->cluster_group->write = TRUE;
+    permissions->cluster_group->execute = TRUE;
+    permissions->cluster_others = malloc(sizeof(cluster));
+    permissions->cluster_others->read = TRUE;
+    permissions->cluster_others->write = TRUE;
+    permissions->cluster_others->execute = TRUE;
+
+    f_mount("Disk Image", "point");
+    f_open("path", READ, permissions);
 
     return 0;
 }
