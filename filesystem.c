@@ -38,11 +38,20 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     file_table[0]->free_file = FALSE;
     file_table[0]->byte_offset = 0;
 
+    //TODO: remove once done debugging
     printf("file table entry %p\n", file_table[0]);
     print_table_entry(file_table[0]);
+    printf("file information------data block\n");
+    rewind(current_disk);
+    fseek(current_disk, sizeof(inode), SEEK_SET);
+    char buffer[21];
+    fread(buffer, sizeof(char), 20, current_disk);
+    buffer[20] = 0;
+    printf("%s\n", buffer);
 }
 
 void print_inode (inode *entry) {
+  printf("disk identifier: %d\n", entry->disk_identifier);
   printf("parent inode index: %d\n", entry->parent_inode_index);
   printf("next inode: %d\n", entry->next_inode);
   printf("file size: %d\n", entry->size);
@@ -66,7 +75,7 @@ for(int j=0; j<N_IBLOCKS; j++) {
 }
 
 void print_table_entry (file_table_entry *entry) {
-  printf("free file: %d", entry->free_file);
+  printf("free file: %d\n", entry->free_file);
   print_inode(entry->file_inode);
   printf("byte offset: %d\n", entry->byte_offset);
   printf("access information \n", entry->access);
