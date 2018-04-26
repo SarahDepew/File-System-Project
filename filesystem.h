@@ -6,22 +6,41 @@
 #define HW7_FILESYSTEM_H
 
 #include "boolean.h"
+#include "stdio.h"
+
 
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
+//change this to OPENFILE_MAX?
 #define FILETABLESIZE 20
+// #define FILENAME_MAX 40
+#define MOUNTTABLESIZE 20
+#define SIZEOFSUPERBLOCK 0
+#define SIZEOFBOOTBLOCK 0
 
 enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
 enum permission{SUPER, REGULAR};
-//TODO: say why I did this
 enum access{READ, WRITE, READANDWRITE, APPEND};
 
+struct superblock {
+  int size; /* size of blocks in bytes */
+  int inode_offset; /* offset of inode region in blocks */
+  int data_offset; /* data region offset in blocks */
+  int free_inode; /* head of free inode list, index */
+  int free_block; /* head of free block list, index */
+};
 /* Directory entry struct modeled after V7 */
 typedef struct directory_entry {
-    int inode_ptr; //pointer to inode
-    char filename[255]; //simply the file name and not the absolute path
+    int inode_index; //pointer to inode
+    char filename[FILENAME_MAX]; //simply the file name and not the absolute path
 } directory_entry;
+
+//TODO: see what we actually need here/add a boot block
+typedef struct mounted_file_table_entry {
+  FILE *disk_ptr;
+  char *absolutepath;
+} mounted_file_table_entry;
 
 /* file system programs maintains a list of mounted directories information, information as stored as the ‘mounted_disk’ struct */
 typedef struct mounted_disk{
@@ -51,48 +70,39 @@ typedef struct stat {
 
 /* inode struct */
 typedef struct inode {
-    char filename[255]; //not absolute path, just name
-    unsigned disk_identifier; //identifies the disk (the one that is mounted (for eventual removal)) //TODO: ask dianna about this
+    unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal)) //TODO: ask dianna about this
     //struct inode *parent;
     int parent_inode_index;
     int next_inode; /* index of next free inode */
-//    struct stat *f_stats; //file statistics
-//TODO: talk to Rose; this may be easier for the inode region
     int size; /* number of bytes in file */
     int uid; /* owner’s user ID */
-    int gid; /* owner’s group ID */ //TODO: do we have to have this? (super and basic in different groups)
+    int gid; /* owner’s group ID */
     int ctime; /* last status change time */
     int mtime; /* last data modification time */
     int atime; /* last access time */
     int type; // dir or regular file
-    int permission;
+    int permission; //TODO: change this to permission type
     int inode_index; // the index number for this inode
     int dblocks[N_DBLOCKS]; /* pointers to data blocks */
     int iblocks[N_IBLOCKS]; /* pointers to indirect blocks */
     int i2block; /* pointer to doubly indirect block */
     int i3block; /* pointer to triply indirect block */
-    int last_block_index; // the block index of the last data block used for this file //TODO: check if we actually need this??
+    int last_block_index; // the block index of the last data block used for this file
 } inode;
 
 typedef struct mount_table_entry {
     inode *dir_mounted_inode; //what was just mounted
     inode *mounted_inode; //directory at which this was mounted
+    FILE *disk_image_ptr;
 } mount_table_entry;
 
 typedef struct file_table_entry {
-    int file_inode; //TODO: ask dianna if this should be an inode ptr? (yes, because of fopen)
+    //So change this to inode_index
+    boolean free_file;
+    inode *file_inode;
     int byte_offset; //byte offset into the file
+    int access;
 } file_table_entry;
-
-/*  To access file information corresponding to certain file use the file descriptor as the index of the 'entries' array */
-typedef struct file_table {
-    // number of open files
-    int filenum;
-    int free_fd_num; //number of unused file descriptor
-    int* free_fd; // array storing the unused file descriptor
-    // array of file table entries, number of entries equal to (filenum - 1)
-    file_table_entry* entries;
-} file_table;
 
 typedef struct cluster {
     boolean read;
@@ -102,12 +112,17 @@ typedef struct cluster {
 
 //TODO: ask dianna about how to model this value? (byte operators)
 typedef struct permission_value {
-    struct cluster cluster_owner;
-    struct cluster cluster_group;
-    struct cluster cluster_others;
+    struct cluster *cluster_owner;
+    struct cluster *cluster_group;
+    struct cluster *cluster_others;
 } permission_value;
 
 /* Methods */
-int f_open(char* filepath, int access, permission_value permissions);
+boolean f_mount(char *disk_img, char *mounting_point);
+int f_open(char* filepath, int access, permission_value *permissions);
+
+/* Helper Methods */
+void print_inode (inode* entry);
+void print_table_entry (file_table_entry *entry);
 
 #endif //HW7_FILESYSTEM_H
