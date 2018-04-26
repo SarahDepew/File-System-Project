@@ -20,7 +20,7 @@ int main() {
     inode1->parent_inode_index = -1;
     inode1->next_inode = -1;
 //    inode1->f_stats = malloc(sizeof(stat));
-    inode1->size = 100; //TODO: figure this out later, hardcoding a reasonable size to be less than a block!
+    inode1->size = 0; //TODO: figure this out later, hardcoding a reasonable size to be less than a block!
     inode1->uid = 0;
     inode1->gid = 0;
     inode1->ctime = 0;
