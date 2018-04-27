@@ -23,13 +23,15 @@ enum fileseek {SSET, SCUR, SEND};
 enum permission{SUPER, REGULAR};
 enum access{READ, WRITE, READANDWRITE, APPEND};
 
-struct superblock {
-  int size; /* size of blocks in bytes */
-  int inode_offset; /* offset of inode region in blocks */
-  int data_offset; /* data region offset in blocks */
-  int free_inode; /* head of free inode list, index */
-  int free_block; /* head of free block list, index */
-};
+typedef struct superblock {
+    int size; /* size of blocks in bytes */
+    int inode_offset; /* offset of inode region in blocks */
+    int data_offset; /* data region offset in blocks */
+    int free_inode; /* head of free inode list, index */
+    int free_block; /* head of free block list, index */
+    int root_dir; /*root directory node index on this disk*/
+} superblock ;
+
 /* Directory entry struct modeled after V7 */
 typedef struct directory_entry {
     int inode_index; //pointer to inode

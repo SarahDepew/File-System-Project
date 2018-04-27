@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <math.h>
 #include "boolean.h"
 #include "filesystem.h"
 
@@ -21,6 +22,8 @@
 #define FILELOCATION 2
 #define FILELOCATIONBASIC 1
 #define DEFAULTFILESIZE 1
+#define AVERAGEFILESIZE 0.02
+#define BLOCKSIZE 512
 
 char *flag = "-s";
 char *hash = "#";
@@ -31,8 +34,70 @@ void help() {
 }
 
 //Method that writes the disk image with the given size
-void write_disk(char *file_name, int file_size) {
+void write_disk(char *file_name, float file_size) {
+    long long int total_bytes = file_size*1000000; //convert to bytes
+    printf("got here\n");
+    FILE *disk = fopen(file_name, "wb+"); //open the disk to write
 
+    printf("%p\n", disk);
+
+    //compute the number of inodes
+    int num_inodes = ceilf((float )file_size/(float) AVERAGEFILESIZE);
+    long long int num_blocks_for_inodes = ceilf((float) (num_inodes* sizeof(inode))/ (float) BLOCKSIZE);
+
+    //write boot block
+    char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+    printf("%s\n", boot);
+    fwrite(boot, BLOCKSIZE, 1, disk);
+
+    //write superblock
+    superblock *superblock1 = malloc(sizeof(superblock));
+    superblock1->size = total_bytes;
+    superblock1->data_offset = num_blocks_for_inodes; //this is data region offset
+    superblock1->inode_offset = 0;
+    superblock1->free_block = 0;
+    superblock1->free_inode = 0;
+    superblock1->root_dir = 0; //default to first inode being the root
+
+    free(superblock1);
+
+    //write inode region
+    //TODO: make sure the inodes are linked into a list!! (done)
+    inode *inodes[num_inodes];
+    for(int i=0; i<num_inodes; i++) {
+        inodes[i] = malloc(sizeof(inode));
+        inodes[i]->disk_identifier = 0;
+        inodes[i]->parent_inode_index = -1;
+        if (i == num_inodes - 1) {
+            //make the last inode have a next of -1 to show end of free list
+            inodes[i]->next_inode = -1;
+        } else {
+            inodes[i]->next_inode = i + 1;
+        }
+        inodes[i]->size = 0;
+        inodes[i]->uid = 0;
+        inodes[i]->gid = 0;
+        inodes[i]->ctime = 0;
+        inodes[i]->mtime = 0;
+        inodes[i]->atime = 0;
+        inodes[i]->type = 0;
+        inodes[i]->permission = 0;
+        inodes[i]->inode_index = i;
+        inodes[i]->i2block = -1;
+        inodes[i]->i3block = -1;
+        inodes[i]->last_block_index = -1;
+
+        fwrite(inodes[i], sizeof(inode), 1, disk);
+        free(inodes[i]);
+    }
+
+    //write data region
+    //TODO: make sure that the data blocks are linked into a list!
+
+    //update file size now that everything is done being written
+
+    //done writing, so close the disk
+    fclose(disk);
 }
 
 /*
