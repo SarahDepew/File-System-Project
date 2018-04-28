@@ -32,6 +32,10 @@ typedef struct superblock {
     int root_dir; /*root directory node index on this disk*/
 } superblock ;
 
+typedef struct block {
+    int next_free_block;
+} block;
+
 /* Directory entry struct modeled after V7 */
 typedef struct directory_entry {
     int inode_index; //pointer to inode
