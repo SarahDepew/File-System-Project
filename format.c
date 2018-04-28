@@ -24,8 +24,6 @@
 #define DEFAULTFILESIZE 1
 #define AVERAGEFILESIZE 0.02
 #define BLOCKSIZE 512
-#define SIZEOFSUPERBLOCK 512
-#define SIZEOFBOOTBLOCK 512
 
 char *flag = "-s";
 char *hash = "#";
@@ -201,4 +199,3 @@ int main(int argc, char *argv[]) {
         }
     }
 }
-

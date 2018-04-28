@@ -65,6 +65,16 @@ boolean f_mount(char *disk_img, char *mounting_point) {
 
     if (free_index != -1) {
         FILE *file_to_mount = fopen(disk_img, "rb+");
+        current_disk = file_to_mount; 
+        if (current_disk == NULL){
+          printf("%s\n", "open Disk failed.");
+          return EXIT_FAILURE;
+        }
+        int disksize = ftell(current_disk);
+        if (disksize <0){
+          printf("%s\n", "Disk invalid size. ");
+        }
+        //skip the boot block
         mounted_disks[free_index]->free_spot = FALSE;
         mounted_disks[free_index]->disk_image_ptr = file_to_mount;
         rewind(file_to_mount);

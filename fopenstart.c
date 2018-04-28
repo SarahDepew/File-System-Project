@@ -96,8 +96,8 @@ int main() {
     permissions->cluster_others->write = TRUE;
     permissions->cluster_others->execute = TRUE;
 
-    f_mount("Disk Image", "point");
-    f_open("path", READ, permissions);
+    // f_mount("Disk Image", "point");
+    // f_open("path", READ, permissions);
 
     return 0;
 }
