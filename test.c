@@ -8,7 +8,9 @@
 
 int main() {
     setup();
-    f_mount("test1", "ignore");
+    int index_into_mount_table = -1;
+    f_mount("test1", "ignore", &index_into_mount_table);
+    printf("index into mount table: %d\n", index_into_mount_table);
 
     //create a basic disk image to use
     inode *inode1 = malloc(sizeof(inode));
