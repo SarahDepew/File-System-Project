@@ -139,31 +139,31 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
       int new_size = old_size + sizeof(buffer);
       //check if the new_size is going to exceed the disk size. TODO
       //now assume the new_size is smaller than the disk size
-      void* datatowrite = malloc(sizeof(buffer))
+      void* datatowrite = malloc(sizeof(buffer));
       fwrite(buffer, 1, sizeof(buffer), datatowrite);
-      int start_byte = file_table[fd]->file_inode->byte_offset;
+      int start_byte = file_table[fd]->byte_offset;
       int lefttowrite = sizeof(buffer);
       int offset = 0;
-      int free_byte = BLOCKSIZE - start_byte;
+      int free_byte = sp->size - start_byte;
       //calculate the right startplace_disk using file_size. TODO
       //writing to the first dblock right now. Need to change in the future. TODO.
-      void* startplace_disk = (file_table[td]->inode->dblocks[0])*BLOCKSIZE + (sp->data_offset*BLOCKSIZE);
+      void* startplace_disk = (void*)(sp) +((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
       while (lefttowrite > 0){
         //trace the disk to find the data block
         fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
         offset += free_byte;
-        free_byte = BLOCKSIZE;
-        lefttowrite -= BLOCKSIZE;
+        free_byte = sp->size;
+        lefttowrite -= sp->size;
       }
       //updating the offset in the file_table_entry
-      file_table[td]->byte_offset = new_size;
+      file_table[fd]->byte_offset = new_size;
       free(datatowrite);
       return sizeof(buffer);
     } else if (file_table[fd]->file_inode->type == DIR){
       printf("%s\n", "writing to a dir file");
       //make_dir should do the same thing
     }
-
+    return EXIT_SUCCESS;
 }
 
 
