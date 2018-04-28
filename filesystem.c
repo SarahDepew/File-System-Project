@@ -9,7 +9,7 @@
 //global variables and arrays
 mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
-FILE *current_disk;
+mount_table_entry *current_mounted_disk;
 inode *root_inode;
 
 //TODO: remove once a libaray
@@ -22,6 +22,7 @@ boolean setup() {
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
         mounted_disks[i] = malloc(sizeof(mount_table_entry));
         mounted_disks[i]->free_spot = TRUE;
+        mounted_disks[i]->superblock1 = malloc(sizeof(superblock));
     }
 
     for (int j = 0; j < FILETABLESIZE; j++) {
@@ -37,6 +38,7 @@ boolean setup() {
 //do this upon shell exit to ensure no memory leaks
 boolean shutdown() {
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
+        free(mounted_disks[i]->superblock1);
         free(mounted_disks[i]);
     }
 
@@ -65,21 +67,23 @@ boolean f_mount(char *disk_img, char *mounting_point) {
 
     if (free_index != -1) {
         FILE *file_to_mount = fopen(disk_img, "rb+");
-        current_disk = file_to_mount; 
+        FILE *current_disk = file_to_mount;
         if (current_disk == NULL){
-          printf("%s\n", "open Disk failed.");
-          return EXIT_FAILURE;
+          printf("%s\n", "Open Disk failed.");
+          return FALSE;
         }
         int disksize = ftell(current_disk);
         if (disksize <0){
           printf("%s\n", "Disk invalid size. ");
+          return FALSE;
         }
         //skip the boot block
         mounted_disks[free_index]->free_spot = FALSE;
         mounted_disks[free_index]->disk_image_ptr = file_to_mount;
         rewind(file_to_mount);
         fseek(file_to_mount, SIZEOFBOOTBLOCK, SEEK_SET); //place the file pointer at the superblock
-        fread(mounted_disks[free_index]->superblock1, SIZEOFSUPERBLOCK, 1, file_to_mount);
+        fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
+        current_mounted_disk = mounted_disks[free_index];
         print_superblock(mounted_disks[free_index]->superblock1);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
@@ -92,7 +96,8 @@ boolean f_mount(char *disk_img, char *mounting_point) {
 }
 
 /* f_open() method */ //TODO: assume this is the absolute file path
-int f_open(char* filepath, int access, permission_value* permissions) {
+int f_open(char* filepath, int access, permission_value *permissions) {
+    FILE *current_disk = current_mounted_disk->disk_image_ptr;
     //TODO: trace filepath and get index of inode
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
     //TODO: if this is a new file, then set permissions
@@ -102,7 +107,6 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     file_table[0] = malloc(sizeof(file_table_entry));
     file_table[0]->file_inode = malloc(sizeof(inode));
 
-    rewind(current_disk);
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + 0 + index_of_inode * sizeof(inode),
           SEEK_SET); //boot + super + offset + number of inodes before
     fread(file_table[0]->file_inode, sizeof(inode), 1, current_disk);
@@ -114,7 +118,6 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     printf("file table entry %p\n", file_table[0]);
     print_table_entry(file_table[0]);
     printf("file information------data block\n");
-    rewind(current_disk);
     fseek(current_disk, sizeof(inode), SEEK_SET);
     char buffer[21];
     fread(buffer, sizeof(char), 20, current_disk);
@@ -123,6 +126,51 @@ int f_open(char* filepath, int access, permission_value* permissions) {
 
     return 0; //TODO: fix with actual return value
 }
+
+int f_write(void* buffer, int size, int ntimes, int fd ){
+    //check if the file accociated with this fd has been open
+    if (file_table[fd] == NULL){
+      printf("%s\n", "The file must be open before write");
+      exit(EXIT_FAILURE);
+    }
+    if (file_table[fd]->file_inode->type == REG){
+      printf("%s\n", "writing to a regular file");
+      int old_size = file_table[fd]->byte_offset;
+      superblock* sp = current_mounted_disk->superblock1;
+      if (current_mounted_disk->free_spot == FALSE){
+        printf("%s\n", "Not having enough sapce on the disk.");
+        return (EXIT_FAILURE);
+      }
+      int new_size = old_size + sizeof(buffer);
+      //check if the new_size is going to exceed the disk size. TODO
+      //now assume the new_size is smaller than the disk size
+      void* datatowrite = malloc(sizeof(buffer))
+      fwrite(buffer, 1, sizeof(buffer), datatowrite);
+      int start_byte = file_table[fd]->file_inode->byte_offset;
+      int lefttowrite = sizeof(buffer);
+      int offset = 0;
+      int free_byte = BLOCKSIZE - start_byte;
+      //calculate the right startplace_disk using file_size. TODO
+      //writing to the first dblock right now. Need to change in the future. TODO.
+      void* startplace_disk = (file_table[td]->inode->dblocks[0])*BLOCKSIZE + (sp->data_offset*BLOCKSIZE);
+      while (lefttowrite > 0){
+        //trace the disk to find the data block
+        fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
+        offset += free_byte;
+        free_byte = BLOCKSIZE;
+        lefttowrite -= BLOCKSIZE;
+      }
+      //updating the offset in the file_table_entry
+      file_table[td]->byte_offset = new_size;
+      free(datatowrite);
+      return sizeof(buffer);
+    } else if (file_table[fd]->file_inode->type == DIR){
+      printf("%s\n", "writing to a dir file");
+      //make_dir should do the same thing
+    }
+
+}
+
 
 void print_inode (inode *entry) {
   printf("disk identifier: %d\n", entry->disk_identifier);
@@ -140,7 +188,7 @@ void print_inode (inode *entry) {
   for(int i=0; i<N_DBLOCKS; i++) {
     printf("%d th block with inode index %d\n", i, entry->dblocks[i]);
   }
-for(int j=0; j<N_IBLOCKS; j++) {
+  for(int j=0; j<N_IBLOCKS; j++) {
     printf("%d th block with inode index %d\n", j, entry->iblocks[j]);
   }
   printf("i2block index: %d\n", entry->i2block);
