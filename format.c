@@ -35,14 +35,18 @@ void help() {
 
 //Method that writes the disk image with the given size
 void write_disk(char *file_name, float file_size) {
-    long long int total_bytes = file_size*1000000; //convert to bytes
+
+  long long int total_bytes = file_size*1000000; //convert to bytes
+    
     printf("got here\n");
     FILE *disk = fopen(file_name, "wb+"); //open the disk to write
-
+    
     printf("%p\n", disk);
 
     //compute the number of inodes
+    //file_size of disksize right? Yes
     int num_inodes = ceilf((float )file_size/(float) AVERAGEFILESIZE);
+    //why is it of long type? should be pretty small?
     long long int num_blocks_for_inodes = ceilf((float) (num_inodes* sizeof(inode))/ (float) BLOCKSIZE);
 
     //write boot block
@@ -58,7 +62,8 @@ void write_disk(char *file_name, float file_size) {
     superblock1->free_block = 0;
     superblock1->free_inode = 0;
     superblock1->root_dir = 0; //default to first inode being the root
-
+    //What I add this morning
+    fwrite(superblock1, sizeof(superblock), 1, disk);
     free(superblock1);
 
     //write inode region
@@ -90,7 +95,8 @@ void write_disk(char *file_name, float file_size) {
         fwrite(inodes[i], sizeof(inode), 1, disk);
         free(inodes[i]);
     }
-
+    //padding if needed. TODO. Added in the morning
+    
     //write data region
     //TODO: make sure that the data blocks are linked into a list!
 
