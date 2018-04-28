@@ -1,13 +1,14 @@
-all: opentest formattest
+all: format filesystem test 
 
-formattest: format.c
-	gcc -o formattest format.c -lm
+format: format.c
+	gcc -g -ggdb -o format format.c -lm
 
-opentest: fopenstart.c filesystem.h filesystem.o
-	gcc -o opentest fopenstart.c filesystem.h filesystem.o
+test: test.c
+	gcc -g -ggdb -o test test.c -L. -lfile
 
-filesystem.o: filesystem.c filesystem.h boolean.h
-	gcc -c filesystem.c filesystem.h boolean.h
+filesystem:
+	gcc -g -ggdb -Wall -fpic -c filesystem.c
+	gcc -g -ggdb -o libfile.so filesystem.o -shared
 
 clean:
 	rm *.o
