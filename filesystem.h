@@ -15,8 +15,8 @@
 #define FILETABLESIZE 20
 // #define FILENAME_MAX 40
 #define MOUNTTABLESIZE 20
-#define SIZEOFSUPERBLOCK 0
-#define SIZEOFBOOTBLOCK 0
+#define SIZEOFSUPERBLOCK 512
+#define SIZEOFBOOTBLOCK 512
 
 enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
@@ -101,6 +101,7 @@ typedef struct mount_table_entry {
     inode *dir_mounted_inode; //what was just mounted
     inode *mounted_inode; //directory at which this was mounted
     FILE *disk_image_ptr;
+    // TODO. a dislsize field
     superblock *superblock1;
 } mount_table_entry;
 
