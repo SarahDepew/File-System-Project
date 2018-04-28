@@ -7,17 +7,78 @@
 #include "stdlib.h"
 
 //global variables and arrays
-FILE *mounted_disks[MOUNTTABLESIZE];
+mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 FILE *current_disk;
 inode *root_inode;
 
-boolean f_mount(char *disk_img, char *mounting_point) {
-  //read the inode into memory
-  current_disk = fopen(disk_img, "r+");
+//TODO: remove once a libaray
+int main() {
+    exit(0);
+}
 
-//read in superblock here
-  //look for empty index into fmount table
+//the shell must call this method to set up the global variables and structures
+boolean setup() {
+    for (int i = 0; i < MOUNTTABLESIZE; i++) {
+        mounted_disks[i] = malloc(sizeof(mount_table_entry));
+        mounted_disks[i]->free_spot = TRUE;
+    }
+
+    for (int j = 0; j < FILETABLESIZE; j++) {
+        file_table[j] = malloc(sizeof(file_table_entry));
+        file_table[j]->free_file = TRUE;
+    }
+
+    root_inode = malloc(sizeof(inode));
+
+    return TRUE;
+}
+
+//do this upon shell exit to ensure no memory leaks
+boolean shutdown() {
+    for (int i = 0; i < MOUNTTABLESIZE; i++) {
+        free(mounted_disks[i]);
+    }
+
+    for (int j = 0; j < FILETABLESIZE; j++) {
+        free(file_table[j]);
+    }
+
+    free(root_inode);
+
+    return TRUE;
+}
+
+boolean f_mount(char *disk_img, char *mounting_point) {
+    //open the disk
+    //TODO: check that the disk image actually exists...
+    //TODO: actually do something with mounting_point value passed in...location to mount (NOT ALWAYS ROOT!)
+    int free_index = -1;
+
+    //look for empty index into fmount table
+    for (int i = 0; i < MOUNTTABLESIZE; i++) {
+        if (mounted_disks[i]->free_spot == TRUE) {
+            free_index = i;
+            break;
+        }
+    }
+
+    if (free_index != -1) {
+        FILE *file_to_mount = fopen(disk_img, "rb+");
+        mounted_disks[free_index]->free_spot = FALSE;
+        mounted_disks[free_index]->disk_image_ptr = file_to_mount;
+        rewind(file_to_mount);
+        fseek(file_to_mount, SIZEOFBOOTBLOCK, SEEK_SET); //place the file pointer at the superblock
+        fread(mounted_disks[free_index]->superblock1, SIZEOFSUPERBLOCK, 1, file_to_mount);
+        print_superblock(mounted_disks[free_index]->superblock1);
+        //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
+
+        return TRUE;
+    } else {
+        return FALSE; //a spot was not found
+    }
+
+    return FALSE;
 }
 
 /* f_open() method */ //TODO: assume this is the absolute file path
@@ -32,7 +93,8 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     file_table[0]->file_inode = malloc(sizeof(inode));
 
     rewind(current_disk);
-    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + 0 + index_of_inode*sizeof(inode),SEEK_SET); //boot + super + offset + number of inodes before
+    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + 0 + index_of_inode * sizeof(inode),
+          SEEK_SET); //boot + super + offset + number of inodes before
     fread(file_table[0]->file_inode, sizeof(inode), 1, current_disk);
     file_table[0]->access = access;
     file_table[0]->free_file = FALSE;
@@ -48,6 +110,8 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     fread(buffer, sizeof(char), 20, current_disk);
     buffer[20] = 0;
     printf("%s\n", buffer);
+
+    return 0; //TODO: fix with actual return value
 }
 
 void print_inode (inode *entry) {
@@ -78,5 +142,14 @@ void print_table_entry (file_table_entry *entry) {
   printf("free file: %d\n", entry->free_file);
   print_inode(entry->file_inode);
   printf("byte offset: %d\n", entry->byte_offset);
-  printf("access information \n", entry->access);
+  printf("access information %d\n", entry->access);
+}
+
+void print_superblock(superblock *superblock1) {
+    printf("size: %d\n", superblock1->size);
+    printf("inode offset: %d\n", superblock1->inode_offset);
+    printf("data offset: %d\n", superblock1->data_offset);
+    printf("free inode: %d\n", superblock1->free_inode);
+    printf("free block: %d\n", superblock1->free_block);
+    printf("root dir: %d\n", superblock1->root_dir);
 }

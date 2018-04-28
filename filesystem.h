@@ -29,7 +29,7 @@ typedef struct superblock {
     int data_offset; /* data region offset in blocks */
     int free_inode; /* head of free inode list, index */
     int free_block; /* head of free block list, index */
-    int root_dir; /*root directory node index on this disk*/
+    int root_dir; /*root directory node index on this disk */
 } superblock ;
 
 typedef struct block {
@@ -97,9 +97,11 @@ typedef struct inode {
 } inode;
 
 typedef struct mount_table_entry {
+    boolean free_spot;
     inode *dir_mounted_inode; //what was just mounted
     inode *mounted_inode; //directory at which this was mounted
     FILE *disk_image_ptr;
+    superblock *superblock1;
 } mount_table_entry;
 
 typedef struct file_table_entry {
@@ -128,7 +130,10 @@ boolean f_mount(char *disk_img, char *mounting_point);
 int f_open(char* filepath, int access, permission_value *permissions);
 
 /* Helper Methods */
+boolean setup();
+boolean shutdown();
 void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
+void print_superblock(superblock *superblock1);
 
 #endif //HW7_FILESYSTEM_H

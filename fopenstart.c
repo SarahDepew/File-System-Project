@@ -7,6 +7,8 @@
 #include <stdlib.h>
 
 int main() {
+    f_mount("test1", "ignore");
+
     //create a basic disk image to use
     inode *inode1 = malloc(sizeof(inode));
 
