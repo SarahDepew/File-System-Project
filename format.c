@@ -24,8 +24,6 @@
 #define DEFAULTFILESIZE 1
 #define AVERAGEFILESIZE 0.02
 #define BLOCKSIZE 512
-#define SIZEOFSUPERBLOCK 512
-#define SIZEOFBOOTBLOCK 512
 
 char *flag = "-s";
 char *hash = "#";
@@ -58,7 +56,12 @@ void write_disk(char *file_name, float file_size) {
     superblock1->free_block = 0;
     superblock1->free_inode = 0;
     superblock1->root_dir = 0; //default to first inode being the root directory
-    fwrite(superblock1, SIZEOFSUPERBLOCK, 1, disk);
+    fwrite(superblock1, sizeof(superblock), 1, disk);
+    int bytes_remaining_superblock = SIZEOFSUPERBLOCK-sizeof(superblock);
+    void *remaining_space = malloc(sizeof(bytes_remaining_superblock));
+    fwrite(remaining_space, bytes_remaining_superblock, 1, disk);
+    printf("bytes remaining: %d\n", bytes_remaining_superblock);
+    free(remaining_space);
     free(superblock1);
 
     //write inode region
@@ -201,4 +204,3 @@ int main(int argc, char *argv[]) {
         }
     }
 }
-
