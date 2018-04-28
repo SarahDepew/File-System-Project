@@ -12,9 +12,19 @@ file_table_entry* file_table[FILETABLESIZE];
 FILE *current_disk;
 inode *root_inode;
 
+
 boolean f_mount(char *disk_img, char *mounting_point) {
   //read the inode into memory
   current_disk = fopen(disk_img, "r+");
+  if (current_disk == NULL){
+    printf("%s\n", "open Disk failed.");
+    return EXIT_FAILURE;
+  }
+  int disksize = ftell(current_disk);
+  if (disksize <0){
+    printf("%s\n", "Disk invalid size. ");
+  }
+  //skip the boot block
 
 //read in superblock here
   //look for empty index into fmount table
@@ -31,7 +41,7 @@ int f_open(char* filepath, int access, permission_value* permissions) {
     file_table[0] = malloc(sizeof(file_table_entry));
     file_table[0]->file_inode = malloc(sizeof(inode));
 
-    rewind(current_disk);
+    // rewind(current_disk);
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + 0 + index_of_inode*sizeof(inode),SEEK_SET); //boot + super + offset + number of inodes before
     fread(file_table[0]->file_inode, sizeof(inode), 1, current_disk);
     file_table[0]->access = access;
@@ -66,7 +76,7 @@ void print_inode (inode *entry) {
   for(int i=0; i<N_DBLOCKS; i++) {
     printf("%d th block with inode index %d\n", i, entry->dblocks[i]);
   }
-for(int j=0; j<N_IBLOCKS; j++) {
+  for(int j=0; j<N_IBLOCKS; j++) {
     printf("%d th block with inode index %d\n", j, entry->iblocks[j]);
   }
   printf("i2block index: %d\n", entry->i2block);

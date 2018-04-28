@@ -15,8 +15,8 @@
 #define FILETABLESIZE 20
 // #define FILENAME_MAX 40
 #define MOUNTTABLESIZE 20
-#define SIZEOFSUPERBLOCK 0
-#define SIZEOFBOOTBLOCK 0
+#define SIZEOFSUPERBLOCK 512
+#define SIZEOFBOOTBLOCK 512
 
 enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
