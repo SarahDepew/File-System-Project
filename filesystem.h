@@ -127,8 +127,12 @@ typedef struct permission_value {
 } permission_value;
 
 /* Methods */
-boolean f_mount(char *disk_img, char *mounting_point);
+boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
 int f_open(char* filepath, int access, permission_value *permissions);
+int f_write(void* buffer, int size, int ntimes, int fd );
+boolean f_close(int file_descriptor);
+boolean f_rewind(int file_descriptor);
+boolean f_stat(char *filepath, stat *st);
 
 /* Helper Methods */
 boolean setup();

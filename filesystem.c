@@ -51,7 +51,7 @@ boolean shutdown() {
     return TRUE;
 }
 
-boolean f_mount(char *disk_img, char *mounting_point) {
+boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     //open the disk
     //TODO: check that the disk image actually exists...
     //TODO: actually do something with mounting_point value passed in...location to mount (NOT ALWAYS ROOT!)
@@ -66,6 +66,7 @@ boolean f_mount(char *disk_img, char *mounting_point) {
     }
 
     if (free_index != -1) {
+        *mount_table_index = free_index;
         FILE *file_to_mount = fopen(disk_img, "rb+");
         FILE *current_disk = file_to_mount;
         if (current_disk == NULL){
@@ -144,33 +145,71 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
       int new_size = old_size + sizeof(buffer);
       //check if the new_size is going to exceed the disk size. TODO
       //now assume the new_size is smaller than the disk size
-      void* datatowrite = malloc(sizeof(buffer))
+      void* datatowrite = malloc(sizeof(buffer));
       fwrite(buffer, 1, sizeof(buffer), datatowrite);
-      int start_byte = file_table[fd]->file_inode->byte_offset;
+      int start_byte = file_table[fd]->byte_offset;
       int lefttowrite = sizeof(buffer);
       int offset = 0;
-      int free_byte = BLOCKSIZE - start_byte;
+      int free_byte = sp->size - start_byte;
       //calculate the right startplace_disk using file_size. TODO
       //writing to the first dblock right now. Need to change in the future. TODO.
-      void* startplace_disk = (file_table[td]->inode->dblocks[0])*BLOCKSIZE + (sp->data_offset*BLOCKSIZE);
+      void* startplace_disk = (void*)(sp) +((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
       while (lefttowrite > 0){
         //trace the disk to find the data block
         fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
         offset += free_byte;
-        free_byte = BLOCKSIZE;
-        lefttowrite -= BLOCKSIZE;
+        free_byte = sp->size;
+        lefttowrite -= sp->size;
       }
       //updating the offset in the file_table_entry
-      file_table[td]->byte_offset = new_size;
+      file_table[fd]->byte_offset = new_size;
       free(datatowrite);
       return sizeof(buffer);
     } else if (file_table[fd]->file_inode->type == DIR){
       printf("%s\n", "writing to a dir file");
       //make_dir should do the same thing
     }
-
+    return EXIT_SUCCESS;
 }
 
+boolean f_close(int file_descriptor) {
+  if(file_descriptor>=FILETABLESIZE) {
+    return FALSE;
+  } else {
+    file_table[file_descriptor]->free_file = TRUE;
+    free(file_table[file_descriptor]->file_inode);
+    return TRUE;
+  }
+  return FALSE;
+}
+
+boolean f_rewind(int file_descriptor) {
+  if(file_descriptor>=FILETABLESIZE) {
+    return FALSE;
+  } else {
+    file_table[file_descriptor]->byte_offset = 0;
+    return TRUE;
+  }
+}
+
+boolean f_stat(char *filepath, stat *st) {
+  //TODO: use filepath to get to the intended inode
+  int file_table_index = 0;
+  //TODO: go to disk, trace the blocks, and return the inode of the file from the disk
+
+  inode *inode1 = file_table[file_table_index]->file_inode;
+  st->size = inode1->size;
+  st->uid = inode1->uid;
+  st->gid = inode1->gid;
+  st->ctime = inode1->ctime;
+  st->mtime = inode1->mtime;
+  st->atime = inode1->atime;
+  st->type = inode1->type;
+  st->permission = inode1->permission;
+  st->inode_index = inode1->inode_index; 
+
+  return TRUE;
+}
 
 void print_inode (inode *entry) {
   printf("disk identifier: %d\n", entry->disk_identifier);
