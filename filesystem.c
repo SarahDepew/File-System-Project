@@ -12,11 +12,6 @@ file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
 inode *root_inode;
 
-//TODO: remove once a libaray
-int main() {
-    exit(0);
-}
-
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
@@ -170,6 +165,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
       //make_dir should do the same thing
     }
     return EXIT_SUCCESS;
+<<<<<<< HEAD
 }
 
 boolean f_close(int file_descriptor) {
@@ -190,6 +186,8 @@ boolean f_rewind(int file_descriptor) {
     file_table[file_descriptor]->byte_offset = 0;
     return TRUE;
   }
+=======
+>>>>>>> 91f27e6ed61d7ee5c2efe1056a2d1761977fdc4b
 }
 
 boolean f_stat(char *filepath, stat *st) {
