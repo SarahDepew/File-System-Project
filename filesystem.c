@@ -1,7 +1,3 @@
-//
-// Created by Sarah Depew on 4/25/18.
-//
-
 #include "filesystem.h"
 #include "boolean.h"
 #include "stdlib.h"
@@ -15,7 +11,7 @@ inode *root_inode;
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
-        mounted_disks[i] = malloc(sizeof(mount_table_entry));
+        mounted_disks[i] = (mount_table_entry*)malloc(sizeof(mount_table_entry));
         mounted_disks[i]->free_spot = TRUE;
         mounted_disks[i]->superblock1 = malloc(sizeof(superblock));
     }
@@ -51,7 +47,6 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     //TODO: check that the disk image actually exists...
     //TODO: actually do something with mounting_point value passed in...location to mount (NOT ALWAYS ROOT!)
     int free_index = -1;
-
     //look for empty index into fmount table
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
         if (mounted_disks[i]->free_spot == TRUE) {
@@ -61,7 +56,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     }
 
     if (free_index != -1) {
-        *mount_table_index = free_index;
+        mount_table_index = &free_index;
         FILE *file_to_mount = fopen(disk_img, "rb+");
         FILE *current_disk = file_to_mount;
         if (current_disk == NULL){
@@ -76,11 +71,17 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         //skip the boot block
         mounted_disks[free_index]->free_spot = FALSE;
         mounted_disks[free_index]->disk_image_ptr = file_to_mount;
-        rewind(file_to_mount);
         fseek(file_to_mount, SIZEOFBOOTBLOCK, SEEK_SET); //place the file pointer at the superblock
         fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
         current_mounted_disk = mounted_disks[free_index];
         print_superblock(mounted_disks[free_index]->superblock1);
+        //for testing: find data block
+        superblock* sp = mounted_disks[free_index]->superblock1;
+        fseek(file_to_mount,(sp->data_offset)*sp->size+SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK, SEEK_SET);
+        void* data_content = malloc(sizeof(sp->size));
+        fread(data_content, sp->size, 1, file_to_mount);
+        printf("%s\n", data_content+sizeof(int));
+        free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
         return TRUE;
@@ -125,7 +126,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
 
 int f_write(void* buffer, int size, int ntimes, int fd ){
     //check if the file accociated with this fd has been open
-    if (file_table[fd] == NULL){
+    if (file_table[fd] ->free_file == TRUE){
       printf("%s\n", "The file must be open before write");
       exit(EXIT_FAILURE);
     }
@@ -148,7 +149,8 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
       int free_byte = sp->size - start_byte;
       //calculate the right startplace_disk using file_size. TODO
       //writing to the first dblock right now. Need to change in the future. TODO.
-      void* startplace_disk = (void*)(sp) +((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
+      //WARNING: consider the first int that links every block together
+      void* startplace_disk = (void*)(sp) + sizeof(int)+((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
       while (lefttowrite > 0){
         //trace the disk to find the data block
         fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
@@ -205,6 +207,11 @@ boolean f_stat(char *filepath, stat *st) {
 
   return TRUE;
 }
+
+//filepath must be absolute path
+// validity* checkvalidity(char* filepath){
+//   //parse filepath with '/'
+// }
 
 void print_inode (inode *entry) {
   printf("disk identifier: %d\n", entry->disk_identifier);
