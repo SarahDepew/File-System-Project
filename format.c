@@ -65,7 +65,7 @@ void write_padding(FILE *disk, int amount_padding) {
 void write_super_block(int data_offset, FILE *disk) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
-//    memset()
+    memset(superblock1, 0, sizeof(superblock));
     superblock1->size = BLOCKSIZE;
     superblock1->data_offset = data_offset; //this is data region offset
     superblock1->inode_offset = 0;
@@ -148,7 +148,7 @@ void write_disk(char *file_name, float file_size) {
     printf("num_inodes: %d\n", num_inodes);
     printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
 
-//    write_super_block(num_blocks_for_inodes, disk);
+    write_super_block(num_blocks_for_inodes, disk);
 
     //write inode region
 //    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
