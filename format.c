@@ -166,6 +166,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
             directory_entry *directories = malloc(2*sizeof(directory_entry));
+            memset(directories, 0, 2*sizeof(directory_entry));
             directories[0].inode_index = 0;
             strcpy(directories[0].filename, ".");
 
