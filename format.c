@@ -41,7 +41,7 @@ void open_disk(char *file_name) {
 }
 
 void close_disk() {
-    close(disk);
+    fclose(disk);
 }
 
 void write_boot_block() {
@@ -50,7 +50,7 @@ void write_boot_block() {
     fwrite(boot, strlen(boot), 1, disk);
 }
 
-void write_super_block() {
+void write_super_block(int data_offset) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
     superblock1->size = BLOCKSIZE;
@@ -75,24 +75,25 @@ void write_super_block() {
 void write_disk(char *file_name, float file_size) {
     long long int total_bytes = file_size * 1000000; //convert mb to bytes
 
+
     //write boot block
     write_boot_block();
 
     //write superblock
-    write_super_block();
+    //compute the number of inodes, so that you have the data region offset
+    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE); //compute the minimum number of inodes
+    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
+    num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE / sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
+
+    printf("num_inodes: %d\n", num_inodes);
+    printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
+
+    write_super_block(num_blocks_for_inodes);
 
 
 
 
 /*
-
-    //compute the number of inodes
-    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE);
-    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE);
-    num_inodes = num_blocks_for_inodes * BLOCKSIZE / sizeof(inode);
-    printf("num_inodes: %d\n", num_inodes);
-
-
     //write inode region
     inode *inodes[num_inodes];
     for (int i = 0; i < num_inodes; i++) {
@@ -167,7 +168,6 @@ void write_disk(char *file_name, float file_size) {
         free(block_to_write);
     }
     */
-
     //done writing, so close the disk
     close_disk();
 }
