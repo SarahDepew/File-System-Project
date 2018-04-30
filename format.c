@@ -54,7 +54,7 @@ void write_super_block(int data_offset) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
     superblock1->size = BLOCKSIZE;
-    superblock1->data_offset = num_blocks_for_inodes; //this is data region offset
+    superblock1->data_offset = data_offset; //this is data region offset
     superblock1->inode_offset = 0;
     superblock1->free_block = 0;
     superblock1->free_inode = 0;
