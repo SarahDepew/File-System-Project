@@ -41,9 +41,10 @@ void write_disk(char *file_name, float file_size) {
     //compute the number of inodes
     //file_size of disksize right? Yes
     int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE);
-    //why is it of long type? should be pretty small?
+    //why is it of long type? should be pretty small? TODO
     long long int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE);
-
+    num_inodes = num_blocks_for_inodes * BLOCKSIZE / sizeof(inode);
+    printf("num_inodes: %d\n", num_inodes);
     //write boot block
     //string has a null at the end so should add 1 to the size
     char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
