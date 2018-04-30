@@ -93,7 +93,7 @@ void write_disk(char *file_name, float file_size) {
     printf("num_inodes: %d\n", num_inodes);
     printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
 
-//    write_super_block(num_blocks_for_inodes);
+    write_super_block(num_blocks_for_inodes);
 
 
 
