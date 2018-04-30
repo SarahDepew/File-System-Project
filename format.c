@@ -45,12 +45,12 @@ void close_disk() {
 
 void write_boot_block(FILE *disk) {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
-    char *boot = malloc(SIZEOFBOOTBLOCK* sizeof(char) + 1);
+    char *boot = malloc(SIZEOFBOOTBLOCK * sizeof(char) + 1);
     memset(boot, 0, SIZEOFBOOTBLOCK + 1);
-    strcpy(boot, "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot");
+    strcpy(boot,
+           "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot");
+    fwrite(boot, SIZEOFBOOTBLOCK, 1, disk);
     free(boot);
-//    fwrite(boot, SIZEOFBOOTBLOCK, 1, disk);
-
 }
 
 void write_padding(FILE *disk, int amount_padding) {
