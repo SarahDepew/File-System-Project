@@ -165,13 +165,14 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
-            directory_entry *array_0 = (directory_entry *) block_to_write;
-            array_0->inode_index = 0;
-            strcpy(array_0->filename, ".");
+            directory_entry *directories = malloc(2*sizeof(directory_entry));
+            directories[0].inode_index = 0;
+            strcpy(directories[0].filename, ".");
 
-            directory_entry *array_1 = (directory_entry *) (block_to_write + sizeof(directory_entry));
-            array_1->inode_index = 0;
-            strcpy(array_1->filename, "..");
+            directories[1].inode_index = 0;
+            strcpy(directories[1].filename, "..");
+
+            memcpy(block_to_write, directories, sizeof(directory_entry) *2);
 
             fwrite(block_to_write, BLOCKSIZE, 1, disk);
             free(block_to_write);
