@@ -47,8 +47,7 @@ void write_boot_block(FILE *disk) {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
     char *boot = malloc(SIZEOFBOOTBLOCK* sizeof(char) + 1);
     memset(boot, 0, SIZEOFBOOTBLOCK + 1);
-    boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
-    boot = '';
+    strcpy(boot, "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot");
     free(boot);
 //    fwrite(boot, SIZEOFBOOTBLOCK, 1, disk);
 
@@ -126,7 +125,7 @@ void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
     long padding_value =
             num_blocks_inodes * BLOCKSIZE - num_inodes * sizeof(inode); //total bytes minus those taken by inodes
     printf("number of inodes: %d\n", num_inodes);
-    printf("number of bytes needed for inodes: %lld\n", num_blocks_inodes * BLOCKSIZE);
+    printf("number of bytes needed for inodes: %d\n", num_blocks_inodes * BLOCKSIZE);
     printf("size of inode: %lu\n", sizeof(inode));
     printf("number of bytes for the inodes %lu\n", num_inodes * sizeof(inode));
     write_padding(disk, padding_value);
