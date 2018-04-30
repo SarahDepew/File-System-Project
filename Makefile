@@ -1,4 +1,7 @@
-all: format filesystem test 
+all: format filesystem test test_mount_read_write
+
+test_mount_read_write: fmount_read_write.c
+	gcc -g -ggdb -o test_mount_read_write fmount_read_write.c -L. -lfile
 
 format: format.c
 	gcc -g -ggdb -o format format.c -lm

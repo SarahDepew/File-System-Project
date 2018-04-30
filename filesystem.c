@@ -1,7 +1,3 @@
-//
-// Created by Sarah Depew on 4/25/18.
-//
-
 #include "filesystem.h"
 #include "boolean.h"
 #include "stdlib.h"
@@ -15,7 +11,7 @@ inode *root_inode;
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
-        mounted_disks[i] = malloc(sizeof(mount_table_entry));
+        mounted_disks[i] = (mount_table_entry*)malloc(sizeof(mount_table_entry));
         mounted_disks[i]->free_spot = TRUE;
         mounted_disks[i]->superblock1 = malloc(sizeof(superblock));
     }
@@ -48,10 +44,10 @@ boolean shutdown() {
 
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     //open the disk
+    setup();
     //TODO: check that the disk image actually exists...
     //TODO: actually do something with mounting_point value passed in...location to mount (NOT ALWAYS ROOT!)
     int free_index = -1;
-
     //look for empty index into fmount table
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
         if (mounted_disks[i]->free_spot == TRUE) {
@@ -61,7 +57,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     }
 
     if (free_index != -1) {
-        *mount_table_index = free_index;
+        mount_table_index = &free_index;
         FILE *file_to_mount = fopen(disk_img, "rb+");
         FILE *current_disk = file_to_mount;
         if (current_disk == NULL){
@@ -81,6 +77,15 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
         current_mounted_disk = mounted_disks[free_index];
         print_superblock(mounted_disks[free_index]->superblock1);
+        //for testing: find data block
+        superblock* sp = mounted_disks[free_index]->superblock1;
+        void* data = (sp->data_offset)*BLOCKSIZE + file_to_mount;
+        printf("%p\n",data );
+        // void* data_content = malloc(sizeof(BLOCKSIZE));
+        // memcpy(data_content, data, BLOCKSIZE);
+        // printf("%s\n", "-------------");
+        // printf("%s\n", (char*)data_content);
+        // free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
         return TRUE;
@@ -205,6 +210,11 @@ boolean f_stat(char *filepath, stat *st) {
 
   return TRUE;
 }
+
+//filepath must be absolute path
+// validity* checkvalidity(char* filepath){
+//   //parse filepath with '/'
+// }
 
 void print_inode (inode *entry) {
   printf("disk identifier: %d\n", entry->disk_identifier);
