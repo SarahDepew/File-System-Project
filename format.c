@@ -63,14 +63,12 @@ void write_super_block(int data_offset) {
     free(superblock1);
 
     //write the remaining bytes at the end of the file
-    int bytes_remaining_superblock = SIZEOFSUPERBLOCK-sizeof(superblock);
-    void *remaining_space = (void*)malloc(sizeof(bytes_remaining_superblock));
+    int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
+    void *remaining_space = (void *) malloc(sizeof(bytes_remaining_superblock));
+    printf("bytes remaining: %d\n", bytes_remaining_superblock);
 //    fwrite(remaining_space, bytes_remaining_superblock,1, disk);
-//    printf("bytes remaining: %d\n", bytes_remaining_superblock);
+
     free(remaining_space);
-
-
-
 }
 
 //Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
