@@ -28,29 +28,31 @@
 char *flag = "-s";
 char *hash = "#";
 char *deliminator = " ";
+char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+FILE *disk;
 
 void help() {
     printf("Use format as follows: format <name of file to format>\n");
 }
 
-//Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
-void write_disk(char *file_name, float file_size) {
-    long long int total_bytes = file_size * 1000000; //convert mb to bytes
-    FILE *disk = fopen(file_name, "wb+"); //open the disk to write
+void open_disk(char *file_name) {
+    disk = fopen(file_name, "wb+"); //open the disk to write
 
-    //compute the number of inodes
-    //file_size of disksize right? Yes
-    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE);
-    //ROSE: why is it of long type? should be pretty small? TODO
-    long long int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE);
-    num_inodes = num_blocks_for_inodes * BLOCKSIZE / sizeof(inode);
-    printf("num_inodes: %d\n", num_inodes);
-    //write boot block
-    //string has a null at the end so should add 1 to the size
-    char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+}
+
+void close_disk() {
+    close(disk);
+}
+
+void write_boot_block() {
+    //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
+    printf("string length: %lu\n", strlen(boot));
     fwrite(boot, strlen(boot), 1, disk);
-    //write superblock
-    superblock *superblock1 = malloc(sizeof(superblock)*sizeof(char));
+}
+
+void write_super_block() {
+    //write the superblock
+    superblock *superblock1 = malloc(sizeof(superblock));
     superblock1->size = BLOCKSIZE;
     superblock1->data_offset = num_blocks_for_inodes; //this is data region offset
     superblock1->inode_offset = 0;
@@ -58,12 +60,38 @@ void write_disk(char *file_name, float file_size) {
     superblock1->free_inode = 0;
     superblock1->root_dir = 0; //default to first inode being the root directory
     fwrite(superblock1, sizeof(superblock), 1, disk);
+    free(superblock1);
+
+    //write the remaining bytes at the end of the file
     int bytes_remaining_superblock = SIZEOFSUPERBLOCK-sizeof(superblock);
-    void *remaining_space = (void*)malloc(sizeof(bytes_remaining_superblock)*sizeof(char));
+    void *remaining_space = (void*)malloc(sizeof(bytes_remaining_superblock));
     fwrite(remaining_space, bytes_remaining_superblock,1, disk);
     printf("bytes remaining: %d\n", bytes_remaining_superblock);
     free(remaining_space);
-    free(superblock1);
+
+}
+
+//Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
+void write_disk(char *file_name, float file_size) {
+    long long int total_bytes = file_size * 1000000; //convert mb to bytes
+
+    //write boot block
+    write_boot_block();
+
+    //write superblock
+    write_super_block();
+
+
+
+
+/*
+
+    //compute the number of inodes
+    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE);
+    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE);
+    num_inodes = num_blocks_for_inodes * BLOCKSIZE / sizeof(inode);
+    printf("num_inodes: %d\n", num_inodes);
+
 
     //write inode region
     inode *inodes[num_inodes];
@@ -138,9 +166,10 @@ void write_disk(char *file_name, float file_size) {
         fwrite(block_to_write, BLOCKSIZE, 1, disk);
         free(block_to_write);
     }
+    */
 
     //done writing, so close the disk
-    fclose(disk);
+    close_disk();
 }
 
 /*
