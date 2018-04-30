@@ -7,7 +7,7 @@
 
 #include "boolean.h"
 #include "stdio.h"
-
+#include "string.h"
 
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
@@ -17,6 +17,7 @@
 #define MOUNTTABLESIZE 20
 #define SIZEOFSUPERBLOCK 512
 #define SIZEOFBOOTBLOCK 512
+#define BLOCKSIZE 512
 
 enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
@@ -126,6 +127,12 @@ typedef struct permission_value {
     struct cluster *cluster_others;
 } permission_value;
 
+//TODO: rethink
+typedef struct validity{
+    boolean valid;
+    boolean dir_valid;
+}validity;
+
 /* Methods */
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
 int f_open(char* filepath, int access, permission_value *permissions);
@@ -141,4 +148,6 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 
+//filepath must be absolute path
+validity* checkvalidity(char *filepath);
 #endif //HW7_FILESYSTEM_H

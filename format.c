@@ -41,7 +41,7 @@ void write_disk(char *file_name, float file_size) {
     //compute the number of inodes
     //file_size of disksize right? Yes
     int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE);
-    //why is it of long type? should be pretty small? TODO
+    //ROSE: why is it of long type? should be pretty small? TODO
     long long int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE);
     num_inodes = num_blocks_for_inodes * BLOCKSIZE / sizeof(inode);
     printf("num_inodes: %d\n", num_inodes);
@@ -71,10 +71,17 @@ void write_disk(char *file_name, float file_size) {
         inodes[i] = (inode*) malloc(sizeof(inode));
         inodes[i]->disk_identifier = 0;
         inodes[i]->parent_inode_index = -1;
+        if (i == 0){
+          // ROSE: this should be the root_dir node
+          inodes[i]->parent_inode_index = -1;
+          //pointing to the start of the data region
+          inodes[i]->dblocks[0] = 0;
+        }
         if (i == num_inodes - 1) {
             //make the last inode have a next of -1 to show end of free list
             inodes[i]->next_inode = -1;
         } else {
+          //ROSE: I don't think this is right
             inodes[i]->next_inode = i + 1;
         }
         inodes[i]->size = 0;
@@ -114,6 +121,14 @@ void write_disk(char *file_name, float file_size) {
     for (int j = 0; j < num_data_blocks; j++) {
         //create the list before writing to the file!
         void *block_to_write = malloc(BLOCKSIZE); //malloc enough memory
+        if (j == 0){
+          // the root dir data data_region. ALL TEMP
+          printf("sizeof: %d\n", sizeof("fin"));
+          printf("strlen: %d\n", strlen("fin"));
+          memcpy( block_to_write,"bin",sizeof("bin"));
+          printf("%s\n", block_to_write);
+          superblock1->free_block += 1;
+        }
         // block_to_write = memset(block_to_write, sizeof(block_to_write), '0');
         if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
