@@ -67,7 +67,7 @@ void write_super_block(int data_offset) {
     void *remaining_space = (void*)malloc(sizeof(bytes_remaining_superblock));
 //    fwrite(remaining_space, bytes_remaining_superblock,1, disk);
 //    printf("bytes remaining: %d\n", bytes_remaining_superblock);
-//    free(remaining_space);
+    free(remaining_space);
 
 
 
