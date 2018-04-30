@@ -52,7 +52,6 @@ void write_boot_block() {
 
 void write_super_block(int data_offset) {
     //write the superblock
-    int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
     superblock *superblock1 = malloc(sizeof(superblock));
     superblock1->size = BLOCKSIZE;
     superblock1->data_offset = data_offset; //this is data region offset
@@ -60,15 +59,14 @@ void write_super_block(int data_offset) {
     superblock1->free_block = 0;
     superblock1->free_inode = 0;
     superblock1->root_dir = 0; //default to first inode being the root directory
-    fwrite(superblock1, sizeof(superblock) + bytes_remaining_superblock, 1, disk);
+    fwrite(superblock1, sizeof(superblock), 1, disk);
     free(superblock1);
 
     //write the remaining bytes at the end of the file
-//    int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
-//    void *remaining_space = (void *) malloc(sizeof(bytes_remaining_superblock));
-//    printf("bytes remaining: %d\n", bytes_remaining_superblock);
-//    fwrite(remaining_space, bytes_remaining_superblock, 1, disk);
-//    free(remaining_space);
+    int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
+    char *padding_space = " ";
+    printf("bytes remaining: %d\n", bytes_remaining_superblock);
+    fwrite(padding_space, 1, bytes_remaining_superblock, disk);
 }
 
 //Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
