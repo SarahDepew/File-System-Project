@@ -133,7 +133,7 @@ void write_disk(char *file_name, float file_size) {
     FILE *disk = fopen(file_name, "wb+"); //open the disk to write
 
     //write boot block
-    write_boot_block(disk);
+//    write_boot_block(disk);
 
     //write superblock
     //compute the number of inodes, so that you have the data region offset
