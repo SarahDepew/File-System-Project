@@ -121,20 +121,19 @@ void write_disk(char *file_name, float file_size) {
     for (int j = 0; j < num_data_blocks; j++) {
         //create the list before writing to the file!
         void *block_to_write = malloc(BLOCKSIZE); //malloc enough memory
+        // block_to_write = memset(block_to_write, sizeof(block_to_write), '0');
         if (j == 0){
           // the root dir data data_region. ALL TEMP
-          printf("sizeof: %d\n", sizeof("fin"));
-          printf("strlen: %d\n", strlen("fin"));
-          memcpy( block_to_write,"bin",sizeof("bin"));
-          printf("%s\n", block_to_write);
+          memcpy( block_to_write+sizeof(int),"user",sizeof("user"));
           superblock1->free_block += 1;
         }
-        // block_to_write = memset(block_to_write, sizeof(block_to_write), '0');
         if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
         } else {
             ((block *) block_to_write)->next_free_block = j + 1;
         }
+        if (j==0)
+        printf("%s\n", block_to_write+sizeof(int));
 
         fwrite(block_to_write, BLOCKSIZE, 1, disk);
         free(block_to_write);

@@ -3,7 +3,7 @@
 #include "stdlib.h"
 
 int main(){
-  boolean b = f_mount("DISK","",0);
+  boolean b = f_mount("DISKROOT","",0);
   printf("%d\n", b);
-  
+
 }
