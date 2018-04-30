@@ -14,4 +14,4 @@ filesystem:
 	gcc -g -ggdb -o libfile.so filesystem.o -shared
 
 clean:
-	rm *.o
+	rm *.o format libfile.so
