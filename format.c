@@ -48,7 +48,7 @@ void write_boot_block(FILE *disk) {
     char *boot = malloc(SIZEOFBOOTBLOCK* sizeof(char) + 1);
     memset(boot, 0, SIZEOFBOOTBLOCK + 1);
     boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
-    boot = NULL;
+    boot = '';
     free(boot);
 //    fwrite(boot, SIZEOFBOOTBLOCK, 1, disk);
 
