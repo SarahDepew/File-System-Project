@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
+#include <string.h>
 #include "boolean.h"
 #include "filesystem.h"
 
@@ -44,7 +45,9 @@ void close_disk() {
 
 void write_boot_block(FILE *disk) {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
-    char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+    char *boot = malloc(sizeof(char)*SIZEOFBOOTBLOCK);
+    memset(boot, 0, SIZEOFBOOTBLOCK);
+    boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
     printf("string length: %lu\n", strlen(boot));
     fwrite(boot, strlen(boot), 1, disk);
 }
@@ -62,6 +65,7 @@ void write_padding(FILE *disk, int amount_padding) {
 void write_super_block(int data_offset, FILE *disk) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
+//    memset()
     superblock1->size = BLOCKSIZE;
     superblock1->data_offset = data_offset; //this is data region offset
     superblock1->inode_offset = 0;
@@ -133,7 +137,7 @@ void write_disk(char *file_name, float file_size) {
     FILE *disk = fopen(file_name, "wb+"); //open the disk to write
 
     //write boot block
-//    write_boot_block(disk);
+    write_boot_block(disk);
 
     //write superblock
     //compute the number of inodes, so that you have the data region offset
@@ -144,10 +148,10 @@ void write_disk(char *file_name, float file_size) {
     printf("num_inodes: %d\n", num_inodes);
     printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
 
-    write_super_block(num_blocks_for_inodes, disk);
+//    write_super_block(num_blocks_for_inodes, disk);
 
     //write inode region
-    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
+//    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
 
 /*
     //write data region
