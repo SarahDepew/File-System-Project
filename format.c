@@ -50,7 +50,7 @@ void write_boot_block(FILE *disk) {
     boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
     printf("string length: %lu\n", strlen(boot));
     fwrite(boot, strlen(boot), 1, disk);
-    free(boot);
+//    free(boot);
 }
 
 void write_padding(FILE *disk, int amount_padding) {
