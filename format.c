@@ -28,7 +28,6 @@
 char *flag = "-s";
 char *hash = "#";
 char *deliminator = " ";
-char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
 FILE *disk;
 
 void help() {
@@ -37,20 +36,30 @@ void help() {
 
 void open_disk(char *file_name) {
     disk = fopen(file_name, "wb+"); //open the disk to write
-
 }
 
 void close_disk() {
     fclose(disk);
 }
 
-void write_boot_block() {
+void write_boot_block(FILE *disk) {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
+    char boot[] = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
     printf("string length: %lu\n", strlen(boot));
     fwrite(boot, strlen(boot), 1, disk);
 }
 
-void write_super_block(int data_offset) {
+void write_padding(FILE *disk, int amount_padding) {
+    char *padding = malloc(amount_padding * sizeof(char));
+    for (int i = 0; i < amount_padding; i++) {
+        padding[i] = ' ';
+    }
+
+    fwrite((void *) padding, amount_padding, 1, disk);
+    free(padding);
+}
+
+void write_super_block(int data_offset, FILE *disk) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
     superblock1->size = BLOCKSIZE;
@@ -62,55 +71,31 @@ void write_super_block(int data_offset) {
     fwrite(superblock1, sizeof(superblock), 1, disk);
     free(superblock1);
 
+    //TODO: check with dianna or rachel about how we do this...
     //write the remaining bytes at the end of the file
     int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
-    char *padding_space = " ";
     printf("bytes remaining: %d\n", bytes_remaining_superblock);
-    fwrite(padding_space, 1, bytes_remaining_superblock, disk);
+    write_padding(disk, bytes_remaining_superblock);
 }
 
-//Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
-void write_disk(char *file_name, float file_size) {
-    long long int total_bytes = file_size * 1000000; //convert mb to bytes
-
-    //open the disk first
-    open_disk(file_name);
-
-    //write boot block
-    write_boot_block();
-
-    //write superblock
-    //compute the number of inodes, so that you have the data region offset
-    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE); //compute the minimum number of inodes
-    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
-    num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE / sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
-
-    printf("num_inodes: %d\n", num_inodes);
-    printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
-
-    write_super_block(num_blocks_for_inodes);
-
-
-
-
-/*
+void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
     //write inode region
     inode *inodes[num_inodes];
     for (int i = 0; i < num_inodes; i++) {
-        inodes[i] = (inode*) malloc(sizeof(inode));
+        inodes[i] = (inode *) malloc(sizeof(inode));
         inodes[i]->disk_identifier = 0;
         inodes[i]->parent_inode_index = -1;
-        if (i == 0){
-          // ROSE: this should be the root_dir node
-          inodes[i]->parent_inode_index = -1;
-          //pointing to the start of the data region
-          inodes[i]->dblocks[0] = 0;
+        if (i == 0) {
+            // ROSE: this should be the root_dir node
+            inodes[i]->parent_inode_index = -1;
+            //pointing to the start of the data region
+            inodes[i]->dblocks[0] = 0;
         }
         if (i == num_inodes - 1) {
             //make the last inode have a next of -1 to show end of free list
             inodes[i]->next_inode = -1;
         } else {
-          //ROSE: I don't think this is right
+            //ROSE: I don't think this is right
             inodes[i]->next_inode = i + 1;
         }
         inodes[i]->size = 0;
@@ -129,17 +114,42 @@ void write_disk(char *file_name, float file_size) {
         fwrite(inodes[i], sizeof(inode), 1, disk);
         free(inodes[i]);
     }
+
     //padding if needed.
     long padding_value =
-            num_blocks_for_inodes * BLOCKSIZE - num_inodes * sizeof(inode); //total bytes minus those taken by inodes
+            num_blocks_inodes * BLOCKSIZE - num_inodes * sizeof(inode); //total bytes minus those taken by inodes
     printf("number of inodes: %d\n", num_inodes);
-    printf("number of bytes needed for inodes: %lld\n", num_blocks_for_inodes * BLOCKSIZE);
+    printf("number of bytes needed for inodes: %lld\n", num_blocks_inodes * BLOCKSIZE);
     printf("size of inode: %lu\n", sizeof(inode));
     printf("number of bytes for the inodes %lu\n", num_inodes * sizeof(inode));
-    void *padding = malloc(sizeof(padding_value));
-    fwrite(padding, padding_value, 1, disk);
-    free(padding);
+    write_padding(disk, padding_value);
+}
 
+//Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
+void write_disk(char *file_name, float file_size) {
+    long long int total_bytes = file_size * 1000000; //convert mb to bytes
+
+    //open the disk first
+    FILE *disk = fopen(file_name, "wb+"); //open the disk to write
+
+    //write boot block
+    write_boot_block(disk);
+
+    //write superblock
+    //compute the number of inodes, so that you have the data region offset
+    int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE); //compute the minimum number of inodes
+    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
+    num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE / sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
+
+    printf("num_inodes: %d\n", num_inodes);
+    printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
+
+    write_super_block(num_blocks_for_inodes, disk);
+
+    //write inode region
+    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
+
+/*
     //write data region
     //TODO: make sure that the data blocks are linked into a list!
     long bytes_left_for_data_blocks =
@@ -169,7 +179,7 @@ void write_disk(char *file_name, float file_size) {
     }
     */
     //done writing, so close the disk
-    close_disk();
+    fclose(disk);
 }
 
 /*
@@ -216,10 +226,6 @@ boolean parseCmd(char *integer, long long int *MB) {
 
 //Please note that we are assuming a valid input is given here; specifically, we are assuming a valid number is put
 int main(int argc, char *argv[]) {
-    printf("number of arguments: %d\n", argc);
-    printf("second argument: %s\n", argv[1]);
-    printf("third argument: %s\n", argv[2]);
-
     if (argc != MINNUMARGUMENTS && argc != MAXNUMARGUMENTS) {
         help();
     } else {
