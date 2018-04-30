@@ -50,6 +50,7 @@ void write_boot_block(FILE *disk) {
     boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
     printf("string length: %lu\n", strlen(boot));
     fwrite(boot, strlen(boot), 1, disk);
+    free(boot);
 }
 
 void write_padding(FILE *disk, int amount_padding) {
@@ -87,6 +88,7 @@ void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
     inode *inodes[num_inodes];
     for (int i = 0; i < num_inodes; i++) {
         inodes[i] = (inode *) malloc(sizeof(inode));
+        memset(inodes[i], 0, sizeof(inode));
         inodes[i]->disk_identifier = 0;
         inodes[i]->parent_inode_index = -1;
         if (i == 0) {
@@ -151,7 +153,7 @@ void write_disk(char *file_name, float file_size) {
     write_super_block(num_blocks_for_inodes, disk);
 
     //write inode region
-//    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
+    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
 
 /*
     //write data region
