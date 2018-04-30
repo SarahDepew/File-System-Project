@@ -76,7 +76,7 @@ void write_disk(char *file_name, float file_size) {
     long long int total_bytes = file_size * 1000000; //convert mb to bytes
 
     //open the disk first
-    open_disk();
+    open_disk(file_name);
 
     //write boot block
     write_boot_block();
