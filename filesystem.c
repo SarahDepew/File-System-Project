@@ -72,20 +72,17 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         //skip the boot block
         mounted_disks[free_index]->free_spot = FALSE;
         mounted_disks[free_index]->disk_image_ptr = file_to_mount;
-        rewind(file_to_mount);
         fseek(file_to_mount, SIZEOFBOOTBLOCK, SEEK_SET); //place the file pointer at the superblock
         fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
         current_mounted_disk = mounted_disks[free_index];
         print_superblock(mounted_disks[free_index]->superblock1);
         //for testing: find data block
         superblock* sp = mounted_disks[free_index]->superblock1;
-        void* data = (sp->data_offset)*BLOCKSIZE + file_to_mount;
-        printf("%p\n",data );
-        // void* data_content = malloc(sizeof(BLOCKSIZE));
-        // memcpy(data_content, data, BLOCKSIZE);
-        // printf("%s\n", "-------------");
-        // printf("%s\n", (char*)data_content);
-        // free(data_content);
+        fseek(file_to_mount,(sp->data_offset)*sp->size+SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK, SEEK_SET);
+        void* data_content = malloc(sizeof(sp->size));
+        fread(data_content, sp->size, 1, file_to_mount);
+        printf("%s\n", data_content+sizeof(int));
+        free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
         return TRUE;
