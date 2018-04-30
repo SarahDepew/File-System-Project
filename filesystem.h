@@ -13,7 +13,7 @@
 #define N_IBLOCKS 4
 //change this to OPENFILE_MAX?
 #define FILETABLESIZE 20
-#define FILENAME_MAX 40
+#define FILENAMEMAX 40
 #define MOUNTTABLESIZE 20
 #define SIZEOFSUPERBLOCK 512
 #define SIZEOFBOOTBLOCK 512
@@ -39,7 +39,7 @@ typedef struct block {
 /* Directory entry struct modeled after V7 */
 typedef struct directory_entry {
     int inode_index; //pointer to inode
-    char filename[FILENAME_MAX]; //simply the file name and not the absolute path
+    char filename[FILENAMEMAX]; //simply the file name and not the absolute path
 } directory_entry;
 
 //TODO: see what we actually need here/add a boot block
