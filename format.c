@@ -43,7 +43,7 @@ void close_disk() {
     fclose(disk);
 }
 
-void write_boot_block(FILE *disk) {
+void write_boot_block() {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
     char *boot = malloc(SIZEOFBOOTBLOCK * sizeof(char) + 1);
     memset(boot, 0, SIZEOFBOOTBLOCK + 1);
@@ -53,7 +53,7 @@ void write_boot_block(FILE *disk) {
     free(boot);
 }
 
-void write_padding(FILE *disk, int amount_padding) {
+void write_padding(int amount_padding) {
     char *padding = malloc(amount_padding * sizeof(char));
     for (int i = 0; i < amount_padding; i++) {
         padding[i] = ' ';
@@ -63,27 +63,26 @@ void write_padding(FILE *disk, int amount_padding) {
     free(padding);
 }
 
-void write_super_block(int data_offset, FILE *disk) {
+void write_super_block(int data_offset) {
     //write the superblock
     superblock *superblock1 = malloc(sizeof(superblock));
     memset(superblock1, 0, sizeof(superblock));
     superblock1->size = BLOCKSIZE;
     superblock1->data_offset = data_offset; //this is data region offset
     superblock1->inode_offset = 0;
-    superblock1->free_block = 0;
-    superblock1->free_inode = 0;
+    superblock1->free_block = 1; //the first block is the root directory
+    superblock1->free_inode = 1; //the first inode is the root directory
     superblock1->root_dir = 0; //default to first inode being the root directory
     fwrite(superblock1, sizeof(superblock), 1, disk);
     free(superblock1);
 
-    //TODO: check with dianna or rachel about how we do this...
     //write the remaining bytes at the end of the file
     int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
     printf("bytes remaining: %d\n", bytes_remaining_superblock);
-    write_padding(disk, bytes_remaining_superblock);
+    write_padding(bytes_remaining_superblock);
 }
 
-void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
+void write_inode_region(int num_inodes, int num_blocks_inodes) {
     //write inode region
     inode *inodes[num_inodes];
     for (int i = 0; i < num_inodes; i++) {
@@ -95,8 +94,28 @@ void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
             // ROSE: this should be the root_dir node
             inodes[i]->parent_inode_index = -1;
             //pointing to the start of the data region
-            inodes[i]->dblocks[0] = 0;
+            inodes[i]->dblocks[0] = 0; //the first block is the root directory
+            inodes[i]->next_inode = -1; //unused in occupied inodes
+
+            inodes[i]->size = 2* sizeof(directory_entry); //this is how we can tell where we are in the block to continue writing to...
+            inodes[i]->uid = 0;
+            inodes[i]->gid = 0;
+            //TODO: modify these values, since this is when directory is created...
+            inodes[i]->ctime = 0;
+            inodes[i]->mtime = 0;
+            inodes[i]->atime = 0;
+            inodes[i]->type = DIR;
+            inodes[i]->permission = 0;
+            inodes[i]->inode_index = i; //this is the only value that won't be replaced
+            inodes[i]->i2block = -1;
+            inodes[i]->i3block = -1;
+            inodes[i]->last_block_index = 0; //since the only block is this block...
+
+            fwrite(inodes[i], sizeof(inode), 1, disk);
+            free(inodes[i]);
+            continue; //want to skip the values, below
         }
+
         if (i == num_inodes - 1) {
             //make the last inode have a next of -1 to show end of free list
             inodes[i]->next_inode = -1;
@@ -128,7 +147,52 @@ void write_inode_region(FILE *disk, int num_inodes, int num_blocks_inodes) {
     printf("number of bytes needed for inodes: %d\n", num_blocks_inodes * BLOCKSIZE);
     printf("size of inode: %lu\n", sizeof(inode));
     printf("number of bytes for the inodes %lu\n", num_inodes * sizeof(inode));
-    write_padding(disk, padding_value);
+    write_padding(padding_value);
+}
+
+void write_data_region(long total_bytes, int num_blocks_for_inodes) {
+    //write data region
+    //TODO: make sure that the data blocks are linked into a list! (unit test this...)
+    long bytes_left_for_data_blocks =
+            total_bytes - SIZEOFSUPERBLOCK - SIZEOFBOOTBLOCK - num_blocks_for_inodes * BLOCKSIZE;
+    long num_data_blocks = ceilf((float) bytes_left_for_data_blocks / (float) BLOCKSIZE);
+    printf("num data blocks %ld\n", num_data_blocks);
+
+    for (int j = 0; j < num_data_blocks; j++) {
+        //create the list before writing to the file!
+        void *block_to_write = malloc(BLOCKSIZE); //malloc enough memory
+        memset(block_to_write, 0, BLOCKSIZE);
+
+        if (j == 0) {
+            // the root dir data data_region. ALL TEMP
+//            memcpy(block_to_write + sizeof(int), "user", sizeof("user")); //TODO: ask Rose what she's doing here...
+//            directory_entry *dot = malloc(sizeof(directory_entry));
+//            dot->inode_index = 0;
+//            dot->filename = ".";
+//
+//            directory_entry *dot_dot = malloc(sizeof(directory_entry));
+//            dot_dot->inode_index = 0;
+//            dot_dot->filename = "..";
+
+            directory_entry *array = (directory_entry *) block_to_write;
+            array[0].inode_index = 0;
+            strcpy(array[0].filename, ".");
+            array[1].inode_index = 0;
+            strcpy(array[1].filename, "..");
+
+//            free(dot);
+//            free(dot_dot);
+        }
+
+        if (j == num_data_blocks - 1) {
+            ((block *) block_to_write)->next_free_block = -1;
+        } else {
+            ((block *) block_to_write)->next_free_block = j + 1;
+        }
+
+        fwrite(block_to_write, BLOCKSIZE, 1, disk);
+        free(block_to_write);
+    }
 }
 
 //Method that writes the disk image with the given size (filename is name of file and filesize is disk size to generate in mb)
@@ -136,10 +200,10 @@ void write_disk(char *file_name, float file_size) {
     long long int total_bytes = file_size * 1000000; //convert mb to bytes
 
     //open the disk first
-    FILE *disk = fopen(file_name, "wb+"); //open the disk to write
+    open_disk(file_name);
 
     //write boot block
-    write_boot_block(disk);
+    write_boot_block();
 
     //write superblock
     //compute the number of inodes, so that you have the data region offset
@@ -150,42 +214,16 @@ void write_disk(char *file_name, float file_size) {
     printf("num_inodes: %d\n", num_inodes);
     printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
 
-    write_super_block(num_blocks_for_inodes, disk);
+    write_super_block(num_blocks_for_inodes);
 
     //write inode region
-    write_inode_region(disk, num_inodes, num_blocks_for_inodes);
+    write_inode_region(num_inodes, num_blocks_for_inodes);
 
-/*
     //write data region
-    //TODO: make sure that the data blocks are linked into a list!
-    long bytes_left_for_data_blocks =
-            total_bytes - SIZEOFSUPERBLOCK - SIZEOFBOOTBLOCK - num_blocks_for_inodes * BLOCKSIZE;
-    long num_data_blocks = ceilf((float) bytes_left_for_data_blocks / (float) BLOCKSIZE);
-    printf("num data blocks %ld\n", num_data_blocks);
+    write_data_region(total_bytes, num_blocks_for_inodes);
 
-    for (int j = 0; j < num_data_blocks; j++) {
-        //create the list before writing to the file!
-        void *block_to_write = malloc(BLOCKSIZE); //malloc enough memory
-        // block_to_write = memset(block_to_write, sizeof(block_to_write), '0');
-        if (j == 0){
-          // the root dir data data_region. ALL TEMP
-          memcpy( block_to_write+sizeof(int),"user",sizeof("user"));
-          superblock1->free_block += 1;
-        }
-        if (j == num_data_blocks - 1) {
-            ((block *) block_to_write)->next_free_block = -1;
-        } else {
-            ((block *) block_to_write)->next_free_block = j + 1;
-        }
-        if (j==0)
-        printf("%s\n", block_to_write+sizeof(int));
-
-        fwrite(block_to_write, BLOCKSIZE, 1, disk);
-        free(block_to_write);
-    }
-    */
     //done writing, so close the disk
-    fclose(disk);
+    close_disk();
 }
 
 /*
