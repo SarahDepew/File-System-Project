@@ -45,7 +45,7 @@ void close_disk() {
 
 void write_boot_block(FILE *disk) {
     //string has a null at the end so should add 1 to the size //TODO: I don't think this matters...
-    char *boot = malloc(SIZEOFBOOTBLOCK* sizeof(char));
+    char *boot = malloc(SIZEOFBOOTBLOCK* sizeof(char) + 1);
     memset(boot, 0, SIZEOFBOOTBLOCK);
     boot = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
     fwrite(boot, strlen(boot), 1, disk);
