@@ -173,6 +173,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
             strcpy(directories[1].filename, "..");
 
             memcpy(block_to_write, directories, sizeof(directory_entry) *2);
+            free(directories);
         } else if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
         } else {
