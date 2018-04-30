@@ -44,7 +44,6 @@ boolean shutdown() {
 
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     //open the disk
-    setup();
     //TODO: check that the disk image actually exists...
     //TODO: actually do something with mounting_point value passed in...location to mount (NOT ALWAYS ROOT!)
     int free_index = -1;
@@ -127,7 +126,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
 
 int f_write(void* buffer, int size, int ntimes, int fd ){
     //check if the file accociated with this fd has been open
-    if (file_table[fd] == NULL){
+    if (file_table[fd] ->free_file == TRUE){
       printf("%s\n", "The file must be open before write");
       exit(EXIT_FAILURE);
     }
@@ -150,7 +149,8 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
       int free_byte = sp->size - start_byte;
       //calculate the right startplace_disk using file_size. TODO
       //writing to the first dblock right now. Need to change in the future. TODO.
-      void* startplace_disk = (void*)(sp) +((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
+      //WARNING: consider the first int that links every block together
+      void* startplace_disk = (void*)(sp) + sizeof(int)+((file_table[fd]->file_inode->dblocks[0])*sp->size + (sp->data_offset*sp->size));
       while (lefttowrite > 0){
         //trace the disk to find the data block
         fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
