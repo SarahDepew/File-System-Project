@@ -98,10 +98,9 @@ typedef struct inode {
 
 typedef struct mount_table_entry {
     boolean free_spot;
-    inode *dir_mounted_inode; //what was just mounted
     inode *mounted_inode; //directory at which this was mounted
     FILE *disk_image_ptr;
-    // TODO. a dislsize field
+    // TODO. a disksize field
     superblock *superblock1;
 } mount_table_entry;
 
