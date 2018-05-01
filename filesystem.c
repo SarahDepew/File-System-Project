@@ -312,7 +312,7 @@ directory_entry* f_opendir(char* filepath){
       ;
     }
     file_table[i] = parent_table_entry;
-    // free(entry);
+    printf("%s\n", "-----");
     return entry;
 }
 
