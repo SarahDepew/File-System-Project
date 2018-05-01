@@ -78,9 +78,9 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         //for testing: find data block
         superblock* sp = mounted_disks[free_index]->superblock1;
         fseek(file_to_mount,(sp->data_offset)*sp->size+SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK, SEEK_SET);
-        void* data_content = malloc(sizeof(sp->size));
+        void* data_content = malloc(sizeof(char)*sp->size);
         fread(data_content, sp->size, 1, file_to_mount);
-        printf("%s\n", data_content+sizeof(int));
+        printf("%s\n", (char*)data_content+sizeof(int));
         free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
@@ -251,4 +251,79 @@ void print_superblock(superblock *superblock1) {
     printf("free inode: %d\n", superblock1->free_inode);
     printf("free block: %d\n", superblock1->free_block);
     printf("root dir: %d\n", superblock1->root_dir);
+}
+
+directory_entry* f_opendir(char* filepath){
+    //parse the filepath
+    char path[strlen(filepath)];
+    char copy[strlen(filepath)];
+    strcpy(path, filepath);
+    strcpy(copy, filepath);
+    char* s  = "/'";
+    char* token;
+    //calculate the level of depth
+    token = strtok(copy, s);
+    int count = 0;
+    while(token != NULL){
+      count ++;
+      token = strtok(NULL, s);
+    }
+    printf("%d\n", count);
+    token = strtok(path, s);
+    //create directory_entry for the root
+    directory_entry* entry = malloc(sizeof(directory_entry));
+    entry->inode_index = 0;
+    strcpy(entry->filename, "/");
+    directory_entry* dir_entry = NULL;
+    inode* root_node = get_inode(0);
+    // print_inode(root_node);
+    while((dir_entry = f_readir(entry)) == NULL  ){
+      //how do we tell if f_readir does not find anything. WARNING
+    }
+    //add root directory to the open_file_table. Assume it is found.
+    //if root alreay exists, should not add any more.
+    if (file_table[0] != NULL){
+      if (file_table[0]->free_file == TRUE){
+        file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
+        root_table_entry->free_file = FALSE;
+        root_table_entry->file_inode = root_node;
+        root_table_entry->byte_offset = 0;
+        file_table[0] = root_table_entry;
+      }
+    }
+    while(token != NULL && count > 1){
+      printf("%s\n", token);
+      while((dir_entry = f_readir(entry)) == NULL){
+        //how do we tell if f_readir does not find anything. WARNING
+      }
+      count -- ;
+      entry = dir_entry;
+      token = strtok(NULL, s);
+    }
+    //add to file_table
+    inode* parent_node = get_inode(entry->inode_index);
+    file_table_entry* parent_table_entry = malloc(sizeof(file_table_entry));
+    parent_table_entry->free_file = FALSE;
+    parent_table_entry->file_inode = parent_node;
+    parent_table_entry->byte_offset = 0;
+    //go through file_table and find a free spot
+    int i = 0;
+    for(; file_table[i] == FALSE; i++){
+      ;
+    }
+    file_table[i] = parent_table_entry;
+    printf("%s\n", "-----");
+    return entry;
+}
+
+directory_entry* f_readir(directory_entry* entry){
+
+}
+
+inode* get_inode(int index){
+  inode* node = malloc(sizeof(inode));
+  FILE *current_disk = current_mounted_disk->disk_image_ptr;
+  fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +index*sizeof(inode), SEEK_SET);
+  fread(node, sizeof(inode), 1, current_disk);
+  return node;
 }

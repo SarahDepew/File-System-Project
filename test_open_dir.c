@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(){
+int main() {
   setup();
-  int b = f_mount("DISKROOT","",0);
-  printf("%d\n", b);
+  f_mount("DISKDIR", "", 0);
+  f_opendir("/a/s/d/sf/'we'/5/46/");
   shutdown();
 }
