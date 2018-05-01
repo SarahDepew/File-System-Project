@@ -80,7 +80,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         fseek(file_to_mount,(sp->data_offset)*sp->size+SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK, SEEK_SET);
         void* data_content = malloc(sizeof(sp->size));
         fread(data_content, sp->size, 1, file_to_mount);
-        printf("%s\n", data_content+sizeof(int));
+        printf("%s\n", (char*)data_content+sizeof(int));
         free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
@@ -251,4 +251,17 @@ void print_superblock(superblock *superblock1) {
     printf("free inode: %d\n", superblock1->free_inode);
     printf("free block: %d\n", superblock1->free_block);
     printf("root dir: %d\n", superblock1->root_dir);
+}
+
+directory_entry* f_opendir(char* filepath){
+    //parse the filepath
+    const char s[2] = "/";
+    char* token = strtok(filepath, s);
+    while(token != NULL){
+      
+    }
+}
+
+directory_entry* f_readir(directory_entry* entry){
+
 }
