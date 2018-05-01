@@ -91,7 +91,8 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         inodes[i]->disk_identifier = 0;
         inodes[i]->parent_inode_index = -1;
         if (i == 0) {
-            inodes[i]->parent_inode_index = 0;
+            // ROSE: this should be the root_dir node
+            inodes[i]->parent_inode_index = -1;
             //pointing to the start of the data region
             inodes[i]->dblocks[0] = 0; //the first block is the root directory
             inodes[i]->next_inode = -1; //unused in occupied inodes
@@ -164,7 +165,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
-            directory_entry *directories = malloc(2*sizeof(directory_entry));
+            directory_entry *directories = malloc(3*sizeof(directory_entry));
             memset(directories, 0, 2*sizeof(directory_entry));
             directories[0].inode_index = 0;
             strcpy(directories[0].filename, ".");
@@ -172,7 +173,12 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
             directories[1].inode_index = 0;
             strcpy(directories[1].filename, "..");
 
-            memcpy(block_to_write, directories, sizeof(directory_entry) *2);
+            directories[2].inode_index = 1;
+            strcpy(directories[2].filename, "user.txt");
+
+            memcpy(block_to_write, directories, sizeof(directory_entry) *3);
+            printf("%d\n", *(int*)(block_to_write+sizeof(directory_entry)*2));
+            printf("%s\n", block_to_write+sizeof(int));
             free(directories);
         } else if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
@@ -180,6 +186,8 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
             ((block *) block_to_write)->next_free_block = j + 1;
         }
         fwrite(block_to_write, BLOCKSIZE, 1, disk);
+        if (j==0) printf("%d\n", *(int*)block_to_write );
+        if (j == 0) printf("%s\n", block_to_write+sizeof(int));
         free(block_to_write);
     }
 }

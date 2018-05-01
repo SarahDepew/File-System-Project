@@ -146,6 +146,8 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 
+directory_entry* f_opendir(char* filepath);
+directory_entry* f_readir(directory_entry* entry);
 //filepath must be absolute path
-validity* checkvalidity(char *filepath);
+// validity* checkvalidity(char *filepath);
 #endif //HW7_FILESYSTEM_H
