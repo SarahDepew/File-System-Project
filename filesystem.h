@@ -77,7 +77,6 @@ typedef struct stat {
 /* inode struct */
 typedef struct inode {
     unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal)) //TODO: ask dianna about this
-    //struct inode *parent;
     int parent_inode_index;
     int next_inode; /* index of next free inode */
     int size; /* number of bytes in file */
@@ -148,6 +147,8 @@ void print_superblock(superblock *superblock1);
 
 directory_entry* f_opendir(char* filepath);
 directory_entry* f_readir(directory_entry* entry);
+
+inode* get_inode(int index);
 //filepath must be absolute path
 // validity* checkvalidity(char *filepath);
 #endif //HW7_FILESYSTEM_H
