@@ -165,15 +165,15 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
-            directory_entry *directories = malloc(2*sizeof(directory_entry));
-            memset(directories, 0, 2*sizeof(directory_entry));
+            directory_entry *directories = malloc(2 * sizeof(directory_entry));
+            memset(directories, 0, 2 * sizeof(directory_entry));
             directories[0].inode_index = 0;
             strcpy(directories[0].filename, ".");
 
             directories[1].inode_index = 0;
             strcpy(directories[1].filename, "..");
 
-            memcpy(block_to_write, directories, sizeof(directory_entry) *2);
+            memcpy(block_to_write, directories, sizeof(directory_entry) * 2);
             free(directories);
         } else if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
@@ -199,8 +199,10 @@ void write_disk(char *file_name, float file_size) {
     //write superblock
     //compute the number of inodes, so that you have the data region offset
     int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE); //compute the minimum number of inodes
-    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) / (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
-    num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE / sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
+    int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) /
+                                      (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
+    num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE /
+                       sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
 
     printf("num_inodes: %d\n", num_inodes);
     printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
@@ -291,3 +293,5 @@ int main(int argc, char *argv[]) {
         }
     }
 }
+
+//TODO: write unit tests to ensure the disk image and regions are correct
