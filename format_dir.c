@@ -166,7 +166,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
             directory_entry *directories = malloc(3*sizeof(directory_entry));
-            memset(directories, 0, 2*sizeof(directory_entry));
+            memset(directories, 0, 3*sizeof(directory_entry));
             directories[0].inode_index = 0;
             strcpy(directories[0].filename, ".");
 
@@ -174,7 +174,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
             strcpy(directories[1].filename, "..");
 
             directories[2].inode_index = 1;
-            strcpy(directories[2].filename, "user.txt");
+            strcpy(directories[2].filename, "user");
 
             memcpy(block_to_write, directories, sizeof(directory_entry) *3);
             printf("%d\n", *(int*)(block_to_write+sizeof(directory_entry)*2));
@@ -185,6 +185,30 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
         } else {
             ((block *) block_to_write)->next_free_block = j + 1;
         }
+	//write the /user directory
+	if(j == 1){
+	  directory_entry* directories = malloc(sizeof(directory_entry));
+	  memset(directories, 0, sizeof(directory_entry));
+	  directories[0].inode_index = 0;
+	  strcpy(directories[0].filename, ".");
+	  
+	  directories[1].inode_index = 0;
+	  strcpy(directories[1].filename, "..");
+
+	  directories[2].inode_index = 2;
+	  strcpy(directories[2].filename, "test.txt");
+	  memcpy(block_to_write, directories, sizeof(directory_entry));
+	}
+	//write /user/test.txt data
+	if(j == 2){
+	  //need to decide where to store the filename. TODO.
+	  printf("%s\n", "++++++");
+	  //how to write a file to the disk. currently treating as string Should be with EOF? TODO
+	  char* data = "somethingsomething";
+	  memcpy(block_to_write, data, strlen(data)+1);
+	  memset(block_to_write+strlen(data), 0, 1);
+	  printf("%s\n", (char*)block_to_write);
+	}
         fwrite(block_to_write, BLOCKSIZE, 1, disk);
         if (j==0) printf("%d\n", *(int*)block_to_write );
         if (j == 0) printf("%s\n", block_to_write+sizeof(int));
