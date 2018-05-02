@@ -146,7 +146,7 @@ void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 
 directory_entry* f_opendir(char* filepath);
-directory_entry* f_readir(directory_entry* entry);
+directory_entry* f_readir(int index_into_file_table);
 
 inode* get_inode(int index);
 //filepath must be absolute path
