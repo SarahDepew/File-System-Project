@@ -100,7 +100,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
     //TODO: if this is a new file, then set permissions
 
-    //TODO: modify the filepath, so that it does not cantain filename
+    //get the filename and the path seperately
     char *filename;
     char *path = malloc(strlen(filepath));
     char path_copy[strlen(filepath)+1];
