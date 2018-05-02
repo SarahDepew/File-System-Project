@@ -100,6 +100,34 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
     //TODO: if this is a new file, then set permissions
 
+    //TODO: modify the filepath, so that it does not cantain filename
+    char *filename;
+    char *path = malloc(strlen(filepath));
+    char path_copy[strlen(filepath)+1];
+    char copy[strlen(filepath)+1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char* s  = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while(token != NULL){
+      count ++;
+      token = strtok(NULL, s);
+    }
+    printf("count : %d\n", count);
+    filename = strtok(path_copy, s);
+    while(count > 1){
+      count --;
+      path = strcat(path,"/");
+      path = strcat(path,filename);
+      filename = strtok(NULL,s);
+    }
+    printf("path: %s\n", path);
+    printf("filename: %s\n", filename);
+    directory_entry* dir = f_opendir(path);
+
+    //TODO: go into the dir_entry to find the inode of the file
     int index_of_inode = 0;
     //obtain the proper inode on the file //TODO: ask dianna how to do this? (page 326)
     file_table[0] = malloc(sizeof(file_table_entry));
@@ -120,8 +148,8 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     char buffer[21];
     fread(buffer, sizeof(char), 20, current_disk);
     buffer[20] = 0;
-    printf("%s\n", buffer);
-
+    // printf("%s\n", buffer);
+    free(path)
     return 0; //TODO: fix with actual return value
 }
 
@@ -256,8 +284,8 @@ void print_superblock(superblock *superblock1) {
 
 directory_entry* f_opendir(char* filepath){
     //parse the filepath
-    char path[strlen(filepath)];
-    char copy[strlen(filepath)];
+    char path[strlen(filepath)+1];
+    char copy[strlen(filepath)+1];
     strcpy(path, filepath);
     strcpy(copy, filepath);
     char* s  = "/'";
@@ -315,7 +343,12 @@ directory_entry* f_opendir(char* filepath){
         //remove the ith index from the table. NEED CHECK. ROSE
         free(file_table[i]);
       }else{
+        //root is always in the table. won't be removed.
         i = table_freehead;
+      }
+      if(found == FALSE){
+        printf("%s is not found\n",token);
+        exit(EXIT_FAILURE);
       }
       count -- ;
       entry = dir_entry;
@@ -328,10 +361,6 @@ directory_entry* f_opendir(char* filepath){
       file_table[i] = table_ent;
       //update table_freehead
       token = strtok(NULL, s);
-      if(found == FALSE){
-        printf("%s is not found\n",token);
-        exit(EXIT_FAILURE);
-      }
     }
     //add to file_table
     inode* parent_node = get_inode(entry->inode_index);
