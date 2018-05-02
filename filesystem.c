@@ -7,6 +7,7 @@ mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
 inode *root_inode;
+int table_freehead = 0;
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
@@ -268,8 +269,8 @@ directory_entry* f_opendir(char* filepath){
       count ++;
       token = strtok(NULL, s);
     }
-    printf("%d\n", count);
-    token = strtok(path, s);
+    printf("count : %d\n", count);
+
     //create directory_entry for the root
     directory_entry* entry = malloc(sizeof(directory_entry));
     entry->inode_index = 0;
@@ -277,9 +278,7 @@ directory_entry* f_opendir(char* filepath){
     directory_entry* dir_entry = NULL;
     inode* root_node = get_inode(0);
     // print_inode(root_node);
-    while((dir_entry = f_readir(entry)) == NULL  ){
-      //how do we tell if f_readir does not find anything. WARNING
-    }
+
     //add root directory to the open_file_table. Assume it is found.
     //if root alreay exists, should not add any more.
     if (file_table[0] != NULL){
@@ -291,14 +290,48 @@ directory_entry* f_opendir(char* filepath){
         file_table[0] = root_table_entry;
       }
     }
+    // dir_entry = f_readir(0);
+    token = strtok(path, s);
+    printf("%s\n", "testing, before while");
+    int i = 0;
     while(token != NULL && count > 1){
       printf("%s\n", token);
-      while((dir_entry = f_readir(entry)) == NULL){
-        //how do we tell if f_readir does not find anything. WARNING
+      //get the directory entry
+      int found = FALSE;
+      while(found ==  FALSE){
+        printf("%s\n", "second while");
+        dir_entry = f_readir(i);
+        char* name = dir_entry->filename;
+        if(strcmp(name, token) == 0){
+          printf("%s\n", "found");
+          found = TRUE;
+        }
+        if (dir_entry == NULL){
+          //reach the last subdir
+          // break;
+        }
+      }
+      if (i != 0){
+        //remove the ith index from the table. NEED CHECK. ROSE
+        free(file_table[i]);
+      }else{
+        i = table_freehead;
       }
       count -- ;
       entry = dir_entry;
+      //add dir_entry to the table
+      inode* node = get_inode(dir_entry->inode_index);
+      file_table_entry* table_ent = malloc(sizeof(file_table_entry));
+      table_ent->free_file = FALSE;
+      table_ent->file_inode = node;
+      table_ent->byte_offset = 0;
+      file_table[i] = table_ent;
+      //update table_freehead
       token = strtok(NULL, s);
+      if(found == FALSE){
+        printf("%s is not found\n",token);
+        exit(EXIT_FAILURE);
+      }
     }
     //add to file_table
     inode* parent_node = get_inode(entry->inode_index);
@@ -306,17 +339,12 @@ directory_entry* f_opendir(char* filepath){
     parent_table_entry->free_file = FALSE;
     parent_table_entry->file_inode = parent_node;
     parent_table_entry->byte_offset = 0;
-    //go through file_table and find a free spot
-    int i = 0;
-    for(; file_table[i] == FALSE; i++){
-      ;
-    }
     file_table[i] = parent_table_entry;
-    printf("%s\n", "-----");
+    printf("%s\n", "end of open_dir-----");
     return entry;
 }
 
-directory_entry* f_readir(directory_entry* entry){
+directory_entry* f_readir(int index_into_file_table){
 
 }
 
