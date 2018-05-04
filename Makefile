@@ -1,5 +1,8 @@
 all: format open_dir filesystem formatdir test test_mount_read_write
 
+f_readdir_test: f_readdir_test.c
+	gcc -g -ggdb -o f_readdir_test f_readdir_test.c -L. -lfile
+
 test_mount_read_write: fmount_read_write.c
 	gcc -g -ggdb -o test_mount_read_write fmount_read_write.c -L. -lfile
 

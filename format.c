@@ -164,16 +164,24 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 
         if (j == 0) {
             // the root dir data data_region. ALL TEMP
-            directory_entry *directories = malloc(2 * sizeof(directory_entry));
-            memset(directories, 0, 2 * sizeof(directory_entry));
-            directories[0].inode_index = 0;
-            strcpy(directories[0].filename, ".");
+//            directory_entry *directories = malloc(2 * sizeof(directory_entry));
+//            memset(directories, 0, 2 * sizeof(directory_entry));
+//            printf("size of root directory file: %d \n", sizeof(directory_entry)*2);
+//            directories[0].inode_index = 0;
+//            strcpy(directories[0].filename, ".");
+//
+//            directories[1].inode_index = 0;
+//            strcpy(directories[1].filename, "..");
+//
+//            memcpy(block_to_write, directories, sizeof(directory_entry) * 2);
+//            free(directories);
+            directory_entry *directory_entry_array = block_to_write;
+            directory_entry_array[0].inode_index = 0;
+            directory_entry_array[1].inode_index = 0;
+            strcpy(directory_entry_array[0].filename, ".");
+            strcpy(directory_entry_array[1].filename, "..");
 
-            directories[1].inode_index = 0;
-            strcpy(directories[1].filename, "..");
 
-            memcpy(block_to_write, directories, sizeof(directory_entry) * 2);
-            free(directories);
         } else if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
         } else {
