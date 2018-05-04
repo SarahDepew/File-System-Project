@@ -143,6 +143,8 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         }
         if(i == 2){
           //TODO. Decide wheter to + 1 at the end
+          inodes[i]->type = REG;
+          inodes[i]->dblocks[0] = 2;
           inodes[i]->size = strlen(data);
         }
         fwrite(inodes[i], sizeof(inode), 1, disk);
