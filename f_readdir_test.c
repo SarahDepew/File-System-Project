@@ -33,14 +33,15 @@ int main() {
    permissions->cluster_others->write = TRUE;
    permissions->cluster_others->execute = TRUE;
 
-   f_open("N/A", READ, permissions);
-
-   directory_entry *value = f_readir(0);
-   //
-  //  printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
-   value = f_readir(0);
+   directory_entry *value = f_opendir("/");
    printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
 
+   value = f_readir(0);
+   //
+  //  printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
+  printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
+   value = f_readir(0);
+   printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
    value = f_readir(0);
   //  printf("directory entry values:%d, %s\n", value->inode_index, value->filename);
    shutdown();
