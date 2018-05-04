@@ -100,7 +100,7 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
             inodes[i]->dblocks[0] = 0; //the first block is the root directory
             inodes[i]->next_inode = -1; //unused in occupied inodes
 
-            inodes[i]->size = 2* sizeof(directory_entry); //this is how we can tell where we are in the block to continue writing to...
+            inodes[i]->size = 3 * sizeof(directory_entry); //this is how we can tell where we are in the block to continue writing to...
             inodes[i]->uid = 0;
             inodes[i]->gid = 0;
             //TODO: modify these values, since this is when directory is created...
@@ -121,12 +121,13 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
 
         if (i == num_inodes - 1) {
             //make the last inode have a next of -1 to show end of free list
+            inodes[i]->size = 0;
             inodes[i]->next_inode = -1;
         } else {
             //ROSE: I don't think this is right
+            inodes[i]->size = 0;
             inodes[i]->next_inode = i + 1;
         }
-        inodes[i]->size = 0;
         inodes[i]->uid = 0;
         inodes[i]->gid = 0;
         inodes[i]->ctime = 0;
