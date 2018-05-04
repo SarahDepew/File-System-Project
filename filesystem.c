@@ -6,11 +6,15 @@
 mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
+<<<<<<< HEAD
+=======
 inode *root_inode;
 int table_freehead = 0;
+>>>>>>> 6dd2d08d7abff96b34e5a84647b211ea19b84e24
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
+    printf("Size of directory struct: %lu\n", sizeof(directory_entry));
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
         mounted_disks[i] = (mount_table_entry*)malloc(sizeof(mount_table_entry));
         mounted_disks[i]->free_spot = TRUE;
@@ -22,7 +26,7 @@ boolean setup() {
         file_table[j]->free_file = TRUE;
     }
 
-    root_inode = malloc(sizeof(inode));
+    current_mounted_disk = malloc(sizeof(mount_table_entry));
 
     return TRUE;
 }
@@ -38,7 +42,7 @@ boolean shutdown() {
         free(file_table[j]);
     }
 
-    free(root_inode);
+    free(current_mounted_disk);
 
     return TRUE;
 }
@@ -75,13 +79,17 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         fseek(file_to_mount, SIZEOFBOOTBLOCK, SEEK_SET); //place the file pointer at the superblock
         fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
         current_mounted_disk = mounted_disks[free_index];
-        print_superblock(mounted_disks[free_index]->superblock1);
+
+        print_superblock(mounted_disks[free_index]->superblock1); //TODO: remove at some point...
+
         //for testing: find data block
         superblock* sp = mounted_disks[free_index]->superblock1;
         fseek(file_to_mount,(sp->data_offset)*sp->size+SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK, SEEK_SET);
         void* data_content = malloc(sizeof(char)*sp->size);
         fread(data_content, sp->size, 1, file_to_mount);
+
         printf("%s\n", (char*)data_content+sizeof(int));
+
         free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
 
@@ -282,6 +290,70 @@ void print_superblock(superblock *superblock1) {
     printf("root dir: %d\n", superblock1->root_dir);
 }
 
+//directory_entry* f_opendir(char* filepath){
+//    //parse the filepath
+//    char path[strlen(filepath)];
+//    char copy[strlen(filepath)];
+//    strcpy(path, filepath);
+//    strcpy(copy, filepath);
+//    char* s  = "/'";
+//    char* token;
+//    //calculate the level of depth
+//    token = strtok(copy, s);
+//    int count = 0;
+//    while(token != NULL){
+//      count ++;
+//      token = strtok(NULL, s);
+//    }
+//    printf("%d\n", count);
+//    token = strtok(path, s);
+//    //create directory_entry for the root
+//    directory_entry* entry = malloc(sizeof(directory_entry));
+//    entry->inode_index = 0;
+//    strcpy(entry->filename, "/");
+//    directory_entry* dir_entry = NULL;
+//    inode* root_node = get_inode(0);
+//    // print_inode(root_node);
+//    while((dir_entry = f_readir(entry)) == NULL  ){
+//      //how do we tell if f_readir does not find anything. WARNING
+//    }
+//    //add root directory to the open_file_table. Assume it is found.
+//    //if root alreay exists, should not add any more.
+//    //TODO: check with dianna about this...
+//    if (file_table[0] != NULL){
+//      if (file_table[0]->free_file == TRUE){
+//        file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
+//        root_table_entry->free_file = FALSE;
+//        root_table_entry->file_inode = root_node;
+//        root_table_entry->byte_offset = 0;
+//        file_table[0] = root_table_entry;
+//      }
+//    }
+//    while(token != NULL && count > 1){
+//      printf("%s\n", token);
+//      while((dir_entry = f_readir(entry)) == NULL){
+//        //how do we tell if f_readir does not find anything. WARNING
+//      }
+//      count -- ;
+//      entry = dir_entry;
+//      token = strtok(NULL, s);
+//    }
+//    //add to file_table
+//    inode* parent_node = get_inode(entry->inode_index);
+//    file_table_entry* parent_table_entry = malloc(sizeof(file_table_entry));
+//    parent_table_entry->free_file = FALSE;
+//    parent_table_entry->file_inode = parent_node;
+//    parent_table_entry->byte_offset = 0;
+//    //go through file_table and find a free spot
+//    int i = 0;
+//    for(; file_table[i] == FALSE; i++){
+//      ;
+//    }
+//    file_table[i] = parent_table_entry;
+//    printf("%s\n", "-----");
+//    return entry;
+//}
+
 directory_entry* f_opendir(char* filepath){
     //parse the filepath
     char path[strlen(filepath)+1];
@@ -294,8 +366,8 @@ directory_entry* f_opendir(char* filepath){
     token = strtok(copy, s);
     int count = 0;
     while(token != NULL){
-      count ++;
-      token = strtok(NULL, s);
+        count ++;
+        token = strtok(NULL, s);
     }
     printf("count : %d\n", count);
 
@@ -310,57 +382,57 @@ directory_entry* f_opendir(char* filepath){
     //add root directory to the open_file_table. Assume it is found.
     //if root alreay exists, should not add any more.
     if (file_table[0] != NULL){
-      if (file_table[0]->free_file == TRUE){
-        file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
-        root_table_entry->free_file = FALSE;
-        root_table_entry->file_inode = root_node;
-        root_table_entry->byte_offset = 0;
-        file_table[0] = root_table_entry;
-      }
+        if (file_table[0]->free_file == TRUE){
+            file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
+            root_table_entry->free_file = FALSE;
+            root_table_entry->file_inode = root_node;
+            root_table_entry->byte_offset = 0;
+            file_table[0] = root_table_entry;
+        }
     }
     // dir_entry = f_readir(0);
     token = strtok(path, s);
     printf("%s\n", "testing, before while");
     int i = 0;
     while(token != NULL && count > 1){
-      printf("%s\n", token);
-      //get the directory entry
-      int found = FALSE;
-      while(found ==  FALSE){
-        printf("%s\n", "second while");
-        dir_entry = f_readir(i);
-        char* name = dir_entry->filename;
-        if(strcmp(name, token) == 0){
-          printf("%s\n", "found");
-          found = TRUE;
+        printf("%s\n", token);
+        //get the directory entry
+        int found = FALSE;
+        while(found ==  FALSE){
+            printf("%s\n", "second while");
+            dir_entry = f_readir(i);
+            char* name = dir_entry->filename;
+            if(strcmp(name, token) == 0){
+                printf("%s\n", "found");
+                found = TRUE;
+            }
+            if (dir_entry == NULL){
+                //reach the last subdir
+                // break;
+            }
         }
-        if (dir_entry == NULL){
-          //reach the last subdir
-          // break;
+        if (i != 0){
+            //remove the ith index from the table. NEED CHECK. ROSE
+            free(file_table[i]);
+        }else{
+            //root is always in the table. won't be removed.
+            i = table_freehead;
         }
-      }
-      if (i != 0){
-        //remove the ith index from the table. NEED CHECK. ROSE
-        free(file_table[i]);
-      }else{
-        //root is always in the table. won't be removed.
-        i = table_freehead;
-      }
-      if(found == FALSE){
-        printf("%s is not found\n",token);
-        exit(EXIT_FAILURE);
-      }
-      count -- ;
-      entry = dir_entry;
-      //add dir_entry to the table
-      inode* node = get_inode(dir_entry->inode_index);
-      file_table_entry* table_ent = malloc(sizeof(file_table_entry));
-      table_ent->free_file = FALSE;
-      table_ent->file_inode = node;
-      table_ent->byte_offset = 0;
-      file_table[i] = table_ent;
-      //update table_freehead
-      token = strtok(NULL, s);
+        if(found == FALSE){
+            printf("%s is not found\n",token);
+            exit(EXIT_FAILURE);
+        }
+        count -- ;
+        entry = dir_entry;
+        //add dir_entry to the table
+        inode* node = get_inode(dir_entry->inode_index);
+        file_table_entry* table_ent = malloc(sizeof(file_table_entry));
+        table_ent->free_file = FALSE;
+        table_ent->file_inode = node;
+        table_ent->byte_offset = 0;
+        file_table[i] = table_ent;
+        //update table_freehead
+        token = strtok(NULL, s);
     }
     //add to file_table
     inode* parent_node = get_inode(entry->inode_index);
@@ -373,14 +445,99 @@ directory_entry* f_opendir(char* filepath){
     return entry;
 }
 
-directory_entry* f_readir(int index_into_file_table){
+directory_entry* f_readir(int index_into_file_table) {
+    //TODO: error check here for valid index into file... (not trying to read past end of file)
 
+    //fetch the inode of the directory to be read (assume the directory file is already open in the file table and that you are given the index into the file table)
+    long offset_into_file = file_table[index_into_file_table]->byte_offset;
+    printf("offset into file: %d\n", offset_into_file);
+    inode *current_directory = file_table[index_into_file_table]->file_inode;
+    superblock *superblockPtr = current_mounted_disk->superblock1;
+//    long directory_index_in_block = offset_into_file/sizeof(directory_entry); //TODO: make directory padded so that we have block divisible by directory entries
+    long block = ((float) offset_into_file /
+                  (float) superblockPtr->size);
+    directory_entry *next_directory = malloc(sizeof(directory_entry));
+    long offset_in_block = offset_into_file - (superblockPtr->size * block);
+    long num_indirect = superblockPtr->size / sizeof(int);
+//    long num_directories = superblockPtr->size / sizeof(directory_entry);
+
+    if (offset_into_file <= DBLOCKS) {
+        direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
+    } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
+        long adjusted_block = block - N_DBLOCKS; //index into indirect block range
+        long index_indirect = adjusted_block / num_indirect;
+        long index = adjusted_block % num_indirect;
+        indirect_copy(next_directory, current_directory, index, current_directory->iblocks[index_indirect],
+                      offset_in_block);
+    } else if (offset_into_file > IBLOCKS && offset_into_file <= I2BLOCKS) {
+        long adjusted_block = block - N_DBLOCKS - N_IBLOCKS * num_indirect; //index into indirect block range
+        long index_indirect = adjusted_block / num_indirect;
+        long index = adjusted_block % num_indirect;
+
+        int *indirect_block_array = get_data_block(current_directory->i2block);
+        int block_to_fetch = *((int *) (indirect_block_array + index_indirect * sizeof(int)));
+        free_data_block(indirect_block_array);
+
+        indirect_copy(next_directory, current_directory, index, block_to_fetch, offset_in_block);
+    } else if (offset_into_file > I2BLOCKS && offset_into_file <= I3BLOCKS) {
+        long adjusted_block = block - N_DBLOCKS - N_IBLOCKS * num_indirect -
+                              num_indirect * num_indirect; //index into double indirect block range
+        long double_index_indirect = adjusted_block / num_indirect / num_indirect;
+        int *doubly_indirect_block_array = get_data_block(current_directory->i3block);
+        int indirect_block_to_fetch = *((int *) (doubly_indirect_block_array + double_index_indirect * sizeof(int)));
+        free_data_block(doubly_indirect_block_array);
+
+        long index_indirect = adjusted_block / num_indirect;
+        long index = adjusted_block % num_indirect;
+        int *indirect_block_array = get_data_block(indirect_block_to_fetch);
+        int block_to_fetch = *((int *) (indirect_block_array + index_indirect * sizeof(int)));
+        free_data_block(indirect_block_array);
+
+        indirect_copy(next_directory, current_directory, index, block_to_fetch, offset_in_block);
+    } else {
+        free(next_directory);
+        printf("File Size Too Large To Handle.\n");
+        return NULL;
+    }
+
+    //increment offset into the file
+    file_table[index_into_file_table]->byte_offset += sizeof(directory_entry);
+    return next_directory;
 }
 
-inode* get_inode(int index){
-  inode* node = malloc(sizeof(inode));
-  FILE *current_disk = current_mounted_disk->disk_image_ptr;
-  fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +index*sizeof(inode), SEEK_SET);
-  fread(node, sizeof(inode), 1, current_disk);
-  return node;
+void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block) {
+    void *indirect_data_block = get_data_block(indirect_block_to_fetch);
+    int block_to_fetch = *((int *) (indirect_data_block + index * sizeof(int)));
+    free_data_block(indirect_data_block);
+    direct_copy(entry, current_directory, block_to_fetch, offset_in_block);
+}
+
+void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block) {
+    void *data_block = get_data_block(block_to_fetch);
+    memcpy(entry, data_block + offset_in_block, sizeof(directory_entry));
+    free_data_block(data_block);
+}
+
+void *get_data_block(int index) {
+    void *data_block = malloc(sizeof(current_mounted_disk->superblock1->size));
+    FILE *current_disk = current_mounted_disk->disk_image_ptr;
+    rewind(current_disk);
+    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
+                        current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
+                        index * current_mounted_disk->superblock1->size,
+          sizeof(data_block));
+    fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
+    return data_block;
+}
+
+void free_data_block(void *block_to_free) {
+    free(block_to_free);
+}
+
+inode* get_inode(int index) {
+    inode *node = malloc(sizeof(inode));
+    FILE *current_disk = current_mounted_disk->disk_image_ptr;
+    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + index * sizeof(inode), SEEK_SET);
+    fread(node, sizeof(inode), 1, current_disk);
+    return node;
 }
