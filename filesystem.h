@@ -13,10 +13,16 @@
 #define N_IBLOCKS 4
 //change this to OPENFILE_MAX?
 #define FILETABLESIZE 20
-#define FILENAMEMAX 40
+#define FILENAMEMAX 60
 #define MOUNTTABLESIZE 20
 #define SIZEOFSUPERBLOCK 512
 #define SIZEOFBOOTBLOCK 512
+#define BLOCKSIZE 512
+#define PTRSIZE sizeof(int)
+#define DBLOCKS (N_DBLOCKS*superblockPtr->size)
+#define IBLOCKS (DBLOCKS + N_IBLOCKS*(superblockPtr->size/PTRSIZE)*superblockPtr->size)
+#define I2BLOCKS (IBLOCKS + (superblockPtr->size/PTRSIZE)*(superblockPtr->size/PTRSIZE)*superblockPtr->size)
+#define I3BLOCKS (I2BLOCKS + (superblockPtr->size/PTRSIZE)*(superblockPtr->size/PTRSIZE)*(superblockPtr->size/PTRSIZE)*superblockPtr->size)
 
 enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
@@ -147,6 +153,12 @@ void print_superblock(superblock *superblock1);
 
 directory_entry* f_opendir(char* filepath);
 directory_entry* f_readir(int index_into_file_table);
+
+void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
+void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
+
+void *get_data_block(int index);
+void free_data_block(void *block_to_free);
 
 inode* get_inode(int index);
 //filepath must be absolute path
