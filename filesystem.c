@@ -179,7 +179,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
   // file_table[0]->access = access;
   // file_table[0]->free_file = FALSE;
   // file_table[0]->byte_offset = 0;
-  //
+
   // //TODO: remove once done debugging
   // printf("file table entry %p\n", file_table[0]);
   // print_table_entry(file_table[0]);
@@ -190,7 +190,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
   // buffer[20] = 0;
   // // printf("%s\n", buffer);
   // free(path);
-  // return 0; //TODO: fix with actual return value
+  return 0; //TODO: fix with actual return value
 }
 
 int f_write(void* buffer, int size, int ntimes, int fd ){
@@ -239,7 +239,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ){
 }
 
 boolean f_close(int file_descriptor) {
-  if(file_descriptor>=FILETABLESIZE) {
+  if(file_descriptor>=FILETABLESIZE || file_descriptor  < 0 || file_table[file_descriptor]->free_file == TRUE) {
     return FALSE;
   } else {
     file_table[file_descriptor]->free_file = TRUE;
@@ -413,6 +413,14 @@ directory_entry* f_opendir(char* filepath){
   return entry;
 }
 
+int f_read(void *buffer, int size, int n_times, int file_descriptor) {
+  inode *file_to_read = file_table[file_descriptor]->file_inode;
+  long file_offset = file_table[file_descriptor]->byte_offset;
+  int block_to_read = size/BLOCKSIZE;
+
+  return -1; 
+}
+
 directory_entry* f_readir(int index_into_file_table) {
   //TODO: error check here for valid index into file... (not trying to read past end of file)
 
@@ -427,7 +435,12 @@ directory_entry* f_readir(int index_into_file_table) {
   long offset_in_block = offset_into_file - (superblockPtr->size * block);
   long num_indirect = superblockPtr->size / sizeof(int);
   // long num_directories = superblockPtr->size / sizeof(directory_entry);
-  if (offset_into_file <= current_directory->size) {
+
+  if(offset_into_file >= current_directory->size) {
+    free(next_directory);
+    printf("No! Bad! Error! You are attempting to access beyond the end of the directory!\n");
+    return NULL;
+  } else if (offset_into_file <= current_directory->size) {
     direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
   } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
     long adjusted_block = block - N_DBLOCKS; //index into indirect block range
@@ -468,7 +481,26 @@ directory_entry* f_readir(int index_into_file_table) {
 
     //increment offset into the file
     file_table[index_into_file_table]->byte_offset += sizeof(directory_entry);
+    printf("got here:\n");
     return next_directory;
+  }
+
+  boolean f_closedir(directory_entry *entry) {
+    int inode_value = entry->inode_index;
+    int file_descriptor = -1;
+    for(int i=0; i<FILETABLESIZE; i++) {
+      if(file_table[i]->file_inode->inode_index == inode_value) {
+        file_descriptor = i;
+        break;
+      }
+    }
+
+    if(file_descriptor != -1 && file_descriptor < FILETABLESIZE) {
+      return f_close(file_descriptor);
+    } else {
+      printf("Invalid file descriptor input to f_closedir. Please try again.\n");
+      return FALSE;
+    }
   }
 
   void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block) {
@@ -487,11 +519,6 @@ directory_entry* f_readir(int index_into_file_table) {
   void *get_data_block(int index) {
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
-    // rewind(current_disk);
-    // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
-    //                     current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
-    //                     index * current_mounted_disk->superblock1->size,
-    //       sizeof(data_block));
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
       current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
       index * current_mounted_disk->superblock1->size,
