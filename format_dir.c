@@ -94,6 +94,9 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
             // ROSE: this should be the root_dir node
             inodes[i]->parent_inode_index = -1;
             //pointing to the start of the data region
+            for(int j=0 ; j < N_DBLOCKS; j++){
+              inodes[i]->dblocks[j] = -1;
+            }
             inodes[i]->dblocks[0] = 0; //the first block is the root directory
             inodes[i]->next_inode = -1; //unused in occupied inodes
 
@@ -191,7 +194,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 	  memset(directories, 0, sizeof(directory_entry));
 	  directories[0].inode_index = 0;
 	  strcpy(directories[0].filename, ".");
-	  
+
 	  directories[1].inode_index = 0;
 	  strcpy(directories[1].filename, "..");
 
