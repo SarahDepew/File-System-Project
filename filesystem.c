@@ -165,7 +165,8 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                     file_entry->byte_offset = 0;
                     file_table[table_freehead] = file_entry;
                     free(path);
-                    return EXIT_SUCCESS;
+                    print_file_table();
+                    return entry->inode_index;
                 }
                 file_offset += sizeof(directory_entry);
             }

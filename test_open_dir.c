@@ -11,8 +11,12 @@ int main() {
   printf("%s\n", "-----------end f_open1---------");
   f_open("/user/user.txt", READ, NULL);
   printf("%s\n", "------------end f_open2----------");
-  f_open("/user/test.txt", READ, NULL);
+  int fd = f_open("/user/test.txt", READ, NULL);
   printf("%s\n", "------------end f_open3----------");
   // f_opendir("/a/s/d/sf/'we'/5/46/");
+  printf("fd: %d\n", fd);
+  void* buffer = malloc(200);
+  f_read(buffer, 6, 1, fd);
+  printf("%s\n", (char*) buffer);
   shutdown();
 }
