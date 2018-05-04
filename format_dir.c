@@ -1,6 +1,3 @@
-//
-// Created by Sarah Depew on 4/27/18.
-//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +136,15 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         inodes[i]->i2block = -1;
         inodes[i]->i3block = -1;
         inodes[i]->last_block_index = -1;
-
+        char* data = "somethingsomething";
+        if(i == 1) {
+          inodes[i]->size = 3*sizeof(directory_entry);
+          inodes[i]->dblocks[0] = 1;
+        }
+        if(i == 2){
+          //TODO. Decide wheter to + 1 at the end
+          inodes[i]->size = strlen(data);
+        }
         fwrite(inodes[i], sizeof(inode), 1, disk);
         free(inodes[i]);
     }
@@ -201,7 +206,7 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
 
 	  directories[2].inode_index = 2;
 	  strcpy(directories[2].filename, "test.txt");
-	  memcpy(block_to_write, directories, sizeof(directory_entry));
+	  memcpy(block_to_write, directories, 3*sizeof(directory_entry));
 	}
 	//write /user/test.txt data
 	if(j == 2){
