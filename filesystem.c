@@ -416,9 +416,91 @@ directory_entry* f_opendir(char* filepath){
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
   inode *file_to_read = file_table[file_descriptor]->file_inode;
   long file_offset = file_table[file_descriptor]->byte_offset;
-  int block_to_read = size/BLOCKSIZE;
+  int block_to_read = file_offset/BLOCKSIZE;
+  int bytes_to_read;
+  int bytes_remaining_in_block;
+  int bytes_to_read_current_block;
+  int block_offset;
+  char *block_to_read_from;
+  //TODO:check that size isn't larger than the file size and check that size*n_times isn't larger than the file size
+  //TODO: check that you are not reading past the end of the disk...
+  int buffer_index = 0;
+  char *buffer_to_return = malloc(sizeof(size*n_times));
 
-  return -1; 
+  //code to repeat
+  for(int i=0; i<n_times; i++) {
+    bytes_to_read = size;
+    block_offset = file_offset%512;
+    while(size > 0) {
+      block_to_read_from = get_block_from_index(block_to_read, file_to_read);
+      bytes_remaining_in_block = 512-block_offset-1;
+      if(bytes_remaining_in_block >= size) {
+        bytes_to_read = size;
+        //TODO: TRANSFER BLOCK DATA
+        for(int j=0; j<bytes_to_read; j++) {
+          buffer_to_return[buffer_index] = block_to_read_from[block_offset];
+          buffer_index ++;
+          block_offset ++;
+        }
+        size -= bytes_to_read;
+        free_data_block(block_to_read_from);
+      } else { //bytes_remaining_in_block < size
+        bytes_to_read = bytes_remaining_in_block;
+        //TODO: TRANSFER BLOCK DATA
+        for(int k=0; k<bytes_to_read; k++) {
+          buffer_to_return[buffer_index] = block_to_read_from[block_offset];
+          buffer_index ++;
+          block_offset ++;
+        }
+        size-=bytes_to_read;
+        block_to_read++;
+        free_data_block(block_to_read_from);
+      }
+  }
+
+  return TRUE;
+}
+
+//TODO: pont define and figure out if you're requesting a block that doesn't exist
+//TODO: check that this isn't just off by one
+void *get_block_from_index(int block_index, inode *file_inode) { //block index is block overall to get...more computations must be done to know which block precisely to obtain
+  //get direct block
+  block *block_to_return = NULL;
+  if(block_index >= 0 && block_index <= 9) {
+    block_to_return = get_data_block(block_index);
+  } else if(block_index >= 10 && block_index <= 521) {
+    block_index -= 10; //adjust to array here
+    int indirect_array_index = block_index/128;
+    int array_index = block_index%128;
+    int *indirect_block = get_data_block(file_inode->iblocks[indirect_array_index]);
+    block_to_return = get_data_block(indirect_block[array_index]);
+    free_data_block(indirect_block);
+  } else if(block_index >= 522 && block_index <= 16905) {
+    block_index -= 522; //adjust to array here
+    int indirect_array_index = block_index/128;
+    int array_index = block_index%128;
+    int *double_indirect_block = get_data_block(file_inode->i2block);
+    int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
+    block_to_return = get_data_block(indirect_block[array_index]);
+    free_data_block(double_indirect_block);
+    free_data_block(indirect_block);
+  } else if(block_index >= 16906 && block_index <= 2114057) {
+    block -= 16906;
+    int double_indirect_array_index = block_index/128/128;
+    int indirect_array_index = block_index/128;
+    int array_index = block_index%128;
+    int *triple_indirect_block = get_data_block(file_inode->i3block);
+    int *double_indirect_block = get_data_block(triple_indirect_block[double_indirect_array_index]);
+    int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
+    block_to_return = get_data_block(indirect_block[array_index]);
+    free_data_block(triple_indirect_block);
+    free_data_block(double_indirect_block);
+    free_data_block(indirect_block);
+  } else {
+    printf("Index out of bounds for get block from index.\n");
+  }
+
+  return block_to_return;
 }
 
 directory_entry* f_readir(int index_into_file_table) {
@@ -516,6 +598,7 @@ directory_entry* f_readir(int index_into_file_table) {
     free_data_block(data_block);
   }
 
+//TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
   void *get_data_block(int index) {
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
