@@ -6,11 +6,8 @@
 mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
-<<<<<<< HEAD
-=======
 inode *root_inode;
-int table_freehead = 0;
->>>>>>> 6dd2d08d7abff96b34e5a84647b211ea19b84e24
+int table_freehead = 1;
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
@@ -134,6 +131,17 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     printf("path: %s\n", path);
     printf("filename: %s\n", filename);
     directory_entry* dir = f_opendir(path);
+    if (dir == NULL){
+      printf("%s\n", "directory does not exit");
+      return EXIT_FAILURE;
+    }else{
+      //directory exits, need to check if the file exits
+      printf("%s\n", "directory exits. GOOD news.");
+      int dir_node_index = dir->inode_index;
+      inode* dir_node = get_inode(dir_node_index);
+
+      return EXIT_SUCCESS;
+    }
 
     //TODO: go into the dir_entry to find the inode of the file
     int index_of_inode = 0;
@@ -290,70 +298,6 @@ void print_superblock(superblock *superblock1) {
     printf("root dir: %d\n", superblock1->root_dir);
 }
 
-//directory_entry* f_opendir(char* filepath){
-//    //parse the filepath
-//    char path[strlen(filepath)];
-//    char copy[strlen(filepath)];
-//    strcpy(path, filepath);
-//    strcpy(copy, filepath);
-//    char* s  = "/'";
-//    char* token;
-//    //calculate the level of depth
-//    token = strtok(copy, s);
-//    int count = 0;
-//    while(token != NULL){
-//      count ++;
-//      token = strtok(NULL, s);
-//    }
-//    printf("%d\n", count);
-//    token = strtok(path, s);
-//    //create directory_entry for the root
-//    directory_entry* entry = malloc(sizeof(directory_entry));
-//    entry->inode_index = 0;
-//    strcpy(entry->filename, "/");
-//    directory_entry* dir_entry = NULL;
-//    inode* root_node = get_inode(0);
-//    // print_inode(root_node);
-//    while((dir_entry = f_readir(entry)) == NULL  ){
-//      //how do we tell if f_readir does not find anything. WARNING
-//    }
-//    //add root directory to the open_file_table. Assume it is found.
-//    //if root alreay exists, should not add any more.
-//    //TODO: check with dianna about this...
-//    if (file_table[0] != NULL){
-//      if (file_table[0]->free_file == TRUE){
-//        file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
-//        root_table_entry->free_file = FALSE;
-//        root_table_entry->file_inode = root_node;
-//        root_table_entry->byte_offset = 0;
-//        file_table[0] = root_table_entry;
-//      }
-//    }
-//    while(token != NULL && count > 1){
-//      printf("%s\n", token);
-//      while((dir_entry = f_readir(entry)) == NULL){
-//        //how do we tell if f_readir does not find anything. WARNING
-//      }
-//      count -- ;
-//      entry = dir_entry;
-//      token = strtok(NULL, s);
-//    }
-//    //add to file_table
-//    inode* parent_node = get_inode(entry->inode_index);
-//    file_table_entry* parent_table_entry = malloc(sizeof(file_table_entry));
-//    parent_table_entry->free_file = FALSE;
-//    parent_table_entry->file_inode = parent_node;
-//    parent_table_entry->byte_offset = 0;
-//    //go through file_table and find a free spot
-//    int i = 0;
-//    for(; file_table[i] == FALSE; i++){
-//      ;
-//    }
-//    file_table[i] = parent_table_entry;
-//    printf("%s\n", "-----");
-//    return entry;
-//}
-
 directory_entry* f_opendir(char* filepath){
     //parse the filepath
     char path[strlen(filepath)+1];
@@ -377,7 +321,6 @@ directory_entry* f_opendir(char* filepath){
     strcpy(entry->filename, "/");
     directory_entry* dir_entry = NULL;
     inode* root_node = get_inode(0);
-    // print_inode(root_node);
 
     //add root directory to the open_file_table. Assume it is found.
     //if root alreay exists, should not add any more.
@@ -390,6 +333,9 @@ directory_entry* f_opendir(char* filepath){
             file_table[0] = root_table_entry;
         }
     }
+    // printf("%s\n", "========");
+    // print_inode(root_node);
+    // printf("%s\n", "=======");
     // dir_entry = f_readir(0);
     token = strtok(path, s);
     printf("%s\n", "testing, before while");
@@ -399,16 +345,16 @@ directory_entry* f_opendir(char* filepath){
         //get the directory entry
         int found = FALSE;
         while(found ==  FALSE){
-            printf("%s\n", "second while");
+            // printf("%s\n", "second while");
             dir_entry = f_readir(i);
+            if (dir_entry == NULL){
+              //reach the last subdir
+              break;
+            }
             char* name = dir_entry->filename;
             if(strcmp(name, token) == 0){
                 printf("%s\n", "found");
                 found = TRUE;
-            }
-            if (dir_entry == NULL){
-                //reach the last subdir
-                // break;
             }
         }
         if (i != 0){
@@ -420,7 +366,7 @@ directory_entry* f_opendir(char* filepath){
         }
         if(found == FALSE){
             printf("%s is not found\n",token);
-            exit(EXIT_FAILURE);
+            return NULL;
         }
         count -- ;
         entry = dir_entry;
@@ -450,18 +396,17 @@ directory_entry* f_readir(int index_into_file_table) {
 
     //fetch the inode of the directory to be read (assume the directory file is already open in the file table and that you are given the index into the file table)
     long offset_into_file = file_table[index_into_file_table]->byte_offset;
-    printf("offset into file: %d\n", offset_into_file);
     inode *current_directory = file_table[index_into_file_table]->file_inode;
     superblock *superblockPtr = current_mounted_disk->superblock1;
-//    long directory_index_in_block = offset_into_file/sizeof(directory_entry); //TODO: make directory padded so that we have block divisible by directory entries
+    // long directory_index_in_block = offset_into_file/sizeof(directory_entry); //TODO: make directory padded so that we have block divisible by directory entries
     long block = ((float) offset_into_file /
                   (float) superblockPtr->size);
     directory_entry *next_directory = malloc(sizeof(directory_entry));
     long offset_in_block = offset_into_file - (superblockPtr->size * block);
     long num_indirect = superblockPtr->size / sizeof(int);
-//    long num_directories = superblockPtr->size / sizeof(directory_entry);
+    // long num_directories = superblockPtr->size / sizeof(directory_entry);
 
-    if (offset_into_file <= DBLOCKS) {
+    if (offset_into_file <= (current_directory->last_block_index+1) * BLOCKSIZE) {
         direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
     } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
         long adjusted_block = block - N_DBLOCKS; //index into indirect block range
@@ -519,13 +464,17 @@ void direct_copy(directory_entry *entry, inode *current_directory, long block_to
 }
 
 void *get_data_block(int index) {
-    void *data_block = malloc(sizeof(current_mounted_disk->superblock1->size));
+    void *data_block = malloc(current_mounted_disk->superblock1->size);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
-    rewind(current_disk);
+    // rewind(current_disk);
+    // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
+    //                     current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
+    //                     index * current_mounted_disk->superblock1->size,
+    //       sizeof(data_block));
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
                         current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
                         index * current_mounted_disk->superblock1->size,
-          sizeof(data_block));
+          SEEK_SET);
     fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
     return data_block;
 }
