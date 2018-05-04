@@ -560,11 +560,6 @@ directory_entry* f_readir(int index_into_file_table) {
   void *get_data_block(int index) {
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
-    // rewind(current_disk);
-    // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
-    //                     current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
-    //                     index * current_mounted_disk->superblock1->size,
-    //       sizeof(data_block));
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
       current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
       index * current_mounted_disk->superblock1->size,
