@@ -11,6 +11,8 @@ int main() {
   printf("%s\n", "-----------end f_open1---------");
   f_open("/user/user.txt", READ, NULL);
   printf("%s\n", "------------end f_open2----------");
+  f_open("/user/test.txt", READ, NULL);
+  printf("%s\n", "------------end f_open3----------");
   // f_opendir("/a/s/d/sf/'we'/5/46/");
   shutdown();
 }
