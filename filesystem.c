@@ -138,8 +138,8 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //directory exits, need to check if the file exits
     printf("%s\n", "directory exits. GOOD news.");
     int dir_node_index = dir->inode_index;
-    printf("%d\n", dir_node_index);
-    printf("%s\n", dir->filename);
+    printf("dir_index: %d\n", dir_node_index);
+    printf("dir_name: %s\n", dir->filename);
     inode* dir_node = get_inode(dir_node_index);
     //go into the dir_entry to find the inode of the file
     int block_offset  = 0; //the offset within a data block
@@ -153,12 +153,10 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         break;
       }
       block_index = dir_node->dblocks[i];
-      printf("block_index: %d\n", block_index);
       void* block = get_data_block(block_index);
       for (; block_offset <= BLOCKSIZE && file_offset < dir_node->size; block_offset+=sizeof(directory_entry)){
         directory_entry* entry = (directory_entry*)(block+block_offset);
         char* name_found = entry->filename;
-        printf("name_found:%s\n", name_found);
         if(strcmp(filename, name_found) == 0){
           printf("%s found\n", name_found);
           file_table_entry* file_entry = malloc(sizeof(file_table_entry));
@@ -170,11 +168,17 @@ int f_open(char* filepath, int access, permission_value *permissions) {
           return EXIT_SUCCESS;
         }
         file_offset += sizeof(directory_entry);
-        printf("%d\n", block_offset);
       }
     }
     //TODO. go into idirect blocks
+    for(int i=0;i<N_IBLOCKS; i++){
+      if (file_offset >= dir_node->size){
+        printf("%s\n", "Reach the end of the directory");
+        break;
+      }
+    }
   }
+  print_file_table();
   return EXIT_SUCCESS;
 }
 
@@ -291,6 +295,22 @@ void print_inode (inode *entry) {
   printf("last block index: %d\n", entry->last_block_index);
 }
 
+void print_file_table(){
+  printf("%s\n", "------------start printing file_table------");
+  for (int i=0; i<FILETABLESIZE; i++){
+    if(file_table[i] != NULL){
+      printf("%d\n", i);
+      if(file_table[i]->free_file == 0){
+        printf("%d: %s\n", i, "empty");
+      }else{
+        inode* node = file_table[i]->file_inode;
+        printf("%d: inode->index: %d \t byte_offset: %d\n", i, node->inode_index, file_table[i]->byte_offset);
+      }
+    }
+  }
+  printf("%s\n", "------done printing-----------");
+}
+
 void print_table_entry (file_table_entry *entry) {
   printf("free file: %d\n", entry->free_file);
   print_inode(entry->file_inode);
@@ -354,7 +374,7 @@ directory_entry* f_opendir(char* filepath){
       // printf("%s\n", "second while");
       dir_entry = f_readir(i);
       if (dir_entry == NULL){
-        //reach the last subdir
+        //reach the last byte in the file
         break;
       }
       char* name = dir_entry->filename;
@@ -364,8 +384,9 @@ directory_entry* f_opendir(char* filepath){
       }
     }
     if (i != 0){
+      printf("%s\n", "here");
       //remove the ith index from the table. NEED CHECK. ROSE
-      free(file_table[i]);
+      file_table[i] = NULL;
     }else{
       //root is always in the table. won't be removed.
       i = table_freehead;
@@ -394,7 +415,7 @@ directory_entry* f_opendir(char* filepath){
   parent_table_entry->byte_offset = 0;
   file_table[i] = parent_table_entry;
   printf("%s\n", "end of open_dir-----");
-  printf("%s\n", entry->filename);
+  print_file_table();
   return entry;
 }
 

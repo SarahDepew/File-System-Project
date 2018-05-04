@@ -150,6 +150,7 @@ boolean shutdown();
 void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
+void print_file_table();
 
 directory_entry* f_opendir(char* filepath);
 directory_entry* f_readir(int index_into_file_table);
