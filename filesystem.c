@@ -323,7 +323,6 @@ void print_superblock(superblock *superblock1) {
     printf("root dir: %d\n", superblock1->root_dir);
 }
 
-
 directory_entry* f_opendir(char* filepath){
   //parse the filepath
   char path[strlen(filepath)+1];
@@ -415,7 +414,6 @@ directory_entry* f_opendir(char* filepath){
   print_file_table();
   return entry;
 }
-
 
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     inode *file_to_read = file_table[file_descriptor]->file_inode;
