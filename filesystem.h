@@ -139,6 +139,7 @@ typedef struct validity{
 /* Methods */
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
 int f_open(char* filepath, int access, permission_value *permissions);
+int f_read(void *buffer, int size, int n_times, int file_descriptor);
 int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
 boolean f_rewind(int file_descriptor);
@@ -158,7 +159,7 @@ directory_entry* f_readir(int index_into_file_table);
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
-void *get_block_from_index(int block_index, inode *file_inode); 
+void *get_block_from_index(int block_index, inode *file_inode);
 void *get_data_block(int index);
 void free_data_block(void *block_to_free);
 
