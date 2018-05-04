@@ -6,6 +6,11 @@
 mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
+<<<<<<< HEAD
+=======
+inode *root_inode;
+int table_freehead = 0;
+>>>>>>> 6dd2d08d7abff96b34e5a84647b211ea19b84e24
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
@@ -103,6 +108,34 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
     //TODO: if this is a new file, then set permissions
 
+    //get the filename and the path seperately
+    char *filename;
+    char *path = malloc(strlen(filepath));
+    char path_copy[strlen(filepath)+1];
+    char copy[strlen(filepath)+1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char* s  = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while(token != NULL){
+      count ++;
+      token = strtok(NULL, s);
+    }
+    printf("count : %d\n", count);
+    filename = strtok(path_copy, s);
+    while(count > 1){
+      count --;
+      path = strcat(path,"/");
+      path = strcat(path,filename);
+      filename = strtok(NULL,s);
+    }
+    printf("path: %s\n", path);
+    printf("filename: %s\n", filename);
+    directory_entry* dir = f_opendir(path);
+
+    //TODO: go into the dir_entry to find the inode of the file
     int index_of_inode = 0;
     //obtain the proper inode on the file //TODO: ask dianna how to do this? (page 326)
     file_table[0] = malloc(sizeof(file_table_entry));
@@ -123,8 +156,8 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     char buffer[21];
     fread(buffer, sizeof(char), 20, current_disk);
     buffer[20] = 0;
-    printf("%s\n", buffer);
-
+    // printf("%s\n", buffer);
+    free(path)
     return 0; //TODO: fix with actual return value
 }
 
@@ -320,6 +353,97 @@ void print_superblock(superblock *superblock1) {
 //    printf("%s\n", "-----");
 //    return entry;
 //}
+
+directory_entry* f_opendir(char* filepath){
+    //parse the filepath
+    char path[strlen(filepath)+1];
+    char copy[strlen(filepath)+1];
+    strcpy(path, filepath);
+    strcpy(copy, filepath);
+    char* s  = "/'";
+    char* token;
+    //calculate the level of depth
+    token = strtok(copy, s);
+    int count = 0;
+    while(token != NULL){
+        count ++;
+        token = strtok(NULL, s);
+    }
+    printf("count : %d\n", count);
+
+    //create directory_entry for the root
+    directory_entry* entry = malloc(sizeof(directory_entry));
+    entry->inode_index = 0;
+    strcpy(entry->filename, "/");
+    directory_entry* dir_entry = NULL;
+    inode* root_node = get_inode(0);
+    // print_inode(root_node);
+
+    //add root directory to the open_file_table. Assume it is found.
+    //if root alreay exists, should not add any more.
+    if (file_table[0] != NULL){
+        if (file_table[0]->free_file == TRUE){
+            file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
+            root_table_entry->free_file = FALSE;
+            root_table_entry->file_inode = root_node;
+            root_table_entry->byte_offset = 0;
+            file_table[0] = root_table_entry;
+        }
+    }
+    // dir_entry = f_readir(0);
+    token = strtok(path, s);
+    printf("%s\n", "testing, before while");
+    int i = 0;
+    while(token != NULL && count > 1){
+        printf("%s\n", token);
+        //get the directory entry
+        int found = FALSE;
+        while(found ==  FALSE){
+            printf("%s\n", "second while");
+            dir_entry = f_readir(i);
+            char* name = dir_entry->filename;
+            if(strcmp(name, token) == 0){
+                printf("%s\n", "found");
+                found = TRUE;
+            }
+            if (dir_entry == NULL){
+                //reach the last subdir
+                // break;
+            }
+        }
+        if (i != 0){
+            //remove the ith index from the table. NEED CHECK. ROSE
+            free(file_table[i]);
+        }else{
+            //root is always in the table. won't be removed.
+            i = table_freehead;
+        }
+        if(found == FALSE){
+            printf("%s is not found\n",token);
+            exit(EXIT_FAILURE);
+        }
+        count -- ;
+        entry = dir_entry;
+        //add dir_entry to the table
+        inode* node = get_inode(dir_entry->inode_index);
+        file_table_entry* table_ent = malloc(sizeof(file_table_entry));
+        table_ent->free_file = FALSE;
+        table_ent->file_inode = node;
+        table_ent->byte_offset = 0;
+        file_table[i] = table_ent;
+        //update table_freehead
+        token = strtok(NULL, s);
+    }
+    //add to file_table
+    inode* parent_node = get_inode(entry->inode_index);
+    file_table_entry* parent_table_entry = malloc(sizeof(file_table_entry));
+    parent_table_entry->free_file = FALSE;
+    parent_table_entry->file_inode = parent_node;
+    parent_table_entry->byte_offset = 0;
+    file_table[i] = parent_table_entry;
+    printf("%s\n", "end of open_dir-----");
+    return entry;
+}
 
 directory_entry* f_readir(int index_into_file_table) {
     //TODO: error check here for valid index into file... (not trying to read past end of file)
