@@ -149,7 +149,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     fread(buffer, sizeof(char), 20, current_disk);
     buffer[20] = 0;
     // printf("%s\n", buffer);
-    free(path)
+    free(path);
     return 0; //TODO: fix with actual return value
 }
 
