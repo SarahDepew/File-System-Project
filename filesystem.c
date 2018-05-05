@@ -129,6 +129,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     }
     printf("path: %s\n", path);
     printf("filename: %s\n", filename);
+    //TODO: need to check if the file is already in the file_table. Any sart way of doing that?
     directory_entry *dir = f_opendir(path);
     if (dir == NULL) {
         printf("%s\n", "directory does not exist");
@@ -427,14 +428,6 @@ directory_entry* f_opendir(char* filepath){
     //update table_freehead
     token = strtok(NULL, s);
   }
-  //add to file_table
-  inode* parent_node = get_inode(entry->inode_index);
-  file_table_entry* parent_table_entry = malloc(sizeof(file_table_entry));
-  parent_table_entry->free_file = FALSE;
-  parent_table_entry->file_inode = parent_node;
-  parent_table_entry->byte_offset = 0;
-  file_table[i] = parent_table_entry;
-  table_freehead = find_next_freehead();
   printf("%s\n", "end of open_dir-----");
   // print_file_table();
   return entry;
@@ -615,11 +608,11 @@ void *get_data_block(int index) {
   }
 
 int already_in_table(inode* node){
+  int index2 = node->inode_index;
     for(int i=0; i<FILETABLESIZE; i++){
       if(file_table[i] != NULL){
         if (file_table[i]->free_file == FALSE){
           int index1 = file_table[i]->file_inode->inode_index;
-          int index2 = node->inode_index;
           if (index1 == index2){
             return i;
           }
