@@ -98,6 +98,38 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     return FALSE;
 }
 
+/*
+
+void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory){
+  //get the filename and the path seperately
+  char *filename = NULL;
+  char *path = malloc(strlen(filepath));
+  char path_copy[strlen(filepath) + 1];
+  char copy[strlen(filepath) + 1];
+  strcpy(path_copy, filepath);
+  strcpy(copy, filepath);
+  char *s = "/'";
+  //calculate the level of depth of dir
+  char *token = strtok(copy, s);
+  int count = 0;
+  while (token != NULL) {
+      count++;
+      token = strtok(NULL, s);
+  }
+  // printf("count : %d\n", count);
+  filename = strtok(path_copy, s);
+  while (count > 1) {
+      count--;
+      path = strcat(path, "/");
+      path = strcat(path, filename);
+      filename = strtok(NULL, s);
+  }
+
+  *filename_to_return = filename;
+  *path_to_directory = path;
+}
+*/
+
 /* f_open() method */ //TODO: assume this is the absolute file path, TODO: add permissions functionality
 int f_open(char* filepath, int access, permission_value *permissions) {
     //FILE *current_disk = current_mounted_disk->disk_image_ptr;
@@ -105,7 +137,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //TODO: if this is a new file, then set permissions
 
     //get the filename and the path seperately
-    char *filename;
+    char *filename = NULL;
     char *path = malloc(strlen(filepath));
     char path_copy[strlen(filepath) + 1];
     char copy[strlen(filepath) + 1];
@@ -233,6 +265,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
     return EXIT_SUCCESS;
 }
 
+//TODO: update table_freehead here?
 boolean f_close(int file_descriptor) {
     if (file_descriptor >= FILETABLESIZE) {
         return FALSE;
@@ -433,6 +466,7 @@ directory_entry* f_opendir(char* filepath){
   return entry;
 }
 
+//TODO: update the time with the last accessed time, here!
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     inode *file_to_read = file_table[file_descriptor]->file_inode;
     long file_offset = file_table[file_descriptor]->byte_offset;
@@ -524,6 +558,110 @@ void *get_block_from_index(int block_index, inode *file_inode) { //block index i
   return block_to_return;
 }
 
+boolean f_remove(char *filepath) {
+  //TODO: make a method for the following (ask Rose)
+  //get the filename and the path seperately
+  char *filename = NULL;
+  char *path = malloc(strlen(filepath));
+  char path_copy[strlen(filepath) + 1];
+  char copy[strlen(filepath) + 1];
+  strcpy(path_copy, filepath);
+  strcpy(copy, filepath);
+  char *s = "/'";
+  //calculate the level of depth of dir
+  char *token = strtok(copy, s);
+  int count = 0;
+  while (token != NULL) {
+      count++;
+      token = strtok(NULL, s);
+  }
+  // printf("count : %d\n", count);
+  filename = strtok(path_copy, s);
+  while (count > 1) {
+      count--;
+      path = strcat(path, "/");
+      path = strcat(path, filename);
+      filename = strtok(NULL, s);
+  }
+  printf("path: %s\n", path);
+  printf("filename: %s\n", filename);
+  //TODO: need to check if the file is already in the file_table. Any sart way of doing that?
+  directory_entry *dir = f_opendir(path);
+  if (dir == NULL) {
+      printf("%s\n", "directory does not exist");
+      free(path);
+      return FALSE;
+  } else {
+    int index = -1;
+    inode *directory_inode = get_inode_from_file_table_from_directory_entry(dir, &index);
+    if(directory_inode == NULL) {
+      return FALSE;
+    } else {
+      //now, I have the inode for the file...
+
+      //TODO: Remove the file from its directory
+      directory_entry *current_entry = f_readir(index);
+      directory_entry *directory_to_delete = NULL;
+      while(current_entry != NULL && strcmp(current_entry->filename, filename)!=0) {
+        current_entry = f_readir(index);
+      }
+
+      if(current_entry == NULL) {
+        return FALSE; //wasn't able to find the entry in the directory
+      } else {
+        directory_to_delete = current_entry;
+      }
+
+      //need to write directory_to_delete back to the disk, now, since it has been deleted...
+      directory_to_delete->inode_index = -1;
+      memset(directory_to_delete->filename, 0, FILENAMEMAX);
+      // fseek(); //TODO: replace with our fseek when needed
+      file_table[index]->byte_offset -= sizeof(directory_entry); //pointer in file is now at the correct location to fwrite...
+      fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size + file_table[index]->byte_offset, SEEK_SET);
+      fwrite(directory_to_delete, sizeof(directory_entry), 1, current_mounted_disk->disk_image_ptr);
+
+      //TODO: Release the i-node to the pool of free inodes and re-write the value to the disk...
+      superblock *superblock1 = current_mounted_disk->superblock1;
+      //TODO: talk to Rose and see what else needs to be done here...
+      int new_head = directory_inode->inode_index;
+      int old_head = superblock1->free_inode;
+
+      //read in the current_head inode and write the new and correct value to disk...
+      superblock1->free_inode = new_head;
+      directory_inode->next_inode = old_head;
+
+      fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK, SEEK_SET);
+      fwrite(superblock1, SIZEOFSUPERBLOCK, 1, current_mounted_disk->disk_image_ptr);
+
+      fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + current_mounted_disk->superblock1->inode_offset * current_mounted_disk->superblock1->size + new_head * sizeof(inode), SEEK_SET);
+      fwrite(superblock1, SIZEOFSUPERBLOCK, 1, current_mounted_disk->disk_image_ptr);
+
+
+
+
+      //TODO: return the disk blocks to the pool of free disk blocks and WRITE THE SUPERBLOCK TO DISK!!
+    }
+  }
+}
+
+inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index) {
+  if(entry == NULL) {
+    return NULL;
+  } else {
+    int inode_index = directory_entry->inode_index;
+    inode *directory_inode = NULL;
+    for(int i=0; i<FILETABLESIZE; i++){
+      if(!file_table[i]->free_file && file_table[i]->file_inode->inode_index == inode_index) {
+        directory_inode = file_table[i]->file_inode;
+        *table_index = i;
+      }
+    }
+  }
+
+  return directory_inode;
+}
+
+//TODO: add skipping empty directory entries...
 directory_entry* f_readir(int index_into_file_table) {
     //TODO: error check here for valid index into file... (not trying to read past end of file)
 
