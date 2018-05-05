@@ -7,7 +7,7 @@ mount_table_entry* mounted_disks[MOUNTTABLESIZE];
 file_table_entry* file_table[FILETABLESIZE];
 mount_table_entry *current_mounted_disk;
 inode *root_inode;
-int table_freehead = 1;
+int table_freehead = 0;
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
@@ -100,7 +100,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
 
 /* f_open() method */ //TODO: assume this is the absolute file path
 int f_open(char* filepath, int access, permission_value *permissions) {
-//  FILE *current_disk = current_mounted_disk->disk_image_ptr;
+    //FILE *current_disk = current_mounted_disk->disk_image_ptr;
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
     //TODO: if this is a new file, then set permissions
 
@@ -119,7 +119,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         count++;
         token = strtok(NULL, s);
     }
-    printf("count : %d\n", count);
+    // printf("count : %d\n", count);
     filename = strtok(path_copy, s);
     while (count > 1) {
         count--;
@@ -159,6 +159,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                 char *name_found = entry->filename;
                 if (strcmp(filename, name_found) == 0) {
                     printf("%s found\n", name_found);
+                    printf("%d\n", table_freehead);
                     file_table_entry *file_entry = malloc(sizeof(file_table_entry));
                     file_entry->free_file = FALSE;
                     file_entry->file_inode = get_inode(entry->inode_index);
@@ -166,7 +167,9 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                     file_table[table_freehead] = file_entry;
                     free(path);
                     print_file_table();
-                    return entry->inode_index;
+                    int fd = table_freehead;
+                    table_freehead = find_next_freehead();
+                    return fd;
                 }
                 file_offset += sizeof(directory_entry);
             }
@@ -179,7 +182,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             }
         }
     }
-    print_file_table();
+    // print_file_table();
     return EXIT_SUCCESS;
 }
 
@@ -195,7 +198,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         superblock *sp = current_mounted_disk->superblock1;
         if (current_mounted_disk->free_spot == FALSE) {
             printf("%s\n", "Not having enough sapce on the disk.");
-            return (EXIT_FAILURE);
+            return (EXIT_SUCCESS);
         }
         int new_size = old_size + sizeof(buffer);
         //check if the new_size is going to exceed the disk size. TODO
@@ -296,7 +299,6 @@ void print_file_table() {
     printf("%s\n", "------------start printing file_table------");
     for (int i = 0; i < FILETABLESIZE; i++) {
         if (file_table[i] != NULL) {
-            printf("%d\n", i);
             if (file_table[i]->free_file == TRUE) {
                 printf("%d: %s\n", i, "empty");
             } else {
@@ -340,7 +342,7 @@ directory_entry* f_opendir(char* filepath){
     count ++;
     token = strtok(NULL, s);
   }
-  printf("count : %d\n", count);
+  // printf("count : %d\n", count);
 
   //create directory_entry for the root
   directory_entry* entry = malloc(sizeof(directory_entry));
@@ -359,12 +361,13 @@ directory_entry* f_opendir(char* filepath){
     root_table_entry->byte_offset = 0;
     file_table[0] = root_table_entry;
   }
+  table_freehead = find_next_freehead();
   // }
   token = strtok(path, s);
-  printf("%s\n", "testing, before while");
+  // printf("%s\n", "testing, before while");
   int i = 0;
   while(token != NULL && count >= 1){
-    printf("%s\n", token);
+    // printf("%s\n", token);
     //get the directory entry
     int found = FALSE;
     file_table[i]->byte_offset = 0;
@@ -384,9 +387,12 @@ directory_entry* f_opendir(char* filepath){
     if (i != 0){
       printf("%s\n", "here");
       //remove the ith index from the table. NEED CHECK. ROSE
-      file_table[i] = NULL;
+      // file_table[i] = NULL;
+      // table_freehead = i;
+      free(file_table[i]);
     }else{
       //root is always in the table. won't be removed.
+      table_freehead = find_next_freehead();
       i = table_freehead;
     }
     if(found == FALSE){
@@ -396,12 +402,16 @@ directory_entry* f_opendir(char* filepath){
     count -- ;
     entry = dir_entry;
     //add dir_entry to the table
+    //need to check if the dir_entry already exists
     inode* node = get_inode(dir_entry->inode_index);
-    file_table_entry* table_ent = malloc(sizeof(file_table_entry));
-    table_ent->free_file = FALSE;
-    table_ent->file_inode = node;
-    table_ent->byte_offset = 0;
-    file_table[i] = table_ent;
+    printf("already_in_table: %d\n", already_in_table(node));
+    if(already_in_table(node) == -1 ){
+      file_table_entry* table_ent = malloc(sizeof(file_table_entry));
+      table_ent->free_file = FALSE;
+      table_ent->file_inode = node;
+      table_ent->byte_offset = 0;
+      file_table[i] = table_ent;
+    }
     //update table_freehead
     token = strtok(NULL, s);
   }
@@ -412,8 +422,9 @@ directory_entry* f_opendir(char* filepath){
   parent_table_entry->file_inode = parent_node;
   parent_table_entry->byte_offset = 0;
   file_table[i] = parent_table_entry;
+  table_freehead = find_next_freehead();
   printf("%s\n", "end of open_dir-----");
-  print_file_table();
+  // print_file_table();
   return entry;
 }
 
@@ -468,45 +479,43 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
 
 //TODO: pont define and figure out if you're requesting a block that doesn't exist
 //TODO: check that this isn't just off by one
-    void *get_block_from_index(int block_index,
-                               inode *file_inode) { //block index is block overall to get...more computations must be done to know which block precisely to obtain
-    //get direct block
-    block *block_to_return = NULL;
-    if (block_index >= 0 && block_index <= 9) {
-        block_to_return = get_data_block(block_index);
-    } else if (block_index >= 10 && block_index <= 521) {
-        block_index -= 10; //adjust to array here
-        int indirect_array_index = block_index / 128;
-        int array_index = block_index % 128;
-        int *indirect_block = get_data_block(file_inode->iblocks[indirect_array_index]);
-        block_to_return = get_data_block(indirect_block[array_index]);
-        free_data_block(indirect_block);
-    } else if (block_index >= 522 && block_index <= 16905) {
-        block_index -= 522; //adjust to array here
-        int indirect_array_index = block_index / 128;
-        int array_index = block_index % 128;
-        int *double_indirect_block = get_data_block(file_inode->i2block);
-        int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
-        block_to_return = get_data_block(indirect_block[array_index]);
-        free_data_block(double_indirect_block);
-        free_data_block(indirect_block);
-    } else if (block_index >= 16906 && block_index <= 2114057) {
-        block_index -= 16906;
-        int double_indirect_array_index = block_index / 128 / 128;
-        int indirect_array_index = block_index / 128;
-        int array_index = block_index % 128;
-        int *triple_indirect_block = get_data_block(file_inode->i3block);
-        int *double_indirect_block = get_data_block(triple_indirect_block[double_indirect_array_index]);
-        int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
-        block_to_return = get_data_block(indirect_block[array_index]);
-        free_data_block(triple_indirect_block);
-        free_data_block(double_indirect_block);
-        free_data_block(indirect_block);
-    } else {
-        printf("Index out of bounds for get block from index.\n");
-    }
-
-    return block_to_return;
+void *get_block_from_index(int block_index, inode *file_inode) { //block index is block overall to get...more computations must be done to know which block precisely to obtain
+  //get direct block
+  block *block_to_return = NULL;
+  if (block_index >= 0 && block_index <= 9) {
+      block_to_return = get_data_block(block_index);
+  } else if (block_index >= 10 && block_index <= 521) {
+      block_index -= 10; //adjust to array here
+      int indirect_array_index = block_index / 128;
+      int array_index = block_index % 128;
+      int *indirect_block = get_data_block(file_inode->iblocks[indirect_array_index]);
+      block_to_return = get_data_block(indirect_block[array_index]);
+      free_data_block(indirect_block);
+  } else if (block_index >= 522 && block_index <= 16905) {
+      block_index -= 522; //adjust to array here
+      int indirect_array_index = block_index / 128;
+      int array_index = block_index % 128;
+      int *double_indirect_block = get_data_block(file_inode->i2block);
+      int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
+      block_to_return = get_data_block(indirect_block[array_index]);
+      free_data_block(double_indirect_block);
+      free_data_block(indirect_block);
+  } else if (block_index >= 16906 && block_index <= 2114057) {
+      block_index -= 16906;
+      int double_indirect_array_index = block_index / 128 / 128;
+      int indirect_array_index = block_index / 128;
+      int array_index = block_index % 128;
+      int *triple_indirect_block = get_data_block(file_inode->i3block);
+      int *double_indirect_block = get_data_block(triple_indirect_block[double_indirect_array_index]);
+      int *indirect_block = get_data_block(double_indirect_block[indirect_array_index]);
+      block_to_return = get_data_block(indirect_block[array_index]);
+      free_data_block(triple_indirect_block);
+      free_data_block(double_indirect_block);
+      free_data_block(indirect_block);
+  } else {
+      printf("Index out of bounds for get block from index.\n");
+  }
+  return block_to_return;
 }
 
 directory_entry* f_readir(int index_into_file_table) {
@@ -567,39 +576,63 @@ directory_entry* f_readir(int index_into_file_table) {
     return next_directory;
 }
 
-  void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block) {
-      void *indirect_data_block = get_data_block(indirect_block_to_fetch);
-      int block_to_fetch = *((int *) (indirect_data_block + index * sizeof(int)));
-      free_data_block(indirect_data_block);
-      direct_copy(entry, current_directory, block_to_fetch, offset_in_block);
-  }
+void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block) {
+    void *indirect_data_block = get_data_block(indirect_block_to_fetch);
+    int block_to_fetch = *((int *) (indirect_data_block + index * sizeof(int)));
+    free_data_block(indirect_data_block);
+    direct_copy(entry, current_directory, block_to_fetch, offset_in_block);
+}
 
-  void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block) {
-      void *data_block = get_data_block(block_to_fetch);
-      memcpy(entry, data_block + offset_in_block, sizeof(directory_entry));
-      free_data_block(data_block);
-  }
+void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block) {
+    void *data_block = get_data_block(block_to_fetch);
+    memcpy(entry, data_block + offset_in_block, sizeof(directory_entry));
+    free_data_block(data_block);
+}
 
 //TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
-  void *get_data_block(int index) {
-    void *data_block = malloc(current_mounted_disk->superblock1->size);
-    FILE *current_disk = current_mounted_disk->disk_image_ptr;
-    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
-      current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
-      index * current_mounted_disk->superblock1->size,
-      SEEK_SET);
-      fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
-      return data_block;
-    }
+void *get_data_block(int index) {
+  void *data_block = malloc(current_mounted_disk->superblock1->size);
+  FILE *current_disk = current_mounted_disk->disk_image_ptr;
+  fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
+    current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
+    index * current_mounted_disk->superblock1->size,
+    SEEK_SET);
+    fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
+    return data_block;
+  }
 
-    void free_data_block(void *block_to_free) {
-        free(block_to_free);
+int already_in_table(inode* node){
+    for(int i=0; i<FILETABLESIZE; i++){
+      if(file_table[i] != NULL){
+        if (file_table[i]->free_file == FALSE){
+          int index1 = file_table[i]->file_inode->inode_index;
+          int index2 = node->inode_index;
+          if (index1 == index2){
+            return i;
+          }
+        }
+      }
     }
+    return -1;
+}
 
-    inode* get_inode(int index) {
-        inode *node = malloc(sizeof(inode));
-        FILE *current_disk = current_mounted_disk->disk_image_ptr;
-        fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + index * sizeof(inode), SEEK_SET);
-        fread(node, sizeof(inode), 1, current_disk);
-        return node;
+int find_next_freehead(){
+  for(int i =0;i<FILETABLESIZE; i++){
+    if(file_table[i]->free_file == TRUE){
+      return i;
     }
+  }
+  return EXIT_FAILURE;
+}
+
+void free_data_block(void *block_to_free) {
+  free(block_to_free);
+}
+
+inode* get_inode(int index) {
+  inode *node = malloc(sizeof(inode));
+  FILE *current_disk = current_mounted_disk->disk_image_ptr;
+  fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + index * sizeof(inode), SEEK_SET);
+  fread(node, sizeof(inode), 1, current_disk);
+  return node;
+}

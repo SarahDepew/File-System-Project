@@ -162,6 +162,8 @@ void indirect_copy(directory_entry *entry, inode *current_directory, int index, 
 void *get_block_from_index(int block_index, inode *file_inode);
 void *get_data_block(int index);
 void free_data_block(void *block_to_free);
+int already_in_table(inode* node);
+int find_next_freehead();
 
 inode* get_inode(int index);
 //filepath must be absolute path
