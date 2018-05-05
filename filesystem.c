@@ -98,7 +98,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     return FALSE;
 }
 
-/* f_open() method */ //TODO: assume this is the absolute file path
+/* f_open() method */ //TODO: assume this is the absolute file path, TODO: add permissions functionality
 int f_open(char* filepath, int access, permission_value *permissions) {
     //FILE *current_disk = current_mounted_disk->disk_image_ptr;
     //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
@@ -131,7 +131,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     printf("filename: %s\n", filename);
     directory_entry *dir = f_opendir(path);
     if (dir == NULL) {
-        printf("%s\n", "directory does not exit");
+        printf("%s\n", "directory does not exist");
         free(path);
         return EXIT_FAILURE;
     } else {
@@ -238,6 +238,7 @@ boolean f_close(int file_descriptor) {
     } else {
         file_table[file_descriptor]->free_file = TRUE;
         free(file_table[file_descriptor]->file_inode);
+        //TODO: figure out how to free permissions...
         return TRUE;
     }
     return FALSE;
@@ -253,11 +254,22 @@ boolean f_rewind(int file_descriptor) {
 }
 
 boolean f_stat(char *filepath, stat *st) {
-    //TODO: use filepath to get to the intended inode
-    int file_table_index = 0;
-    //TODO: go to disk, trace the blocks, and return the inode of the file from the disk
+    permission_value *permissions = malloc(sizeof(permission_value));
+    permissions->cluster_owner = malloc(sizeof(cluster));
+    permissions->cluster_owner->read = TRUE;
+    permissions->cluster_owner->write = TRUE;
+    permissions->cluster_owner->execute = TRUE;
+    permissions->cluster_group = malloc(sizeof(cluster));
+    permissions->cluster_group->read = TRUE;
+    permissions->cluster_group->write = TRUE;
+    permissions->cluster_group->execute = TRUE;
+    permissions->cluster_others = malloc(sizeof(cluster));
+    permissions->cluster_others->read = TRUE;
+    permissions->cluster_others->write = TRUE;
+    permissions->cluster_others->execute = TRUE;
+    int fd = f_open(filepath, READ, permissions);
 
-    inode *inode1 = file_table[file_table_index]->file_inode;
+    inode *inode1 = file_table[fd]->file_inode;
     st->size = inode1->size;
     st->uid = inode1->uid;
     st->gid = inode1->gid;
@@ -268,6 +280,7 @@ boolean f_stat(char *filepath, stat *st) {
     st->permission = inode1->permission;
     st->inode_index = inode1->inode_index;
 
+    f_close(fd);
     return TRUE;
 }
 
@@ -325,7 +338,6 @@ void print_superblock(superblock *superblock1) {
     printf("free block: %d\n", superblock1->free_block);
     printf("root dir: %d\n", superblock1->root_dir);
 }
-
 
 directory_entry* f_opendir(char* filepath){
   //parse the filepath
@@ -428,17 +440,18 @@ directory_entry* f_opendir(char* filepath){
   return entry;
 }
 
-
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     inode *file_to_read = file_table[file_descriptor]->file_inode;
     long file_offset = file_table[file_descriptor]->byte_offset;
     int block_to_read = file_offset / BLOCKSIZE;
+    // int block_to_read = 0;
     int bytes_to_read;
     int bytes_remaining_in_block;
     int block_offset;
     char *block_to_read_from;
     //TODO:check that size isn't larger than the file size and check that size*n_times isn't larger than the file size
     //TODO: check that you are not reading past the end of the disk...
+    //TODO: check if you're allowed to read the file!!
     int buffer_index = 0;
     char *buffer_to_return = malloc(sizeof(size * n_times));
 
@@ -473,7 +486,7 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
             }
         }
     }
-
+    printf("contents of buffer: %s\n", buffer_to_return);
     return TRUE;
 }
 
