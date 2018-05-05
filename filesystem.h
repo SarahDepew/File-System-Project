@@ -144,6 +144,8 @@ int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
 boolean f_rewind(int file_descriptor);
 boolean f_stat(char *filepath, stat *st);
+directory_entry* f_opendir(char* filepath);
+directory_entry* f_readir(int index_into_file_table);
 
 /* Helper Methods */
 boolean setup();
@@ -152,9 +154,8 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 void print_file_table();
-
-directory_entry* f_opendir(char* filepath);
-directory_entry* f_readir(int index_into_file_table);
+void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory); //TODO: ask Rose about expected behavior...
+inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry); 
 
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
