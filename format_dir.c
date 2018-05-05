@@ -83,6 +83,7 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
     //write inode region
     inode *inodes[num_inodes];
     for (int i = 0; i < num_inodes; i++) {
+      // printf("num inodes: %d\n", num_inodes);
         inodes[i] = (inode *) malloc(sizeof(inode));
         memset(inodes[i], 0, sizeof(inode));
         inodes[i]->disk_identifier = 0;
@@ -145,6 +146,7 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
           //TODO. Decide wheter to + 1 at the end
           inodes[i]->type = REG;
           inodes[i]->dblocks[0] = 2;
+          printf("hit here with inode value of %d\n", i);
           inodes[i]->size = strlen(data);
         }
         fwrite(inodes[i], sizeof(inode), 1, disk);
