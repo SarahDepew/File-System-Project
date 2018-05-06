@@ -245,7 +245,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         int lefttowrite = size*ntimes;
         if (file_table[fd]->access == APPEND){
           //get the last data block of the file.
-          void* last_data_block = get_data_block(file_table[fd]->file_inode->last_block_index);
+          void* last_data_block = malloc(BLOCKSIZE);
+          void* copy = get_data_block(file_table[fd]->file_inode->last_block_index);
+          memcpy(last_data_block, copy,BLOCKSIZE);
+          free(copy);
+          file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
           int offset_into_last_block = file_table[fd]->byte_offset % BLOCKSIZE;
           int free_space = BLOCKSIZE - offset_into_last_block;
           if (free_space < sizeof(buffer) && sp->free_block == -1){
@@ -264,17 +268,13 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             //copy the data from the last block to data1
             memcpy(data, last_data_block, offset_into_last_block);
             memcpy(data+offset_into_last_block, datatowrite, free_space);
-            printf("%s\n", (char*)data);
-            if(write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size)!= sp->size){
-              printf("%s\n", "-------");
-                return EXIT_FAILURE;
-            }
+            write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
             lefttowrite -= free_space;
             start_of_block_to_write = request_new_block();
             free(data);
           }
           int old_offset = file_table[fd]->byte_offset;
-          int new_offset = old_offset + sizeof(buffer);
+          int new_offset = old_offset + size*ntimes;
           while (lefttowrite > 0) {
             int size_to_write = BLOCKSIZE;
             void* data = malloc(BLOCKSIZE);
@@ -291,6 +291,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             start_of_block_to_write = request_new_block();
           }
           file_table[fd]->byte_offset = new_offset;
+          printf("new_offset: %d\n", new_offset);
         }else if(file_table[fd]->access == WRITE){
             //need to overwite the file
             int start_block_index = file_table[fd]->file_inode->dblocks[0];
@@ -935,8 +936,10 @@ void *get_data_block(int index) {
 int request_new_block(){
   superblock* sp = current_mounted_disk->superblock1;
   int free_block = sp->free_block;
-  void* prevfree_block_on_disk = (void*)(sp+SIZEOFSUPERBLOCK+ sp->data_offset*sp->size+sp->size*free_block);
-  int next_free = *(int*)prevfree_block_on_disk;
+  void* prevfree_block_on_disk = (void*)(sp)+ sp->data_offset*sp->size+sp->size*free_block;
+  printf("%s\n", "+++++");
+  int next_free = ((block*)prevfree_block_on_disk)->next_free_block;
+  printf("%d\n", next_free);
   sp->free_block = next_free;
   if(update_superblock_ondisk(sp) != SIZEOFSUPERBLOCK){
     return EXIT_FAILURE;
@@ -947,10 +950,11 @@ int request_new_block(){
 int update_superblock_ondisk(superblock* new_superblock){
   FILE* current_disk = current_mounted_disk->disk_image_ptr;
   fseek(current_disk, SIZEOFBOOTBLOCK, SEEK_SET);
-  if (fwrite((void*)new_superblock, SIZEOFSUPERBLOCK, 1, current_disk) != SIZEOFSUPERBLOCK){
-    printf("%s\n", "ERROR in update_superblock_ondisk()");
-    return EXIT_FAILURE;
-  }
+  // if (fwrite((void*)new_superblock, SIZEOFSUPERBLOCK, 1, current_disk) != SIZEOFSUPERBLOCK){
+  //   printf("%s\n", "ERROR in update_superblock_ondisk()");
+  //   return EXIT_FAILURE;
+  // }
+  fwrite((void*)new_superblock, SIZEOFSUPERBLOCK, 1, current_disk);
   return SIZEOFSUPERBLOCK;
 }
 
@@ -963,11 +967,12 @@ int write_data_to_block(int block_index, void* content, int size){
     return EXIT_FAILURE;
   }
   fseek(current_disk, SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK+sp->size*(sp->data_offset+block_index),SEEK_SET);
-  if(fwrite(content, size, 1, current_disk) == size){
-      return size;
-  }
-
-  return EXIT_FAILURE;
+  // if(fwrite(content, size, 1, current_disk) == size){
+  //     return size;
+  // }
+  printf("content: %s\n", (char*)content);
+  fwrite(content, size, 1, current_disk);
+  return EXIT_SUCCESS;
 }
 
 int already_in_table(inode* node){
