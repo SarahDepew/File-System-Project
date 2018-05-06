@@ -22,17 +22,20 @@ int main() {
   // f_opendir("/a/s/d/sf/'we'/5/46/");
   printf("fd: %d\n", fd);
   char* content = "1";
+  char* large = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
   f_write(content, 1, 1, fd);
-
-  // stat *stats = malloc(sizeof(stat));
+  void *block = get_data_block(2);
+  printf("Contents of block2: %s\n", (char*) block);
+  f_write(large, strlen(large), 1, fd);
+  block = get_data_block(3);
+  printf("Contents of block3: %s\n", (char*) block);
   // f_stat("/user/test.txt", stats);
+  // stat *stats = malloc(sizeof(stat));
   // printf("stats values %d, %d\n", stats->size, stats->inode_index);
   // f_write(text, strlen(text), 1, fd);
   // void* buffer = malloc(200);
   // f_read(buffer, 5, 1, 1);
   // inode *i = get_inode(2);
-  void *block = get_data_block(2);
   // printf("%s\n", (char*) buffer);
-  printf("Contents of block: %s\n", (char*) block);
   shutdown();
 }

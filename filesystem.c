@@ -234,10 +234,6 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         printf("%s\n", "writing to a regular file");
         superblock *sp = current_mounted_disk->superblock1;
         //need to double check this
-        // if (current_mounted_disk->free_spot == FALSE) {
-        //     printf("%s\n", "Not having enough sapce on the disk.");
-        //     return (EXIT_FAILURE);
-        // }
         void *datatowrite = malloc(size*ntimes);
         for(int j=0; j<ntimes; j++){
           memcpy(datatowrite+j*size, buffer,size);
@@ -936,14 +932,16 @@ void *get_data_block(int index) {
 int request_new_block(){
   superblock* sp = current_mounted_disk->superblock1;
   int free_block = sp->free_block;
-  void* prevfree_block_on_disk = (void*)(sp)+ sp->data_offset*sp->size+sp->size*free_block;
+  void* prevfree_block_on_disk = get_data_block(free_block);
   printf("%s\n", "+++++");
   int next_free = ((block*)prevfree_block_on_disk)->next_free_block;
-  printf("%d\n", next_free);
+  printf("free_block: %d\n", free_block);
+  printf("newt_free: %d\n", next_free);
   sp->free_block = next_free;
-  if(update_superblock_ondisk(sp) != SIZEOFSUPERBLOCK){
-    return EXIT_FAILURE;
-  }
+  // if(update_superblock_ondisk(sp) != SIZEOFSUPERBLOCK){
+  //   return EXIT_FAILURE;
+  // }
+  update_superblock_ondisk(sp);
   return free_block;
 }
 
@@ -970,7 +968,6 @@ int write_data_to_block(int block_index, void* content, int size){
   // if(fwrite(content, size, 1, current_disk) == size){
   //     return size;
   // }
-  printf("content: %s\n", (char*)content);
   fwrite(content, size, 1, current_disk);
   return EXIT_SUCCESS;
 }
