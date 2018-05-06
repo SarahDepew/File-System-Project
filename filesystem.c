@@ -24,7 +24,7 @@ boolean setup() {
         file_table[j]->free_file = TRUE;
     }
 
-    current_mounted_disk = malloc(sizeof(mount_table_entry));
+    // current_mounted_disk = malloc(sizeof(mount_table_entry));
 
     return TRUE;
 }
@@ -40,7 +40,7 @@ boolean shutdown() {
         free(file_table[j]);
     }
 
-    free(current_mounted_disk);
+    // free(current_mounted_disk);
 
     return TRUE;
 }
@@ -140,6 +140,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //get the filename and the path seperately
     char *filename = NULL;
     char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
     char path_copy[strlen(filepath) + 1];
     char copy[strlen(filepath) + 1];
     strcpy(path_copy, filepath);
@@ -184,27 +185,33 @@ int f_open(char* filepath, int access, permission_value *permissions) {
           printf("entry: %s\n", entry->filename );
           if (strcmp(entry->filename, filename) == 0){
             printf("%s found\n", entry->filename);
-            file_table_entry *file_entry = malloc(sizeof(file_table_entry));
+            file_table_entry *file_entry = file_table[table_freehead];
             file_entry->free_file = FALSE;
             file_entry->file_inode = get_inode(entry->inode_index);
             file_entry->byte_offset = 0;
             file_entry->access = access;
-            file_table[table_freehead] = file_entry;
             free(path);
             print_file_table();
             int fd = table_freehead;
             table_freehead = find_next_freehead();
+            f_closedir(dir);
             return fd;
           }
         }
         if(access == READ){
           printf("%s\n", "file does not found");
+          free(path);
+          free(dir);
           return EXIT_FAILURE;
         }else{
           printf("%s\n", "need to create this new file");
+          free(path);
+          free(dir);
           return EXIT_SUCCESS;
         }
     }
+
+    free(dir);
     // return EXIT_SUCCESS;
 }
 
@@ -449,11 +456,10 @@ directory_entry* f_opendir(char* filepath){
   //if root alreay exists, should not add any more.
   // if (file_table[0] != NULL){
   if (file_table[0]->free_file == TRUE){
-    file_table_entry* root_table_entry = malloc(sizeof(file_table_entry));
+    file_table_entry* root_table_entry = file_table[0];
     root_table_entry->free_file = FALSE;
     root_table_entry->file_inode = root_node;
     root_table_entry->byte_offset = 0;
-    file_table[0] = root_table_entry;
   }
   table_freehead = find_next_freehead();
   // }
@@ -500,11 +506,10 @@ directory_entry* f_opendir(char* filepath){
     inode* node = get_inode(dir_entry->inode_index);
     printf("already_in_table: %d\n", already_in_table(node));
     if(already_in_table(node) == -1 ){
-      file_table_entry* table_ent = malloc(sizeof(file_table_entry));
+      file_table_entry* table_ent = file_table[i];
       table_ent->free_file = FALSE;
       table_ent->file_inode = node;
       table_ent->byte_offset = 0;
-      file_table[i] = table_ent;
     }
     //update table_freehead
     token = strtok(NULL, s);
@@ -760,20 +765,25 @@ boolean f_remove(char *filepath) {
 }
 
 boolean f_closedir(directory_entry *entry) {
-  int inode_index = entry->inode_index;
-  int fd = -1;
-  for(int i=0; i<FILETABLESIZE; i++) {
-    if(file_table[i]->file_inode->inode_index == inode_index) {
-      //found the one you're searching for
-      fd = i;
-      break;
-    }
-  }
-
-  if(fd == -1) {
+  if(entry == NULL) {
     return FALSE;
   } else {
-    return f_close(fd);
+    int inode_index = entry->inode_index;
+    free(entry);
+    int fd = -1;
+    for(int i=0; i<FILETABLESIZE; i++) {
+      if(file_table[i]->file_inode->inode_index == inode_index) {
+        //found the one you're searching for
+        fd = i;
+        break;
+      }
+    }
+
+    if(fd == -1) {
+      return FALSE;
+    } else {
+      return f_close(fd);
+    }
   }
 }
 
