@@ -1,6 +1,3 @@
-//
-// Created by Sarah Depew on 4/27/18.
-//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +11,7 @@
 #include <limits.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 #include "boolean.h"
 #include "filesystem.h"
 
@@ -39,6 +37,10 @@ void open_disk(char *file_name) {
     disk = fopen(file_name, "wb+"); //open the disk to write
 }
 
+void open_disk_test(char *file_name) {
+    disk = fopen(file_name, "rb+"); //open the disk to write
+}
+
 void close_disk() {
     fclose(disk);
 }
@@ -50,6 +52,15 @@ void write_boot_block() {
     strcpy(boot,
            "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot");
     fwrite(boot, SIZEOFBOOTBLOCK, 1, disk);
+    free(boot);
+}
+
+void check_boot_block() {
+    char *boot = malloc(SIZEOFBOOTBLOCK * sizeof(char) + 1);
+    memset(boot, 0, SIZEOFBOOTBLOCK + 1);
+    fseek(disk, 0, SEEK_SET);
+    fread(boot, SIZEOFBOOTBLOCK, 1, disk);
+    assert(strcmp(boot, "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot") == 0);
     free(boot);
 }
 
@@ -78,8 +89,24 @@ void write_super_block(int data_offset) {
 
     //write the remaining bytes at the end of the file
     int bytes_remaining_superblock = SIZEOFSUPERBLOCK - sizeof(superblock);
-    printf("bytes remaining: %d\n", bytes_remaining_superblock);
     write_padding(bytes_remaining_superblock);
+}
+
+void check_super_block(int data_offset) {
+    void *superblock1 = malloc(SIZEOFSUPERBLOCK);
+    memset(superblock1, 0, SIZEOFSUPERBLOCK);
+    fseek(disk, SIZEOFBOOTBLOCK, SEEK_SET);
+    fread(superblock1, SIZEOFSUPERBLOCK, 1, disk);
+    superblock *superblockPtr = superblock1;
+
+    assert(superblockPtr->size == BLOCKSIZE);
+    assert(superblockPtr->data_offset == data_offset); //this is data region offset
+    assert(superblockPtr->inode_offset == 0);
+    assert(superblockPtr->free_block == 1); //the first block is the root directory
+    assert(superblockPtr->free_inode == 1); //the first inode is the root directory
+    assert(superblockPtr->root_dir == 0); //default to first inode being the root directory
+
+    free(superblock1);
 }
 
 void write_inode_region(int num_inodes, int num_blocks_inodes) {
@@ -119,7 +146,6 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
             //make the last inode have a next of -1 to show end of free list
             inodes[i]->next_inode = -1;
         } else {
-            //ROSE: I don't think this is right
             inodes[i]->next_inode = i + 1;
         }
         inodes[i]->size = 0;
@@ -128,7 +154,7 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         inodes[i]->ctime = 0;
         inodes[i]->mtime = 0;
         inodes[i]->atime = 0;
-        inodes[i]->type = 0;
+        inodes[i]->type = -1;
         inodes[i]->permission = 0;
         inodes[i]->inode_index = i; //this is the only value that won't be replaced
         inodes[i]->i2block = -1;
@@ -142,11 +168,70 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
     //padding if needed.
     long padding_value =
             num_blocks_inodes * BLOCKSIZE - num_inodes * sizeof(inode); //total bytes minus those taken by inodes
-    printf("number of inodes: %d\n", num_inodes);
-    printf("number of bytes needed for inodes: %d\n", num_blocks_inodes * BLOCKSIZE);
-    printf("size of inode: %lu\n", sizeof(inode));
-    printf("number of bytes for the inodes %lu\n", num_inodes * sizeof(inode));
     write_padding(padding_value);
+}
+
+void check_inode_region() {
+    //read in the superblock to get the data offset and check the number of inodes there...
+    void *superblock1 = malloc(SIZEOFSUPERBLOCK);
+    memset(superblock1, 0, SIZEOFSUPERBLOCK);
+    fseek(disk, SIZEOFBOOTBLOCK, SEEK_SET);
+    fread(superblock1, SIZEOFSUPERBLOCK, 1, disk);
+    superblock *superblockPtr = superblock1;
+    int data_offset = superblockPtr->data_offset;
+    free(superblock1);
+
+    int num_inodes = data_offset*BLOCKSIZE/sizeof(inode);
+    inode *currentInode = NULL;
+
+    for (int i = 0; i < num_inodes; i++) {
+        currentInode = malloc(sizeof(inode));
+        memset(currentInode, 0, sizeof(inode));
+
+        //read in the inode
+        fseek(disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + i*sizeof(inode), SEEK_SET);
+        fread(currentInode, sizeof(inode), 1, disk);
+
+        assert(currentInode->disk_identifier == 0);
+        assert(currentInode->i2block == -1);
+        assert(currentInode->i3block == -1);
+        assert(currentInode->inode_index == i); //this is the only value that won't be replaced
+
+        if (i == 0) {
+            assert(currentInode->parent_inode_index == 0); //the root inode is it's own parent :)
+            assert(currentInode->dblocks[0] == 0); //the first block is the root directory
+            assert(currentInode->next_inode == -1); //unused in occupied inodes
+            assert(currentInode->size == 2* sizeof(directory_entry)); //this is how we can tell where we are in the block to continue writing to...
+            assert(currentInode->uid == 0);
+            assert(currentInode->gid == 0);
+            //TODO: modify these values once they're fixed in the above code...
+            assert(currentInode->ctime == 0);
+            assert(currentInode->mtime == 0);
+            assert(currentInode->atime == 0);
+            assert(currentInode->type == DIR);
+            assert(currentInode->permission == 0); //TODO: fix here!
+            assert(currentInode->last_block_index == 0); //since the only block is this block...
+        } else {
+          assert(currentInode->parent_inode_index == -1);
+          assert(currentInode->size == 0);
+          assert(currentInode->uid == 0);
+          assert(currentInode->gid == 0);
+          assert(currentInode->ctime == 0);
+          assert(currentInode->mtime == 0);
+          assert(currentInode->atime == 0);
+          assert(currentInode->type == -1);
+          assert(currentInode->permission == 0); //TODO: fix this...
+          assert(currentInode->last_block_index == -1);
+
+          if(i == num_inodes-1) {
+            assert(currentInode->next_inode == -1);
+          } else {
+            assert(currentInode->next_inode == i + 1);
+          }
+        }
+
+        free(currentInode);
+    }
 }
 
 void write_data_region(long total_bytes, int num_blocks_for_inodes) {
@@ -155,7 +240,6 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
     long bytes_left_for_data_blocks =
             total_bytes - SIZEOFSUPERBLOCK - SIZEOFBOOTBLOCK - num_blocks_for_inodes * BLOCKSIZE;
     long num_data_blocks = ceilf((float) bytes_left_for_data_blocks / (float) BLOCKSIZE);
-    printf("num data blocks %ld\n", num_data_blocks);
 
     for (int j = 0; j < num_data_blocks; j++) {
         //create the list before writing to the file!
@@ -163,25 +247,11 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
         memset(block_to_write, 0, BLOCKSIZE);
 
         if (j == 0) {
-            // the root dir data data_region. ALL TEMP
-//            directory_entry *directories = malloc(2 * sizeof(directory_entry));
-//            memset(directories, 0, 2 * sizeof(directory_entry));
-//            printf("size of root directory file: %d \n", sizeof(directory_entry)*2);
-//            directories[0].inode_index = 0;
-//            strcpy(directories[0].filename, ".");
-//
-//            directories[1].inode_index = 0;
-//            strcpy(directories[1].filename, "..");
-//
-//            memcpy(block_to_write, directories, sizeof(directory_entry) * 2);
-//            free(directories);
             directory_entry *directory_entry_array = block_to_write;
             directory_entry_array[0].inode_index = 0;
             directory_entry_array[1].inode_index = 0;
             strcpy(directory_entry_array[0].filename, ".");
             strcpy(directory_entry_array[1].filename, "..");
-
-
         } else if (j == num_data_blocks - 1) {
             ((block *) block_to_write)->next_free_block = -1;
         } else {
@@ -189,6 +259,36 @@ void write_data_region(long total_bytes, int num_blocks_for_inodes) {
         }
         fwrite(block_to_write, BLOCKSIZE, 1, disk);
         free(block_to_write);
+    }
+}
+
+void check_data_region(long total_bytes, int num_blocks_for_inodes, int data_region_offset) {
+    long bytes_left_for_data_blocks =
+            total_bytes - SIZEOFSUPERBLOCK - SIZEOFBOOTBLOCK - num_blocks_for_inodes * BLOCKSIZE;
+    long num_data_blocks = ceilf((float) bytes_left_for_data_blocks / (float) BLOCKSIZE);
+
+    //we know that the head of the free list is 1, since the superblock has already been checked
+    for (int j = 0; j < num_data_blocks; j++) {
+        //create the list before writing to the file!
+        void *block_to_read = malloc(BLOCKSIZE); //malloc enough memory
+        memset(block_to_read, 0, BLOCKSIZE);
+
+        fseek(disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + data_region_offset*BLOCKSIZE + j*BLOCKSIZE, SEEK_SET);
+        fread(block_to_read, BLOCKSIZE, 1, disk);
+
+        if (j == 0) {
+            directory_entry *directory_entry_array = block_to_read;
+            assert(directory_entry_array[0].inode_index == 0);
+            assert(directory_entry_array[1].inode_index == 0);
+            assert(strcmp(directory_entry_array[0].filename, ".") == 0);
+            assert(strcmp(directory_entry_array[1].filename, "..") == 0);
+        } else if (j == num_data_blocks - 1) {
+            assert(((block *) block_to_read)->next_free_block == -1);
+        } else {
+            assert(((block *) block_to_read)->next_free_block == j + 1);
+        }
+
+        free(block_to_read);
     }
 }
 
@@ -210,9 +310,6 @@ void write_disk(char *file_name, float file_size) {
     num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE /
                        sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
 
-    printf("num_inodes: %d\n", num_inodes);
-    printf("num blocks for inodes: %d\n", num_blocks_for_inodes);
-
     write_super_block(num_blocks_for_inodes);
 
     //write inode region
@@ -223,6 +320,35 @@ void write_disk(char *file_name, float file_size) {
 
     //done writing, so close the disk
     close_disk();
+}
+
+void test_disk(char *file_name, float file_size) {
+  long long int total_bytes = file_size * 1000000; //convert mb to bytes
+
+  //open the disk first
+  open_disk_test(file_name);
+
+  //write boot block
+  check_boot_block();
+
+  // //write superblock
+  //compute the number of inodes, so that you have the data region offset
+  int num_inodes = ceilf((float) file_size / (float) AVERAGEFILESIZE); //compute the minimum number of inodes
+  int num_blocks_for_inodes = ceilf((float) (num_inodes * sizeof(inode)) /
+                                    (float) BLOCKSIZE); //compute the data blocks needed for this number of inodes
+  num_inodes = floor(num_blocks_for_inodes * BLOCKSIZE /
+                     sizeof(inode)); //update the number of inodes based on the number of blocks for inodes
+
+  check_super_block(num_blocks_for_inodes);
+
+  //write inode region
+  check_inode_region();
+
+  //write data region
+  check_data_region(total_bytes, num_blocks_for_inodes, num_blocks_for_inodes);
+
+  //done writing, so close the disk
+  close_disk();
 }
 
 /*
@@ -273,25 +399,25 @@ int main(int argc, char *argv[]) {
         help();
     } else {
         if (argc == MINNUMARGUMENTS) {
-            printf("file name: %s\n", argv[FILELOCATIONBASIC]);
             write_disk(argv[FILELOCATIONBASIC], DEFAULTFILESIZE);
+            printf("Disk has been written.\n");
+            test_disk(argv[FILELOCATIONBASIC], DEFAULTFILESIZE);
+            printf("Disk has been tested.\n");
+            printf("Disk may now be used.\n");
         } else {
             char *token = strtok(argv[FLAGLOCATION], deliminator);
-            printf("token %s\n", token);
-
-            printf("strcmp value %d\n", strcmp(flag, token));
             if (strcmp(flag, token) == 0) {
                 token = strtok(NULL, deliminator);
-                printf("token %s\n", token);
-
                 token = strtok(token, hash);
-                printf("number of megabytes %s\n", token);
 
                 //convert the token to an integer value
                 long long int MB;
                 if (parseCmd(token, &MB) == TRUE) {
-                    printf("number of megabytes after translation %lld\n", MB);
                     write_disk(argv[FILELOCATION], MB);
+                    printf("Disk has been written.\n");
+                    test_disk(argv[FILELOCATION], MB);
+                    printf("Disk has been tested.\n");
+                    printf("Disk may now be used.\n");
                 } else {
                     help();
                 }
@@ -299,5 +425,3 @@ int main(int argc, char *argv[]) {
         }
     }
 }
-
-//TODO: write unit tests to ensure the disk image and regions are correct

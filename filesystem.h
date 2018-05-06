@@ -9,8 +9,11 @@
 #include "stdio.h"
 #include "string.h"
 
+#define ERROR -1 
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
+#define EXIT_FAILURE -1
+#define EXIT_SUCCESS 0
 //change this to OPENFILE_MAX?
 #define FILETABLESIZE 20
 #define FILENAMEMAX 60
@@ -28,6 +31,7 @@ enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
 enum permission{SUPER, REGULAR};
 enum access{READ, WRITE, READANDWRITE, APPEND};
+enum whence{SEEKSET, SEEKCUR, SEEKEND};
 
 typedef struct superblock {
     int size; /* size of blocks in bytes */
@@ -124,13 +128,19 @@ typedef struct permission_value {
 } permission_value;
 
 /* Methods */
-boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
 int f_open(char* filepath, int access, permission_value *permissions);
 int f_read(void *buffer, int size, int n_times, int file_descriptor);
 int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
+boolean f_seek(int file_descriptor, int offset, int whence);
 boolean f_rewind(int file_descriptor);
 boolean f_stat(char *filepath, stat *st);
+boolean f_remove(char *filepath);
+directory_entry* f_opendir(char* filepath);
+directory_entry* f_readdir(int index_into_file_table);
+boolean f_closedir(directory_entry *entry);
+boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
+/* TODO - TBD: f_mkdir, f_rmdir, and f_unmount*/
 
 /* Helper Methods */
 boolean setup();
@@ -139,16 +149,22 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 void print_file_table();
-
-directory_entry* f_opendir(char* filepath);
-directory_entry* f_readir(int index_into_file_table);
+void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory); //TODO: ask Rose about expected behavior...
+inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index);
+int update_single_inode_ondisk(inode* new_inode, int new_inode_index);
 
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
-void *get_block_from_index(int block_index, inode *file_inode);
+//getting a new free block, and updating the superblock, wrting to the disk.
+//return value: index of the free block
+int request_new_block();
+int update_superblock_ondisk(superblock* new_superblock);
+void *get_block_from_index(int block_index, inode *file_inode, int *data_region_index);
 void *get_data_block(int index);
 void free_data_block(void *block_to_free);
+//intended to write to data region
+int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
 

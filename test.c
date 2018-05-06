@@ -13,7 +13,7 @@ int main() {
     printf("index into mount table: %d\n", index_into_mount_table);
 
     //create a basic disk image to use
-    inode *inode1 = malloc(sizeof(inode));
+    // inode *inode1 = malloc(sizeof(inode));
 
     //set fields
     // inode1->filename[0] = 'T';
