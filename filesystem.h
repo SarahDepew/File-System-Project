@@ -75,7 +75,7 @@ typedef struct mounted_disk{
 typedef struct stat {
     int size; /* number of bytes in file */
     int uid; /* owner’s user ID */
-    int gid; /* owner’s group ID */ //TODO: do we have to have this?
+    int gid; /* owner’s group ID */
     int ctime; /* last status change time */
     int mtime; /* last data modification time */
     int atime; /* last access time */
@@ -86,7 +86,7 @@ typedef struct stat {
 
 /* inode struct */
 typedef struct inode {
-    unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal)) //TODO: ask dianna about this
+    unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal))
     int parent_inode_index;
     int next_inode; /* index of next free inode */
     int size; /* number of bytes in file */
@@ -96,7 +96,7 @@ typedef struct inode {
     int mtime; /* last data modification time */
     int atime; /* last access time */
     int type; // dir or regular file
-    int permission; //TODO: change this to permission type
+    struct permission_value permission; //file access information
     int inode_index; // the index number for this inode
     int dblocks[N_DBLOCKS]; /* pointers to data blocks */
     int iblocks[N_IBLOCKS]; /* pointers to indirect blocks */
