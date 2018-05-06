@@ -9,7 +9,7 @@
 #include "stdio.h"
 #include "string.h"
 
-#define ERROR -1 
+#define ERROR -1
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
 #define EXIT_FAILURE -1
@@ -167,6 +167,7 @@ void free_data_block(void *block_to_free);
 int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
+void set_permissions(permission_value *old_value, permission_value *new_value); 
 
 inode* get_inode(int index);
 //filepath must be absolute path

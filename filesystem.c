@@ -131,12 +131,8 @@ void get_filepath_and_filename(char *filepath, char **filename_to_return, char *
 }
 */
 
-/* f_open() method */ //TODO: assume this is the absolute file path, TODO: add permissions functionality
+/* f_open() method */ //TODO: add permissions functionality //TODO: add access fulctonality with timing...
 int f_open(char* filepath, int access, permission_value *permissions) {
-    //FILE *current_disk = current_mounted_disk->disk_image_ptr;
-    //TODO: need to decide whether to check permission everytime, if yes: should do this while tracing
-    //TODO: if this is a new file, then set permissions
-
     //get the filename and the path seperately
     char *filename = NULL;
     char *path = malloc(strlen(filepath));
@@ -188,7 +184,10 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             file_table_entry *file_entry = file_table[table_freehead];
             file_entry->free_file = FALSE;
             free(file_entry->file_inode);
-            file_entry->file_inode = get_inode(entry->inode_index);
+            inode *file_inode = get_inode(entry->inode_index);
+            set_permissions(file_inode->permission, permissions);
+            update_single_inode_ondisk(file_inode, file_inode->inode_index);
+            file_entry->file_inode = file_inode;
             file_entry->byte_offset = 0;
             file_entry->access = access;
             free(path);
@@ -218,6 +217,12 @@ int f_open(char* filepath, int access, permission_value *permissions) {
 
     // free(dir);
     // return EXIT_SUCCESS;
+}
+
+void set_permissions(permission_value *old_value, permission_value *new_value) {
+    old_value->owner = new_value->owner;
+    old_value->group = new_value->group;
+    old_value->others = new_value->others;
 }
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
@@ -408,18 +413,9 @@ boolean f_seek(int file_descriptor, int offset, int whence) {
 
 boolean f_stat(char *filepath, stat *st) {
     permission_value *permissions = malloc(sizeof(permission_value));
-    permissions->cluster_owner = malloc(sizeof(cluster));
-    permissions->cluster_owner->read = TRUE;
-    permissions->cluster_owner->write = TRUE;
-    permissions->cluster_owner->execute = TRUE;
-    permissions->cluster_group = malloc(sizeof(cluster));
-    permissions->cluster_group->read = TRUE;
-    permissions->cluster_group->write = TRUE;
-    permissions->cluster_group->execute = TRUE;
-    permissions->cluster_others = malloc(sizeof(cluster));
-    permissions->cluster_others->read = TRUE;
-    permissions->cluster_others->write = TRUE;
-    permissions->cluster_others->execute = TRUE;
+    permissions->owner = '\a';
+    permissions->group = '\a';
+    permissions->others = '\a';
     int fd = f_open(filepath, READ, permissions);
 
     inode *inode1 = file_table[fd]->file_inode;
@@ -606,7 +602,7 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
       return ERROR;
     }
     if(size <= 0 || n_times <= 0 || size > file_to_read->size || size * n_times > file_to_read->size || size > bytes_remaining_in_file || size*n_times > bytes_remaining_in_file) {
-      printf("I am sorry, but you are attempting to read an invalid number of bytes from the file.\n"); 
+      printf("I am sorry, but you are attempting to read an invalid number of bytes from the file.\n");
       return ERROR;
     }
 
