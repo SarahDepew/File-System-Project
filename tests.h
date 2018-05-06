@@ -1,4 +1,4 @@
-#import filesystem.h
+#include "filesystem.h"
 
 //Tests for f_open
 /*
@@ -32,5 +32,5 @@
 
 //Tests for f_close
 /*
-1) Check that the  
+1) Check that the
 */
