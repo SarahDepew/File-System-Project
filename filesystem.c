@@ -20,7 +20,8 @@ boolean setup() {
     }
 
     for (int j = 0; j < FILETABLESIZE; j++) {
-        file_table[j] = malloc(sizeof(file_table_entry));
+        file_table[j] = (file_table_entry*)malloc(sizeof(file_table_entry));
+        file_table[j]->file_inode = malloc(sizeof(inode));
         file_table[j]->free_file = TRUE;
     }
 
@@ -37,6 +38,7 @@ boolean shutdown() {
     }
 
     for (int j = 0; j < FILETABLESIZE; j++) {
+        free(file_table[j]->file_inode);
         free(file_table[j]);
     }
 
@@ -90,12 +92,10 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
 
         free(data_content);
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
-
         return TRUE;
     } else {
         return FALSE; //a spot was not found
     }
-
     return FALSE;
 }
 
@@ -187,6 +187,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             printf("%s found\n", entry->filename);
             file_table_entry *file_entry = file_table[table_freehead];
             file_entry->free_file = FALSE;
+            free(file_entry->file_inode);
             file_entry->file_inode = get_inode(entry->inode_index);
             file_entry->byte_offset = 0;
             file_entry->access = access;
@@ -194,10 +195,14 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             print_file_table();
             int fd = table_freehead;
             table_freehead = find_next_freehead();
-            f_closedir(dir);
+            free(entry);
+            free(dir_node);
+            free(dir);
             return fd;
           }
+          free(entry);
         }
+        free(dir_node);
         if(access == READ){
           printf("%s\n", "file does not found");
           free(path);
@@ -211,7 +216,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         }
     }
 
-    free(dir);
+    // free(dir);
     // return EXIT_SUCCESS;
 }
 
@@ -443,12 +448,9 @@ directory_entry* f_opendir(char* filepath){
     count ++;
     token = strtok(NULL, s);
   }
-  // printf("count : %d\n", count);
 
   //create directory_entry for the root
-  directory_entry* entry = malloc(sizeof(directory_entry));
-  entry->inode_index = 0;
-  strcpy(entry->filename, "/");
+  // directory_entry* entry = malloc(sizeof(directory_entry));
   directory_entry* dir_entry = NULL;
   inode* root_node = get_inode(0);
 
@@ -458,8 +460,11 @@ directory_entry* f_opendir(char* filepath){
   if (file_table[0]->free_file == TRUE){
     file_table_entry* root_table_entry = file_table[0];
     root_table_entry->free_file = FALSE;
+    free(root_table_entry->file_inode);
     root_table_entry->file_inode = root_node;
     root_table_entry->byte_offset = 0;
+  }else{
+    free(root_node);
   }
   table_freehead = find_next_freehead();
   // }
@@ -467,7 +472,6 @@ directory_entry* f_opendir(char* filepath){
   // printf("%s\n", "testing, before while");
   int i = 0;
   while(token != NULL && count >= 1){
-    // printf("%s\n", token);
     //get the directory entry
     int found = FALSE;
     file_table[i]->byte_offset = 0;
@@ -483,6 +487,7 @@ directory_entry* f_opendir(char* filepath){
         printf("%s\n", "found");
         found = TRUE;
       }
+      if (found==FALSE) free(dir_entry);
     }
     if (i != 0){
       printf("%s\n", "here");
@@ -500,7 +505,6 @@ directory_entry* f_opendir(char* filepath){
       return NULL;
     }
     count -- ;
-    entry = dir_entry;
     //add dir_entry to the table
     //need to check if the dir_entry already exists
     inode* node = get_inode(dir_entry->inode_index);
@@ -508,14 +512,17 @@ directory_entry* f_opendir(char* filepath){
     if(already_in_table(node) == -1 ){
       file_table_entry* table_ent = file_table[i];
       table_ent->free_file = FALSE;
+      free(table_ent->file_inode);
       table_ent->file_inode = node;
       table_ent->byte_offset = 0;
+    }else{
+      free(node);
     }
     //update table_freehead
     token = strtok(NULL, s);
   }
   printf("%s\n", "end of open_dir-----");
-  return entry;
+  return dir_entry;
 }
 
 //TODO: update the time with the last accessed time, here!
