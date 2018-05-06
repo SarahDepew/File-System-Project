@@ -21,9 +21,9 @@ int main() {
   printf("%s\n", "------------end f_open3----------");
   // f_opendir("/a/s/d/sf/'we'/5/46/");
   printf("fd: %d\n", fd);
-  stat *stats = malloc(sizeof(stat));
+  // stat *stats = malloc(sizeof(stat));
   // f_stat("/user/test.txt", stats);
-  printf("stats values %d, %d\n", stats->size, stats->inode_index);
+  // printf("stats values %d, %d\n", stats->size, stats->inode_index);
   char* text = "new stuff to write!";
   void* data = malloc(200);
   memcpy(data, "abcde", 5);
