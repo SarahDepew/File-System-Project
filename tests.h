@@ -1,4 +1,4 @@
-#import filesystem.h
+#include "filesystem.h"
 
 //Tests for f_open
 /*
@@ -59,3 +59,19 @@
 2)Test an invalid path
 3)Test opening root dir only
 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Helper Methods
+void help();
+void run_tests(char *disk_to_test);

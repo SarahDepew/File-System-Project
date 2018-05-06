@@ -76,7 +76,7 @@ typedef struct mounted_disk{
 typedef struct stat {
     int size; /* number of bytes in file */
     int uid; /* owner’s user ID */
-    int gid; /* owner’s group ID */ //TODO: do we have to have this?
+    int gid; /* owner’s group ID */
     int ctime; /* last status change time */
     int mtime; /* last data modification time */
     int atime; /* last access time */
@@ -87,7 +87,7 @@ typedef struct stat {
 
 /* inode struct */
 typedef struct inode {
-    unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal)) //TODO: ask dianna about this
+    unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal))
     int parent_inode_index;
     int next_inode; /* index of next free inode */
     int size; /* number of bytes in file */
@@ -97,7 +97,7 @@ typedef struct inode {
     int mtime; /* last data modification time */
     int atime; /* last access time */
     int type; // dir or regular file
-    int permission; //TODO: change this to permission type
+    struct permission_value permission; //file access information
     int inode_index; // the index number for this inode
     int dblocks[N_DBLOCKS]; /* pointers to data blocks */
     int iblocks[N_IBLOCKS]; /* pointers to indirect blocks */
@@ -122,24 +122,11 @@ typedef struct file_table_entry {
     int access;
 } file_table_entry;
 
-typedef struct cluster {
-    boolean read;
-    boolean write;
-    boolean execute;
-} cluster;
-
-//TODO: ask dianna about how to model this value? (byte operators)
 typedef struct permission_value {
-    struct cluster *cluster_owner;
-    struct cluster *cluster_group;
-    struct cluster *cluster_others;
+    char owner;
+    char group;
+    char others;
 } permission_value;
-
-//TODO: rethink
-typedef struct validity{
-    boolean valid;
-    boolean dir_valid;
-}validity;
 
 /* Methods */
 int f_open(char* filepath, int access, permission_value *permissions);
@@ -182,6 +169,7 @@ void free_data_block(void *block_to_free);
 int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
+void set_permissions(permission_value *old_value, permission_value *new_value); 
 
 inode* get_inode(int index);
 //filepath must be absolute path

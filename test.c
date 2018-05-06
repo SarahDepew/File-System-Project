@@ -86,18 +86,10 @@ int main() {
 
     //test f_open
     permission_value *permissions = malloc(sizeof(permission_value));
-    permissions->cluster_owner = malloc(sizeof(cluster));
-    permissions->cluster_owner->read = TRUE;
-    permissions->cluster_owner->write = TRUE;
-    permissions->cluster_owner->execute = TRUE;
-    permissions->cluster_group = malloc(sizeof(cluster));
-    permissions->cluster_group->read = TRUE;
-    permissions->cluster_group->write = TRUE;
-    permissions->cluster_group->execute = TRUE;
-    permissions->cluster_others = malloc(sizeof(cluster));
-    permissions->cluster_others->read = TRUE;
-    permissions->cluster_others->write = TRUE;
-    permissions->cluster_others->execute = TRUE;
+    permissions->owner = '\a';
+    permissions->group = '\a';
+    permissions->others = '\a';
+    free(permissions); 
 
     // f_mount("Disk Image", "point");
     // f_open("path", READ, permissions);
