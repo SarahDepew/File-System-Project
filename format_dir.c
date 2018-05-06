@@ -131,23 +131,25 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         inodes[i]->ctime = 0;
         inodes[i]->mtime = 0;
         inodes[i]->atime = 0;
-        inodes[i]->type = 0;
+        inodes[i]->type = REG;
         inodes[i]->permission = 0;
         inodes[i]->inode_index = i; //this is the only value that won't be replaced
         inodes[i]->i2block = -1;
         inodes[i]->i3block = -1;
-        inodes[i]->last_block_index = -1;
+        inodes[i]->last_block_index = 0;
         char* data = "somethingsomething";
         if(i == 1) {
           inodes[i]->size = 3*sizeof(directory_entry);
           inodes[i]->dblocks[0] = 1;
+          inodes[i]->type = DIR;
+          inodes[i]->last_block_index = 1;
         }
         if(i == 2){
-          //TODO. Decide wheter to + 1 at the end
           inodes[i]->type = REG;
           inodes[i]->dblocks[0] = 2;
           printf("hit here with inode value of %d\n", i);
           inodes[i]->size = strlen(data);
+          inodes[i]->last_block_index = 2;
         }
         fwrite(inodes[i], sizeof(inode), 1, disk);
         free(inodes[i]);

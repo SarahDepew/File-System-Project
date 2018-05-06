@@ -159,9 +159,15 @@ directory_entry* f_readir(int index_into_file_table);
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
+//getting a new free block, and updating the superblock, wrting to the disk.
+//return value: index of the free block
+int request_new_block();
+int update_superblock_ondisk(superblock* new_superblock);
 void *get_block_from_index(int block_index, inode *file_inode);
 void *get_data_block(int index);
 void free_data_block(void *block_to_free);
+//intended to write to data region
+int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
 
