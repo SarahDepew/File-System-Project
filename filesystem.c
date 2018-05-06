@@ -181,7 +181,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         int parent_fd = already_in_table(dir_node);
         file_table[parent_fd]->byte_offset = 0;
         for(int i=0; i<dir_node->size; i+= sizeof(directory_entry)){
-          entry = f_readir(parent_fd);
+          entry = f_readdir(parent_fd);
           printf("entry: %s\n", entry->filename );
           if (strcmp(entry->filename, filename) == 0){
             printf("%s found\n", entry->filename);
@@ -347,6 +347,43 @@ boolean f_rewind(int file_descriptor) {
     }
 }
 
+//TODO: finish this method and consider if offset can be negative??
+boolean f_seek(int file_descriptor, int offset, int whence) {
+  if(file_descriptor >=0 && file_descriptor < FILETABLESIZE) {
+    if(offset < 0) {
+      printf("Failure in fseek - invalid offset value.\n");
+      return FALSE;
+    } else {
+      inode *file_inode = file_table[file_descriptor]->file_inode;
+      int file_size = file_inode->size;
+
+      if(whence == SEEKSET) {
+        if(offset <= file_size) {
+          file_table[file_descriptor]->byte_offset = offset;
+          return TRUE;
+        } else {
+          printf("Failure in fseek - invalid offset value.\n");
+          return FALSE;
+        }
+      } else if(whence == SEEKCUR) {
+        if(file_table[file_descriptor]->byte_offset + offset <= file_size) {
+          file_table[file_descriptor]->byte_offset += offset;
+          return TRUE;
+        }
+      } else if (whence == SEEKEND) {
+        return TRUE;
+      } else {
+        printf("Failure in f_seek - invalid whence value.\n");
+        return FALSE;
+      }
+    }
+  } else {
+    printf("Failure in f_seek - invalid file descriptor.\n");
+    return FALSE;
+  }
+  return FALSE;
+}
+
 boolean f_stat(char *filepath, stat *st) {
     permission_value *permissions = malloc(sizeof(permission_value));
     permissions->cluster_owner = malloc(sizeof(cluster));
@@ -477,7 +514,7 @@ directory_entry* f_opendir(char* filepath){
     file_table[i]->byte_offset = 0;
     while(found ==  FALSE){
       // printf("%s\n", "second while");
-      dir_entry = f_readir(i);
+      dir_entry = f_readdir(i);
       if (dir_entry == NULL){
         //reach the last byte in the file
         break;
@@ -622,7 +659,6 @@ void *get_block_from_index(int block_index, inode *file_inode, int *data_region_
   return block_to_return;
 }
 
-//
 boolean f_remove(char *filepath) {
   //TODO: make a method for the following (ask Rose)
   //get the filename and the path seperately
@@ -666,11 +702,11 @@ boolean f_remove(char *filepath) {
       //now, I have the inode for the file...and the disk's superblock! :)
 
       //TODO: Remove the file from its directory
-      directory_entry *current_entry = f_readir(index);
+      directory_entry *current_entry = f_readdir(index);
       directory_entry *directory_to_replace = NULL;
       // int byte_offset_of_directory_to_replace = 0;
       while(current_entry != NULL && strcmp(current_entry->filename, filename)!=0) {
-        current_entry = f_readir(index);
+        current_entry = f_readdir(index);
         // byte_offset_of_directory_to_replace += sizeof(directory_entry);
       }
 
@@ -813,7 +849,7 @@ inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, in
 }
 
 //TODO: add skipping empty directory entries...
-directory_entry* f_readir(int index_into_file_table) {
+directory_entry* f_readdir(int index_into_file_table) {
     //TODO: error check here for valid index into file... (not trying to read past end of file)
 
     //fetch the inode of the directory to be read (assume the directory file is already open in the file table and that you are given the index into the file table)
