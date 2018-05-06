@@ -1,4 +1,4 @@
-all: format filesystem open_dir formatdir test test_mount_read_write
+all: format filesystem open_dir formatdir test test_mount_read_write tests
 
 filesystem:
 	gcc -g -ggdb -Wall -fpic -c filesystem.c
@@ -22,6 +22,9 @@ open_dir: test_open_dir.c
 
 test: test.c
 	gcc -g -ggdb -Wall -o test test.c -L. -lfile -lm
+
+tests: tests.c
+		gcc -g -ggdb -Wall -o tests tests.c -L. -lfile -lm
 
 clean:
 	rm *.o format libfile.so test open_dir formatdir test_mount_read_write f_readdir_test
