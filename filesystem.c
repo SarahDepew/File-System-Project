@@ -322,7 +322,6 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
     return EXIT_SUCCESS;
 }
 
-//TODO: update table_freehead here?
 boolean f_close(int file_descriptor) {
     if (file_descriptor >= FILETABLESIZE) {
         return FALSE;
@@ -330,8 +329,11 @@ boolean f_close(int file_descriptor) {
         file_table[file_descriptor]->free_file = TRUE;
         free(file_table[file_descriptor]->file_inode);
         //TODO: figure out how to free permissions...
+
+        table_freehead = find_next_freehead();
         return TRUE;
     }
+
     return FALSE;
 }
 
@@ -561,21 +563,34 @@ directory_entry* f_opendir(char* filepath){
 
 //TODO: update the time with the last accessed time, here!
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
+    if(file_descriptor < 0 || file_descriptor >= FILETABLESIZE) {
+        printf("I am sorry, but the file descriptor is invalid.\n");
+        return ERROR;
+    }
+
     inode *file_to_read = file_table[file_descriptor]->file_inode;
     long file_offset = file_table[file_descriptor]->byte_offset;
+    int bytes_remaining_in_file = file_to_read->size - file_offset;
     int block_to_read = file_offset / BLOCKSIZE;
-    // int block_to_read = 0;
     int bytes_to_read;
     int bytes_remaining_in_block;
     int block_offset;
     char *block_to_read_from;
-    //TODO:check that size isn't larger than the file size and check that size*n_times isn't larger than the file size
-    //TODO: check that you are not reading past the end of the disk...
-    //TODO: check if you're allowed to read the file!!
+    int access = file_table[file_descriptor]->access;
+
+    if(access == APPEND || access == WRITE) {
+      printf("I am sorry, but you are attempting to read a file opened for appending or writing. This is an invalid action.\n");
+      return ERROR;
+    }
+    if(size <= 0 || n_times <= 0 || size > file_to_read->size || size * n_times > file_to_read->size || size > bytes_remaining_in_file || size*n_times > bytes_remaining_in_file) {
+      printf("I am sorry, but you are attempting to read an invalid number of bytes from the file.\n"); 
+      return ERROR;
+    }
+
     int buffer_index = 0;
     char *buffer_to_return = malloc(sizeof(size * n_times));
+    int bytes_read = size * n_times;
 
-    //code to repeat
     for (int i = 0; i < n_times; i++) {
         bytes_to_read = size;
         block_offset = file_offset % 512;
@@ -585,7 +600,6 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
             bytes_remaining_in_block = 512 - block_offset - 1;
             if (bytes_remaining_in_block >= size) {
                 bytes_to_read = size;
-                //TODO: TRANSFER BLOCK DATA
                 for (int j = 0; j < bytes_to_read; j++) {
                     buffer_to_return[buffer_index] = block_to_read_from[block_offset];
                     buffer_index++;
@@ -595,7 +609,6 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
                 free_data_block(block_to_read_from);
             } else { //bytes_remaining_in_block < size
                 bytes_to_read = bytes_remaining_in_block;
-                //TODO: TRANSFER BLOCK DATA
                 for (int k = 0; k < bytes_to_read; k++) {
                     buffer_to_return[buffer_index] = block_to_read_from[block_offset];
                     buffer_index++;
@@ -607,8 +620,8 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
             }
         }
     }
-    printf("contents of buffer: %s\n", buffer_to_return);
-    return TRUE;
+
+    return bytes_read;
 }
 
 //TODO: pont define and figure out if you're requesting a block that doesn't exist

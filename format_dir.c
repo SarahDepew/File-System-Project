@@ -192,8 +192,8 @@ void write_boot_block() {
         strcpy(directories[2].filename, "user");
 
         memcpy(block_to_write, directories, sizeof(directory_entry) *3);
-        printf("%d\n", *(int*)(block_to_write+sizeof(directory_entry)*2));
-        printf("%s\n", block_to_write+sizeof(int));
+        printf("%d\n", (*((int*)(block_to_write+sizeof(directory_entry)))*2));
+        printf("%p\n", block_to_write+sizeof(int));
         free(directories);
       } else if (j == num_data_blocks - 1) {
         ((block *) block_to_write)->next_free_block = -1;
@@ -225,8 +225,8 @@ void write_boot_block() {
         printf("%s\n", (char*)block_to_write);
       }
       fwrite(block_to_write, BLOCKSIZE, 1, disk);
-      if (j==0) printf("%d\n", *(int*)block_to_write );
-      if (j == 0) printf("%s\n", block_to_write+sizeof(int));
+      if (j==0) printf("%d\n", *((int*)block_to_write));
+      if (j == 0) printf("%p\n", block_to_write+sizeof(int));
       free(block_to_write);
     }
   }
