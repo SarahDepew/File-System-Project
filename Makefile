@@ -1,4 +1,4 @@
-all: format open_dir filesystem formatdir test test_mount_read_write
+all: format filesystem open_dir formatdir test test_mount_read_write
 
 filesystem:
 	gcc -g -ggdb -Wall -fpic -c filesystem.c
