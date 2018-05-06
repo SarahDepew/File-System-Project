@@ -117,24 +117,11 @@ typedef struct file_table_entry {
     int access;
 } file_table_entry;
 
-typedef struct cluster {
-    boolean read;
-    boolean write;
-    boolean execute;
-} cluster;
-
-//TODO: ask dianna about how to model this value? (byte operators)
 typedef struct permission_value {
-    struct cluster *cluster_owner;
-    struct cluster *cluster_group;
-    struct cluster *cluster_others;
+    char owner;
+    char group;
+    char others;
 } permission_value;
-
-//TODO: rethink
-typedef struct validity{
-    boolean valid;
-    boolean dir_valid;
-}validity;
 
 /* Methods */
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
