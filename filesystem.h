@@ -84,6 +84,12 @@ typedef struct stat {
     int inode_index; // the index number for this inode
 } stat;
 
+typedef struct permission_value {
+    char owner;
+    char group;
+    char others;
+} permission_value;
+
 /* inode struct */
 typedef struct inode {
     unsigned int disk_identifier; //identifies the disk (the one that is mounted (for eventual removal))
@@ -120,12 +126,6 @@ typedef struct file_table_entry {
     int byte_offset; //byte offset into the file
     int access;
 } file_table_entry;
-
-typedef struct permission_value {
-    char owner;
-    char group;
-    char others;
-} permission_value;
 
 /* Methods */
 int f_open(char* filepath, int access, permission_value *permissions);
@@ -167,9 +167,19 @@ void free_data_block(void *block_to_free);
 int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
-void set_permissions(permission_value *old_value, permission_value *new_value); 
+void set_permissions(permission_value *old_value, permission_value *new_value);
 
 inode* get_inode(int index);
 //filepath must be absolute path
 // validity* checkvalidity(char *filepath);
+
+//methods for testing
+int first_free_location_in_mount();
+int second_free_location_in_table();
+int first_free_inode();
+file_table_entry *get_table_entry(int index);
+mount_table_entry *get_mount_table_entry(int index);
+int get_fd_from_inode_value(int inode_index);
+directory_entry get_last_directory_entry(int fd);
+
 #endif //HW7_FILESYSTEM_H
