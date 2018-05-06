@@ -164,6 +164,7 @@ void print_superblock(superblock *superblock1);
 void print_file_table();
 void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory); //TODO: ask Rose about expected behavior...
 inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index);
+int update_single_inode_ondisk(inode* new_inode, int new_inode_index);
 
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
