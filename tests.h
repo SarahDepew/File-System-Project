@@ -27,10 +27,35 @@
 
 //Tests for f_write
 /*
-
+***compare inodes and superblock and data region***
+1)when access == WRITE || READANDWRITE, write small data to the dblocks
+2)when access == WRITE || READANDWRITE, write large data to the dblocks (go into idblocks)
+3)when access == WRITE || READANDWRITE, write small data to the idblocks
+4)when access == WRITE || READANDWRITE, write large data to the idblocks
+5)when access == WRITE || READANDWRITE, write small data to the i2blocks
+6)when access == WRITE || READANDWRITE, write large data to the i2blocks
+7)when access == WRITE || READANDWRITE, write small data to the i3blocks
+8)when access == WRITE || READANDWRITE, write large data to the i3blocks
+9)when access == WRITE || READANDWRITE, write large enough data to exceed the disk size
+10)when access == APPEND, append small data to the dblocks
+11)when access == APPEND, append large data to the dblocks
+12)when access == APPEND, append small data to the idblocks
+13)when access == APPEND, append large data to the idblocks
+14)when access == APPEND, append small data to the i2blocks
+15)when access == APPEND, append large data to the i2blocks
+16)when access == APPEND, append small data to the i3blocks
+17)when access == APPEND, append large data to the i3blocks
+18)when access == APPEND, append large enough data to exceed the disk size
 */
 
 //Tests for f_close
 /*
-1) Check that the  
+1) Check that the
+*/
+
+//Tests for f_opendir
+/*
+1)Test a valid path
+2)Test an invalid path
+3)Test opening root dir only
 */

@@ -240,14 +240,22 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
           memcpy(datatowrite+j*size, buffer,size);
         }
         int lefttowrite = size*ntimes;
-        if (file_table[fd]->access == APPEND){
+        if (file_table[fd]->access == APPEND || file_table[fd]->access == READ ||file_table[fd]->access == READANDWRITE){
           //get the last data block of the file.
           void* last_data_block = malloc(BLOCKSIZE);
           void* copy = get_data_block(file_table[fd]->file_inode->last_block_index);
           memcpy(last_data_block, copy,BLOCKSIZE);
           free(copy);
-          file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
-          int offset_into_last_block = file_table[fd]->byte_offset % BLOCKSIZE;
+          // file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
+          int offset_into_last_block = 0;
+          int old_offset = 0;
+          if (file_table[fd]->access == APPEND){
+            offset_into_last_block = file_table[fd]->file_inode->size % BLOCKSIZE;
+            old_offset = file_table[fd]->file_inode->size;
+          }else{
+            offset_into_last_block = file_table[fd]->byte_offset % BLOCKSIZE;
+            old_offset = file_table[fd]->byte_offset;
+          }
           int free_space = BLOCKSIZE - offset_into_last_block;
           if (free_space < sizeof(buffer) && sp->free_block == -1){
             printf("%s\n", "Not having enough space on the disk");
@@ -257,26 +265,38 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
           }
           //TODO. complete the check of enough free space on disk
           int start_of_block_to_write = -1;
-          int old_offset = file_table[fd]->byte_offset;
           int new_offset = old_offset + size*ntimes;
           int file_offset = old_offset;
+          int total_block = 0;
           if(free_space == 0){
-            start_of_block_to_write = request_new_block();
+            if (file_table[fd]->access == APPEND){
+              ;
+            }else{
+              int block_written = file_table[fd]->byte_offset/BLOCKSIZE;
+              total_block = block_written+1; // the block we are writing to in the future
+            }
           }else{
             void* data = malloc(BLOCKSIZE);
             //copy the data from the last block to data1
             memcpy(data, last_data_block, offset_into_last_block);
             memcpy(data+offset_into_last_block, datatowrite, free_space);
-            write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
-            lefttowrite -= free_space;
-            if(lefttowrite > 0){
-              start_of_block_to_write = request_new_block();
+            if(file_table[fd]->access == APPEND){
+              write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
+            }else{
+              total_block = file_table[fd]->byte_offset/BLOCKSIZE;
+              start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_offset, file_table[fd]->byte_offset);
+              write_data_to_block(start_of_block_to_write, data, sp->size);
             }
+            lefttowrite -= free_space;
             free(data);
             file_offset += free_space;
           }
-          // write superblock back to the disk.TODO
           while (lefttowrite > 0) {
+            if(file_table[fd]->access == APPEND){
+              start_of_block_to_write = request_new_block();
+            }else{
+              start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block+1, old_offset, file_table[fd]->byte_offset);
+            }
             int size_to_write = BLOCKSIZE;
             void* data = malloc(BLOCKSIZE);
             if(lefttowrite < BLOCKSIZE){
@@ -286,81 +306,54 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             write_data_to_block(start_of_block_to_write, data, size_to_write);
             lefttowrite -= size_to_write;
             file_offset += size_to_write;
-            //updating the offset in the file_table_entry
             free(data);
-            int idtotal = N_IBLOCKS * BLOCKSIZE;
-            int i2total = BLOCKSIZE * BLOCKSIZE;
-            int i3total = i2total * BLOCKSIZE;
-            //calculate the inode according to file_offset
-            int inode_num = file_offset/BLOCKSIZE;
-            if (inode_num < N_DBLOCKS){
-              //update the dblocks
-              printf("file_offset: %d\n", file_offset);
-              printf("inode_num: %d\n", inode_num);
-              file_table[fd]->file_inode->dblocks[inode_num] = start_of_block_to_write;
-              // print_inode(file_table[fd]->file_inode);
-              update_single_inode_ondisk(file_table[fd]->file_inode, inode_num);
-            }else if(inode_num - N_DBLOCKS < idtotal){
-              //update the idblocks.TODO
-              int id_index = (inode_num - N_DBLOCKS)/BLOCKSIZE;//id_index <=4
-
-            }else if(inode_num - N_DBLOCKS - idtotal < i2total){
-              //update the i2blocks.TODO
-            }else if(inode_num - N_DBLOCKS- idtotal - i2total < i3total){
-              //update the i3blocks.TODO
-            }
-            start_of_block_to_write = request_new_block();
           }
           file_table[fd]->byte_offset = new_offset;
           printf("new_offset: %d\n", new_offset);
           return size*ntimes;
-        }else if(file_table[fd]->access == WRITE || file_table[fd]->access == READANDWRITE){
-            //need to overwite the file
-            int inode_num = file_table[fd]->byte_offset / BLOCKSIZE;
-            int idtotal = N_IBLOCKS * BLOCKSIZE;
-            int i2total = BLOCKSIZE * BLOCKSIZE;
-            int i3total = i2total * BLOCKSIZE;
-            if (inode_num < N_DBLOCKS){
-              //update the dblocks
-              printf("file_offset: %d\n", file_offset);
-              printf("inode_num: %d\n", inode_num);
-              file_table[fd]->file_inode->dblocks[inode_num] = start_of_block_to_write;
-              // print_inode(file_table[fd]->file_inode);
-              update_single_inode_ondisk(file_table[fd]->file_inode, inode_num);
-            }else if(inode_num - N_DBLOCKS < idtotal){
-              //update the idblocks.TODO
-              int id_index = (inode_num - N_DBLOCKS)/BLOCKSIZE;//id_index <=4
-
-            }else if(inode_num - N_DBLOCKS - idtotal < i2total){
-              //update the i2blocks.TODO
-            }else if(inode_num - N_DBLOCKS- idtotal - i2total < i3total){
-              //
-            int start_block_index = file_table[fd]->file_inode->dblocks[0];
-            void* startplace_disk = get_data_block(start_block_index);
-	          int new_offset = ntimes*size;
-            int old_file = file_table[td]->byte_offset;
-            int offset = 0;   //offset in datatowrite
-            //write to dblocks
-            for(int i=0; i<N_DBLOCKS; i++){
-              if (lefttowrite <= 0){
-                return size*ntimes;
-              }
-	            write_data_to_block(start_block_index, datatowrite, BLOCKSIZE);
-              start_block_index = file_table[fd]->file_inode->dblocks[1];
-              startplace_disk = get_data_block(start_block_index);
-              lefttowrite -= sp->size;
-              offset += sp->size;
-              old_file -= BLOCKSIZE;
-              if(old_file <= 0){
-                //need to rewrite dblocks
-              }
-            }
-            for(int i = 0; i <N_IBLOCKS; i++){
-              if (lefttowrite <=0){
-                return sizeof(buffer);
-              }
-            }
-          }
+        }//else if(file_table[fd]->access == WRITE || file_table[fd]->access == READANDWRITE){
+        //     //need to overwite the file
+        //     int start_block_index;
+        //     int inode_num = file_table[fd]->byte_offset / BLOCKSIZE;
+        //     int idtotal = N_IBLOCKS * BLOCKSIZE;
+        //     int i2total = BLOCKSIZE * BLOCKSIZE;
+        //     int i3total = i2total * BLOCKSIZE;
+        //     if (inode_num < N_DBLOCKS){
+        //       //update the dblocks
+        //       start_block_index = file_table[fd]->file_inode->dblocks[inode_num];
+        //     }else if(inode_num - N_DBLOCKS < idtotal){
+        //       //update the idblocks.TODO
+        //       int id_index = (inode_num - N_DBLOCKS)/BLOCKSIZE;//id_index <=4
+        //
+        //     }else if(inode_num - N_DBLOCKS - idtotal < i2total){
+        //       //update the i2blocks.TODO
+        //     }else if(inode_num - N_DBLOCKS- idtotal - i2total < i3total){
+        //       //
+        //     void* startplace_disk = get_data_block(start_block_index);
+	      //     int new_offset = ntimes*size;
+        //     int old_file = file_table[td]->byte_offset;
+        //     int offset = 0;   //offset in datatowrite
+        //     //write to dblocks
+        //     for(int i=0; i<N_DBLOCKS; i++){
+        //       if (lefttowrite <= 0){
+        //         return size*ntimes;
+        //       }
+	      //       write_data_to_block(start_block_index, datatowrite, BLOCKSIZE);
+        //       start_block_index = file_table[fd]->file_inode->dblocks[1];
+        //       startplace_disk = get_data_block(start_block_index);
+        //       lefttowrite -= sp->size;
+        //       offset += sp->size;
+        //       old_file -= BLOCKSIZE;
+        //       if(old_file <= 0){
+        //         //need to rewrite dblocks
+        //       }
+        //     }
+        //     for(int i = 0; i <N_IBLOCKS; i++){
+        //       if (lefttowrite <=0){
+        //         return sizeof(buffer);
+        //       }
+        //     }
+        //   }
         free(datatowrite);
         return sizeof(buffer);
     } else if (file_table[fd]->file_inode->type == DIR) {
@@ -631,7 +624,7 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
       return ERROR;
     }
     if(size <= 0 || n_times <= 0 || size > file_to_read->size || size * n_times > file_to_read->size || size > bytes_remaining_in_file || size*n_times > bytes_remaining_in_file) {
-      printf("I am sorry, but you are attempting to read an invalid number of bytes from the file.\n"); 
+      printf("I am sorry, but you are attempting to read an invalid number of bytes from the file.\n");
       return ERROR;
     }
 
@@ -671,6 +664,50 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
 
     return bytes_read;
 }
+
+int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int current_offset){
+  //total_block: including the one we are writing to
+  //current_offset: not including the bytes we are writing
+  int idtotal = N_IBLOCKS * BLOCKSIZE / sizeof(int);
+  int i2total = BLOCKSIZE * BLOCKSIZE / sizeof(int) / sizeof(int);
+  int i3total = i2total * BLOCKSIZE / sizeof(int);
+  int start_of_block_to_write = 0;
+  if(current_offset >= old_fileoffest){
+    start_of_block_to_write = request_new_block();
+    return start_of_block_to_write;
+  }
+  if (total_block < N_DBLOCKS){
+    start_of_block_to_write = inode->dblocks[total_block];
+  }else if(total_block - N_DBLOCKS < idtotal){
+    int id_index = (total_block - N_DBLOCKS) / (BLOCKSIZE /sizeof(int));
+    int data_offset = (total_block - N_DBLOCKS) % (BLOCKSIZE / sizeof(int));
+    int data_index = inode->iblocks[id_index];
+    void* data = get_data_block(data_index);
+    start_of_block_to_write = *(int*)(data + data_offset*sizeof(int));
+  }else if(total_block - N_DBLOCKS - idtotal < i2total){
+    int rest_block = total_block-N_DBLOCKS-idtotal;
+    int data_offset1 = rest_block/ (BLOCKSIZE / sizeof(int));
+    void* data1 = get_data_block(inode->i2block);
+    int data2_index = *(int*)(data1 + data_offset1*sizeof(int));
+    void* data2 = get_data_block(data2_index);
+    int data_offset2 = (rest_block - (BLOCKSIZE/sizeof(int))*data_offset1)%(BLOCKSIZE/sizeof(int));
+    start_of_block_to_write = data_offset2;
+  }else if(total_block - N_DBLOCKS - idtotal - i2total < i3total){
+    int rest_block = total_block-N_DBLOCKS-idtotal - i2total;
+    void* data1 = get_data_block(inode->i3block);
+    int data_offset1 = rest_block/ (BLOCKSIZE / sizeof(int))/(BLOCKSIZE/sizeof(int));
+    int data2_index = *(int*)(data1 + (data_offset1)*sizeof(int));
+    void* data2 = get_data_block(data2_index);
+    rest_block = rest_block - data_offset1*BLOCKSIZE/sizeof(int)*BLOCKSIZE/sizeof(int);
+    int data_offset2 = rest_block / (BLOCKSIZE / sizeof(int));
+    int data3_index = *(int*)(data2 + (data_offset2)*sizeof(int));
+    void* data3 = get_data_block(data3_index);
+    int data_offset3 = *(int*)(data3 +(data3_index)*sizeof(int));
+    start_of_block_to_write = data_offset3;
+  }
+  return start_of_block_to_write;
+}
+
 
 //TODO: pont define and figure out if you're requesting a block that doesn't exist
 //TODO: check that this isn't just off by one
