@@ -28,6 +28,7 @@ enum filetype {DIR, REG};
 enum fileseek {SSET, SCUR, SEND};
 enum permission{SUPER, REGULAR};
 enum access{READ, WRITE, READANDWRITE, APPEND};
+enum whence{SEEKSET, SEEKCUR, SEEKEND};
 
 typedef struct superblock {
     int size; /* size of blocks in bytes */
@@ -137,16 +138,19 @@ typedef struct validity{
 }validity;
 
 /* Methods */
-boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
 int f_open(char* filepath, int access, permission_value *permissions);
 int f_read(void *buffer, int size, int n_times, int file_descriptor);
 int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
+boolean f_seek(int file_descriptor, int offset, int whence);
 boolean f_rewind(int file_descriptor);
 boolean f_stat(char *filepath, stat *st);
+boolean f_remove(char *filepath);
 directory_entry* f_opendir(char* filepath);
-directory_entry* f_readir(int index_into_file_table);
+directory_entry* f_readdir(int index_into_file_table);
 boolean f_closedir(directory_entry *entry);
+boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
+/* TODO - TBD: f_mkdir, f_rmdir, and f_unmount*/
 
 /* Helper Methods */
 boolean setup();
