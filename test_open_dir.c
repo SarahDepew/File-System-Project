@@ -17,25 +17,22 @@ int main() {
   printf("%s\n", "-----------end f_open1---------");
   f_open("/user/user.txt", READ, NULL);
   printf("%s\n", "------------end f_open2----------");
-  int fd = f_open("/user/test.txt", READ, NULL);
+  int fd = f_open("/user/test.txt", APPEND, NULL);
   printf("%s\n", "------------end f_open3----------");
   // f_opendir("/a/s/d/sf/'we'/5/46/");
   printf("fd: %d\n", fd);
-  stat *stats = malloc(sizeof(stat));
+  char* content = "1";
+  f_write(content, 1, 1, fd);
+
+  // stat *stats = malloc(sizeof(stat));
   // f_stat("/user/test.txt", stats);
-  printf("stats values %d, %d\n", stats->size, stats->inode_index);
-  char* text = "new stuff to write!";
-  void* data = malloc(200);
-  memcpy(data, "abcde", 5);
-  memcpy(data+5,"123456", 10);
-  printf("%s\n", (char*)data);
-  free(data);
+  // printf("stats values %d, %d\n", stats->size, stats->inode_index);
   // f_write(text, strlen(text), 1, fd);
   // void* buffer = malloc(200);
   // f_read(buffer, 5, 1, 1);
   // inode *i = get_inode(2);
-  // void *block = get_data_block(2);
+  void *block = get_data_block(2);
   // printf("%s\n", (char*) buffer);
-  // printf("Contents of block: %s\n", (char*) block);
+  printf("Contents of block: %s\n", (char*) block);
   shutdown();
 }
