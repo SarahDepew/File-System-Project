@@ -34,3 +34,19 @@
 /*
 1) Check that the
 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Helper Methods
+void help();
+void run_tests(char *disk_to_test); 
