@@ -8,8 +8,9 @@
 #include "boolean.h"
 #include "stdio.h"
 #include "string.h"
+#include "math.h"
 
-#define ERROR -1 
+#define ERROR -1
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
 #define EXIT_FAILURE -1
@@ -166,6 +167,7 @@ void get_filepath_and_filename(char *filepath, char **filename_to_return, char *
 inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index);
 int update_single_inode_ondisk(inode* new_inode, int new_inode_index);
 
+int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int current_offset);
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
