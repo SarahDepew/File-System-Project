@@ -9,6 +9,7 @@
 #include "stdio.h"
 #include "string.h"
 
+#define ERROR -1 
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
 #define EXIT_FAILURE -1
