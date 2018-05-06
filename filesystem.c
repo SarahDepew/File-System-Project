@@ -129,7 +129,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     }
     printf("path: %s\n", path);
     printf("filename: %s\n", filename);
-    //TODO: need to check if the file is already in the file_table. Any sart way of doing that?
     directory_entry *dir = f_opendir(path);
     if (dir == NULL) {
         printf("%s\n", "directory does not exist");
@@ -142,88 +141,132 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         printf("dir_index: %d\n", dir_node_index);
         printf("dir_name: %s\n", dir->filename);
         inode *dir_node = get_inode(dir_node_index);
+        directory_entry* entry = NULL;
         //go into the dir_entry to find the inode of the file
-        int block_offset = 0; //the offset within a data block
-        int block_index = 0; //block index in the data region
-        int file_offset = 0; //the offset within the whole directory file
-        //check dblocks
         printf("size: %d\n", dir_node->size);
-        for (int i = 0; i < N_DBLOCKS; i++) {
-            if (file_offset >= dir_node->size) {
-                printf("%s\n", "Reach the end of the directory");
-                break;
-            }
-            block_index = dir_node->dblocks[i];
-            void *block = get_data_block(block_index);
-            for (; block_offset <= BLOCKSIZE && file_offset < dir_node->size; block_offset += sizeof(directory_entry)) {
-                directory_entry *entry = (directory_entry *) (block + block_offset);
-                char *name_found = entry->filename;
-                if (strcmp(filename, name_found) == 0) {
-                    printf("%s found\n", name_found);
-                    printf("%d\n", table_freehead);
-                    file_table_entry *file_entry = malloc(sizeof(file_table_entry));
-                    file_entry->free_file = FALSE;
-                    file_entry->file_inode = get_inode(entry->inode_index);
-                    file_entry->byte_offset = 0;
-                    file_table[table_freehead] = file_entry;
-                    free(path);
-                    print_file_table();
-                    int fd = table_freehead;
-                    table_freehead = find_next_freehead();
-                    return fd;
-                }
-                file_offset += sizeof(directory_entry);
-            }
+        int parent_fd = already_in_table(dir_node);
+        file_table[parent_fd]->byte_offset = 0;
+        for(int i=0; i<dir_node->size; i+= sizeof(directory_entry)){
+          entry = f_readir(parent_fd);
+          printf("entry: %s\n", entry->filename );
+          if (strcmp(entry->filename, filename) == 0){
+            printf("%s found\n", entry->filename);
+            file_table_entry *file_entry = malloc(sizeof(file_table_entry));
+            file_entry->free_file = FALSE;
+            file_entry->file_inode = get_inode(entry->inode_index);
+            file_entry->byte_offset = 0;
+            file_entry->access = access;
+            file_table[table_freehead] = file_entry;
+            free(path);
+            print_file_table();
+            int fd = table_freehead;
+            table_freehead = find_next_freehead();
+            return fd;
+          }
         }
-        //TODO. go into idirect blocks
-        for (int i = 0; i < N_IBLOCKS; i++) {
-            if (file_offset >= dir_node->size) {
-                printf("%s\n", "Reach the end of the directory");
-                break;
-            }
+        if(access == READ){
+          printf("%s\n", "file does not found");
+          return EXIT_FAILURE;
+        }else{
+          printf("%s\n", "need to create this new file");
+          return EXIT_SUCCESS;
         }
     }
-    // print_file_table();
-    return EXIT_SUCCESS;
+    // return EXIT_SUCCESS;
 }
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
     //check if the file accociated with this fd has been open
     if (file_table[fd]->free_file == TRUE) {
         printf("%s\n", "The file must be open before write");
-        exit(EXIT_FAILURE);
+        return (EXIT_FAILURE);
     }
-    if (file_table[fd]->file_inode->type == REG) {
+    if(file_table[fd]->access == READ){
+      printf("%s\n", "File is not readable.");
+      return EXIT_FAILURE;
+    }
+    if (file_table[fd]->file_inode->type == REG){
         printf("%s\n", "writing to a regular file");
-        int old_size = file_table[fd]->byte_offset;
         superblock *sp = current_mounted_disk->superblock1;
+        //need to double check this
         if (current_mounted_disk->free_spot == FALSE) {
             printf("%s\n", "Not having enough sapce on the disk.");
-            return (EXIT_SUCCESS);
+            return (EXIT_FAILURE);
         }
-        int new_size = old_size + sizeof(buffer);
-        //check if the new_size is going to exceed the disk size. TODO
-        //now assume the new_size is smaller than the disk size
         void *datatowrite = malloc(sizeof(buffer));
         fwrite(buffer, 1, sizeof(buffer), datatowrite);
-        int start_byte = file_table[fd]->byte_offset;
         int lefttowrite = sizeof(buffer);
-        int offset = 0;
-        int free_byte = sp->size - start_byte;
-        //calculate the right startplace_disk using file_size. TODO
-        //writing to the first dblock right now. Need to change in the future. TODO.
-        //WARNING: consider the first int that links every block together
-        void *startplace_disk = (void *) (sp) + sizeof(int) +
-                                ((file_table[fd]->file_inode->dblocks[0]) * sp->size + (sp->data_offset * sp->size));
-        while (lefttowrite > 0) {
-            //trace the disk to find the data block
-            fwrite(datatowrite + offset, 1, free_byte, startplace_disk);
-            offset += free_byte;
-            free_byte = sp->size;
-            lefttowrite -= sp->size;
-        }
-        //updating the offset in the file_table_entry
-        file_table[fd]->byte_offset = new_size;
+        if (file_table[fd]->access == APPEND){
+          //get the last data block of the file.
+          void* last_data_block = get_data_block(file_table[fd]->file_inode->last_block_index);
+          int offset_into_last_block = file_table[fd]->byte_offset % BLOCKSIZE;
+          int free_space = BLOCKSIZE - offset_into_last_block;
+          if (free_space < sizeof(buffer) && sp->free_block == -1){
+            printf("%s\n", "Not having enough space on the disk");
+            free(datatowrite);
+            free(last_data_block);
+            return EXIT_FAILURE;
+          }
+          //TODO. complete the check of enough free space on disk
+          int start_of_block_to_write = -1;
+          if(free_space == 0){
+            start_of_block_to_write = request_new_block();
+            // write superblock back to the disk
+          }else{
+            void* data = malloc(BLOCKSIZE);
+            //copy the data from the last block to data1
+            memcpy(data, last_data_block, offset_into_last_block);
+            memcpy(data+offset_into_last_block, datatowrite, free_space);
+            if(write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size)!= sp->size){
+                return EXIT_FAILURE;
+            }
+            lefttowrite -= free_space;
+            start_of_block_to_write = request_new_block();
+            free(data);
+          }
+          int old_offset = file_table[fd]->byte_offset;
+          int new_offset = old_offset + sizeof(buffer);
+          while (lefttowrite > 0) {
+            int size = BLOCKSIZE;
+            void* data = malloc(BLOCKSIZE);
+            if(lefttowrite < BLOCKSIZE){
+              size = lefttowrite;
+            }
+            memcpy(data, datatowrite, size);
+            if (write_data_to_block(start_of_block_to_write, data, size) != size){
+              return EXIT_FAILURE;
+            }
+            lefttowrite -= size;
+            //updating the offset in the file_table_entry
+            free(data);
+            start_of_block_to_write = request_new_block();
+          }
+          file_table[fd]->byte_offset = new_offset;
+        }else if(file_table[fd]->access == WRITE){
+            //need to overwite the file
+            int start_block_index = file_table[fd]->file_inode->dblocks[0];
+            //TODO:need to double check this two lines
+            void* startplace_disk =
+            (void*)(sp+ SIZEOFSUPERBLOCK + sp->data_offset*sp->size + sp->size*start_block_index);
+            int offset = 0;   //offset in datatowrite
+            //write to dblocks
+            for(int i=0; i<N_DBLOCKS; i++){
+              if (lefttowrite <= 0){
+                return sizeof(buffer);
+              }
+              fwrite(datatowrite + offset, 1, sp->size, startplace_disk);
+              start_block_index = file_table[fd]->file_inode->dblocks[1];
+              startplace_disk =
+              (void*)(sp+ SIZEOFSUPERBLOCK + sp->data_offset*sp->size + sp->size*start_block_index);
+              lefttowrite -= sp->size;
+              offset += sp->size;
+            }
+            for(int i = 0; i <N_IBLOCKS; i++){
+              if (lefttowrite <=0){
+                return sizeof(buffer);
+              }
+            }
+          }
         free(datatowrite);
         return sizeof(buffer);
     } else if (file_table[fd]->file_inode->type == DIR) {
@@ -284,6 +327,29 @@ boolean f_stat(char *filepath, stat *st) {
     f_close(fd);
     return TRUE;
 }
+
+/*int find_file_dblocks(int block_offset, int file_offset, inode* dir_node,){
+  for (; block_offset <= BLOCKSIZE && file_offset < dir_node->size; block_offset += sizeof(directory_entry)) {
+      directory_entry *entry = (directory_entry *) (block + block_offset);
+      char *name_found = entry->filename;
+      if (strcmp(filename, name_found) == 0) {
+          printf("%s found\n", name_found);
+          printf("%d\n", table_freehead);
+          file_table_entry *file_entry = malloc(sizeof(file_table_entry));
+          file_entry->free_file = FALSE;
+          file_entry->file_inode = get_inode(entry->inode_index);
+          file_entry->byte_offset = 0;
+          file_entry->access = access;
+          file_table[table_freehead] = file_entry;
+          free(path);
+          print_file_table();
+          int fd = table_freehead;
+          table_freehead = find_next_freehead();
+          return fd;
+      }
+      file_offset += sizeof(directory_entry);
+  }
+}*/
 
 void print_inode (inode *entry) {
     printf("disk identifier: %d\n", entry->disk_identifier);
@@ -429,7 +495,6 @@ directory_entry* f_opendir(char* filepath){
     token = strtok(NULL, s);
   }
   printf("%s\n", "end of open_dir-----");
-  // print_file_table();
   return entry;
 }
 
@@ -603,9 +668,46 @@ void *get_data_block(int index) {
     current_mounted_disk->superblock1->data_offset * current_mounted_disk->superblock1->size +
     index * current_mounted_disk->superblock1->size,
     SEEK_SET);
-    fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
-    return data_block;
+  fread(data_block, current_mounted_disk->superblock1->size, 1, current_disk);
+  return data_block;
+}
+
+int request_new_block(){
+  superblock* sp = current_mounted_disk->superblock1;
+  int free_block = sp->free_block;
+  void* prevfree_block_on_disk = (void*)(sp+SIZEOFSUPERBLOCK+ sp->data_offset*sp->size+sp->size*free_block);
+  int next_free = *(int*)prevfree_block_on_disk;
+  sp->free_block = next_free;
+  if(update_superblock_ondisk(sp) != SIZEOFSUPERBLOCK){
+    return EXIT_FAILURE;
   }
+  return free_block;
+}
+
+int update_superblock_ondisk(superblock* new_superblock){
+  FILE* current_disk = current_mounted_disk->disk_image_ptr;
+  fseek(current_disk, SIZEOFBOOTBLOCK, SEEK_SET);
+  if (fwrite((void*)new_superblock, SIZEOFSUPERBLOCK, 1, current_disk) != SIZEOFSUPERBLOCK){
+    printf("%s\n", "ERROR in update_superblock_ondisk()");
+    return EXIT_FAILURE;
+  }
+  return SIZEOFSUPERBLOCK;
+}
+
+//intended to write to data region
+int write_data_to_block(int block_index, void* content, int size){
+  superblock* sp = current_mounted_disk->superblock1;
+  FILE* current_disk = current_mounted_disk->disk_image_ptr;
+  if (size > sp->size){
+    printf("%s\n", "Writing too much into one block.write_data_to_block()");
+    return EXIT_FAILURE;
+  }
+  fseek(current_disk, SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK+sp->size*(sp->data_offset+block_index),SEEK_SET);
+  if(fwrite(content, size, 1, current_disk) == size){
+      return size;
+  }
+  return EXIT_FAILURE;
+}
 
 int already_in_table(inode* node){
   int index2 = node->inode_index;
