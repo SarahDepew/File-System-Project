@@ -26,9 +26,12 @@ int main() {
   f_write(content, 1, 1, fd);
   void *block = get_data_block(2);
   printf("Contents of block2: %s\n", (char*) block);
+  printf("%s\n", "----------done writing 1----------");
   f_write(large, strlen(large), 1, fd);
   block = get_data_block(3);
   printf("Contents of block3: %s\n", (char*) block);
+  inode* node = get_inode(2);
+  print_inode(node);
   // f_stat("/user/test.txt", stats);
   // stat *stats = malloc(sizeof(stat));
   // printf("stats values %d, %d\n", stats->size, stats->inode_index);

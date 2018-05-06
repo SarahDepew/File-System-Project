@@ -222,6 +222,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
     //check if the file accociated with this fd has been open
+    superblock* sp = current_mounted_disk->superblock1;
     if (file_table[fd]->free_file == TRUE) {
         printf("%s\n", "The file must be open before write");
         return (EXIT_FAILURE);
@@ -256,9 +257,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
           }
           //TODO. complete the check of enough free space on disk
           int start_of_block_to_write = -1;
+          int old_offset = file_table[fd]->byte_offset;
+          int new_offset = old_offset + size*ntimes;
+          int file_offset = old_offset;
           if(free_space == 0){
             start_of_block_to_write = request_new_block();
-            // write superblock back to the disk
           }else{
             void* data = malloc(BLOCKSIZE);
             //copy the data from the last block to data1
@@ -266,11 +269,13 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             memcpy(data+offset_into_last_block, datatowrite, free_space);
             write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
             lefttowrite -= free_space;
-            start_of_block_to_write = request_new_block();
+            if(lefttowrite > 0){
+              start_of_block_to_write = request_new_block();
+            }
             free(data);
+            file_offset += free_space;
           }
-          int old_offset = file_table[fd]->byte_offset;
-          int new_offset = old_offset + size*ntimes;
+          // write superblock back to the disk.TODO
           while (lefttowrite > 0) {
             int size_to_write = BLOCKSIZE;
             void* data = malloc(BLOCKSIZE);
@@ -278,12 +283,32 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
               size_to_write = lefttowrite;
             }
             memcpy(data, datatowrite, size);
-            if (write_data_to_block(start_of_block_to_write, data, size_to_write) != size_to_write){
-              return EXIT_FAILURE;
-            }
+            write_data_to_block(start_of_block_to_write, data, size_to_write);
             lefttowrite -= size_to_write;
+            file_offset += size_to_write;
             //updating the offset in the file_table_entry
             free(data);
+            int idtotal = N_IBLOCKS * BLOCKSIZE;
+            int i2total = BLOCKSIZE * BLOCKSIZE;
+            int i3total = i2total * BLOCKSIZE;
+            //calculate the inode according to file_offset
+            int inode_num = file_offset/BLOCKSIZE;
+            if (inode_num < N_DBLOCKS){
+              //update the dblocks
+              printf("file_offset: %d\n", file_offset);
+              printf("inode_num: %d\n", inode_num);
+              file_table[fd]->file_inode->dblocks[inode_num] = start_of_block_to_write;
+              print_inode(file_table[fd]->file_inode);
+              update_single_inode_ondisk(file_table[fd]->file_inode, inode_num);
+            }else if(inode_num - N_DBLOCKS < idtotal){
+              //update the idblocks.TODO
+              int id_index = (inode_num - N_DBLOCKS)/BLOCKSIZE;//id_index <=4
+
+            }else if(inode_num - N_DBLOCKS - idtotal < i2total){
+              //update the i2blocks.TODO
+            }else if(inode_num - N_DBLOCKS- idtotal - i2total < i3total){
+              //update the i3blocks.TODO
+            }
             start_of_block_to_write = request_new_block();
           }
           file_table[fd]->byte_offset = new_offset;
@@ -291,19 +316,17 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         }else if(file_table[fd]->access == WRITE){
             //need to overwite the file
             int start_block_index = file_table[fd]->file_inode->dblocks[0];
-            //TODO:need to double check this two lines
-            void* startplace_disk =
-            (void*)(sp+ SIZEOFSUPERBLOCK + sp->data_offset*sp->size + sp->size*start_block_index);
+            void* startplace_disk = get_data_block(start_block_index);
+	          int new_offset = ntimes*size;
             int offset = 0;   //offset in datatowrite
             //write to dblocks
             for(int i=0; i<N_DBLOCKS; i++){
               if (lefttowrite <= 0){
                 return sizeof(buffer);
               }
-              fwrite(datatowrite + offset, 1, sp->size, startplace_disk);
+	            write_data_to_block(start_block_index, datatowrite, BLOCKSIZE);
               start_block_index = file_table[fd]->file_inode->dblocks[1];
-              startplace_disk =
-              (void*)(sp+ SIZEOFSUPERBLOCK + sp->data_offset*sp->size + sp->size*start_block_index);
+              startplace_disk = get_data_block(start_block_index);
               lefttowrite -= sp->size;
               offset += sp->size;
             }
@@ -854,7 +877,6 @@ inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, in
     }
     return directory_inode;
   }
-
   return NULL;
 }
 
@@ -969,6 +991,18 @@ int update_superblock_ondisk(superblock* new_superblock){
   return SIZEOFSUPERBLOCK;
 }
 
+int update_single_inode_ondisk(inode* new_inode, int new_data_index){
+  FILE* current_disk = current_mounted_disk->disk_image_ptr;
+  superblock* sp = current_mounted_disk->superblock1;
+  int total_inode_num = (sp->data_offset - sp->inode_offset)*sp->size / sizeof(inode);
+  if(new_data_index > total_inode_num){
+    printf("%s\n", "NOT ENOUGH SPACE FOR INODES");
+    return EXIT_FAILURE;
+  }
+  fseek(current_disk, SIZEOFBOOTBLOCK+SIZEOFSUPERBLOCK+sp->inode_offset*sp->size+(new_inode->inode_index)*sizeof(inode),SEEK_SET);
+  fwrite((void*)new_inode, sizeof(inode), 1 ,current_disk);
+  return sizeof(new_inode);
+}
 //intended to write to data region
 int write_data_to_block(int block_index, void* content, int size){
   superblock* sp = current_mounted_disk->superblock1;
