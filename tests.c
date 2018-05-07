@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include "tests.h"
 #include "filesystem.h"
 
@@ -19,15 +21,28 @@ int main(int argc, char *argv[]) {
 }
 
 void run_tests(char *disk_to_test) {
+    printf("*************Setting up filesystem*************\n");
+    setup();
+    printf("*************Done setting up filesystem*************\n");
+
     printf("*************Testing f_mount*************\n");
     test_fmount(disk_to_test);
     printf("*************Done Testing f_mount*************\n");
 
-    printf("*************Testing f_open*************\n");
-    printf("Testing f_open on a file that does not exist with a valid path and writing/appending as the value.\n");
+    printf("*************Testing f_unmount*************\n");
+    test_funmount(disk_to_test);
+    printf("*************Done Testing f_unmount*************\n");
 
+    //
+    // printf("*************Testing f_open*************\n");
+    // printf("Testing f_open on a file that does not exist with a valid path and writing/appending as the value.\n");
+    //
+    //
+    // printf("*************Done Testing f_open*************\n");
 
-    printf("*************Done Testing f_open*************\n");
+    printf("*************Shutting down filesystem*************\n");
+    shutdown();
+    printf("*************Done shutting down filesystem*************\n");
 }
 
 //1) Check that the values mounted are as expected for the given disk
@@ -36,25 +51,36 @@ void test_fmount(char *disk_to_mount){
     FILE *disk = fopen(disk_to_mount, "rb");
     superblock *expectedSuperblock = malloc(SIZEOFSUPERBLOCK);
     fseek(disk, SIZEOFBOOTBLOCK, SEEK_SET);
-    fread(superblock1, SIZEOFSUPERBLOCK, 1, disk);
+    fread(expectedSuperblock, SIZEOFSUPERBLOCK, 1, disk);
 
     int mid = -1;
     f_mount(disk_to_mount, "N/A", &mid);
-    mount_table_entry table_entry = get_mount_table_entry();
-    assert(table_entry.free_spot == FALSE);
-    assert(table_entry.disk_image_ptr != NULL);
-    assert(table_entry.superblock1!=NULL);
+    assert(mid == expected_mid);
+    mount_table_entry *table_entry = get_mount_table_entry(mid);
+    assert(table_entry->free_spot == FALSE);
+    assert(table_entry->disk_image_ptr != NULL);
+    assert(table_entry->superblock1!=NULL);
 
     superblock *actualSuperblock = table_entry->superblock1;
     assert(actualSuperblock->size == expectedSuperblock->size);
-    assert(actualSuperblock->inode_offset == expectedSuperblock->size);
+    assert(actualSuperblock->inode_offset == expectedSuperblock->inode_offset);
     assert(actualSuperblock->data_offset == expectedSuperblock->data_offset);
     assert(actualSuperblock->free_inode == expectedSuperblock->free_inode);
     assert(actualSuperblock->free_block == expectedSuperblock->free_block);
     assert(actualSuperblock->root_dir == expectedSuperblock->root_dir);
 
     free(expectedSuperblock);
+    fclose(disk);
     f_unmount(mid);
+}
+
+//1) First mount a disk and then check that the spot in the mounted disks array is marked as free and that there are no memory leaks
+void test_funmount(char *disk_to_mount) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
+    f_unmount(mid);
+    mount_table_entry *table_entry = get_mount_table_entry(mid);
+    assert(table_entry->free_spot == TRUE);
 }
 
 //1) test fopen on a file that does not exist with a valid path and writing/appending as the value - expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
@@ -97,7 +123,7 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
 
     //check that the expected inode is given to the file
     entry = get_table_entry(fd);
-    assert(entry->file_inode->inode_index, expected_inode);
+    assert(entry->file_inode->inode_index == expected_inode);
     assert(entry->free_file == FALSE);
     assert(entry->byte_offset == 0);
     assert(entry->access == access);
@@ -105,9 +131,9 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
     //check that the filename is added to the directory with the correct inode index
     int parent_inode_index = entry->file_inode->parent_inode_index;
     int fd_parent_dir = get_fd_from_inode_value(parent_inode_index);
-    directory_entry *entry = get_last_directory_entry(fd_parent_dir);
-    assert(entry->inode_index == expected_inode);
-    assert(strcmp(entry->filename, filename) == 0);
+    directory_entry dir_entry = get_last_directory_entry(fd_parent_dir);
+    assert(dir_entry.inode_index == expected_inode);
+    assert(strcmp(dir_entry.filename, filename) == 0);
 
     f_close(fd_parent_dir);
     f_close(fd);
