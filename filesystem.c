@@ -303,7 +303,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         old_offset = file_table[fd]->byte_offset;
       }
       int free_space = BLOCKSIZE - offset_into_last_block;
-      if (free_space < sizeof(buffer) && sp->free_block == -1){
+      if (free_space < size*ntimes && sp->free_block == -1){
         printf("%s\n", "Not having enough space on the disk");
         free(datatowrite);
         free(last_data_block);
@@ -312,24 +312,22 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
       //TODO. complete the check of enough free space on disk
       int start_of_block_to_write = -1;
       int new_offset = old_offset + size*ntimes;
-      int file_offset = old_offset;          int total_block = 0;
+      int file_offset = old_offset;
+      int total_block = 0;
       if(free_space == 0){
-        if (file_table[fd]->access == APPEND){
-          ;
-        }else{
+        if (file_table[fd]->access != APPEND){
           int block_written = file_table[fd]->byte_offset/BLOCKSIZE;
           total_block = block_written+1; // the block we are writing to in the future
         }
-
       }else{
         void* data = malloc(BLOCKSIZE);
-        //copy the data from the last block to data1
+        //copy the data from the last block to data
         memcpy(data, last_data_block, offset_into_last_block);
         memcpy(data+offset_into_last_block, datatowrite, free_space);
         if(file_table[fd]->access == APPEND){
           write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
         }else{
-          total_block = file_table[fd]->byte_offset/BLOCKSIZE;
+          total_block = file_table[fd]->byte_offset/BLOCKSIZE+1;
           start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_offset, file_table[fd]->byte_offset);
           write_data_to_block(start_of_block_to_write, data, sp->size);
         }
@@ -846,6 +844,11 @@ int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int c
     start_of_block_to_write = data_offset3;
   }
   return start_of_block_to_write;
+}
+
+int update_inodes_blocks(boolean dblock, boolean, idblock, boolean i2block, boolean i3block){
+
+
 }
 
 
