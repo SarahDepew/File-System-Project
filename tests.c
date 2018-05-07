@@ -49,6 +49,9 @@ void run_tests(char *disk_to_test) {
     test_fopendir_root(disk_to_test, "/");
     printf("*************Done Testing f_opendir*************\n");
 
+    printf("*************Testing f_readdir*************\n");
+    test_freaddir_root(disk_to_test);
+    printf("*************Done Testing f_readdir*************\n");
 
     printf("*************Shutting down filesystem*************\n");
     shutdown();
@@ -189,10 +192,33 @@ void test_fopendir_root(char *disk_to_mount, char* filepath) {
 
     //TODO: uncomment
 //    f_closedir(directory_entry1);
+//    check_freehead();
+
+    f_unmount(mid);
 }
 
 /* Testing f_readdir */
 //1) Open root and check the root inode's values (should be . and .. at beginning)
-void test_freaddir_root(int file_table_index) {
+void test_freaddir_root(char *disk_to_mount) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
+    directory_entry *return_from_opendir = f_opendir("/");
 
+    int expected_fd = 0;
+
+    int fd = get_fd_from_inode_value(return_from_opendir->inode_index);
+    assert(fd == expected_fd);
+
+    directory_entry *entry = f_readdir(fd);
+    assert(entry->inode_index == 0);
+    assert(strcmp(entry->filename, ".") == 0);
+
+    entry = f_readdir(fd);
+    assert(entry->inode_index == 0);
+    assert(strcmp(entry->filename, "..") == 0);
+
+    //TODO: uncomment once not null
+//    f_closedir(return_from_opendir);
+
+    f_unmount(mid);
 }
