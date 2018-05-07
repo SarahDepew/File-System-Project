@@ -4,6 +4,7 @@
 
 #include "shell.h"
 #include "parser.h"
+#include "filesystem.h"
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -40,6 +41,7 @@ struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 int main (int argc, char **argv) {
     EXIT = FALSE;
 
+    initializeFilesystem();
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
@@ -82,9 +84,21 @@ int main (int argc, char **argv) {
 
     }
 
+    shutdownFilesystem();
+
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
+}
+
+/* Make sure that the filesystem is set up */
+void initializeFilesystem() {
+    setup();
+}
+
+/* Make sure that the file system's memory is freed */
+void shutdownFilesystem() {
+    shutdown();
 }
 
 /* Make sure the shell is running interactively as the foreground job
