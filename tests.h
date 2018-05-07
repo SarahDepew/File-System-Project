@@ -7,7 +7,7 @@
 3) test fopen on a file that does not exist and that has an invalid path name - expected behavior is returning an invalid file descriptor and an error
 4) test fopen on a file that does not exist and trying to read it - expected behavior is that the file is not created and an error value is returned
 */
-
+void test_fopen_create(char *filepath, int access, permission_value *permissions);
 
 //Tests for f_read
 /*
@@ -64,13 +64,20 @@
 
 
 
+//...
 
 
+//Tests for f_mount (as of right now, without mounting multiple disks)
+/*
+1) Check that the values mounted are as expected for the given disk
+*/
+void test_fmount(char *disk_to_mount);
 
-
-
-
-
+//Tests for f_unmount (as of right now, without mounting multiple disks)
+/*
+1) First mount a disk and then check that the spot in the mounted disks array is marked as free and that there are no memory leaks
+*/
+void test_funmount(char *disk_to_mount); 
 
 //Helper Methods
 void help();
