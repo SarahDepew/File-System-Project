@@ -178,11 +178,12 @@ inode* get_inode(int index);
 
 //methods for testing
 int first_free_location_in_mount();
-int second_free_location_in_table();
+int desired_free_location_in_table(int location_sought);
 int first_free_inode();
 file_table_entry *get_table_entry(int index);
 mount_table_entry *get_mount_table_entry(int index);
 int get_fd_from_inode_value(int inode_index);
 directory_entry get_last_directory_entry(int fd);
+int get_table_freehead();
 
 #endif //HW7_FILESYSTEM_H
