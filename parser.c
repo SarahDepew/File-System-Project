@@ -1,7 +1,3 @@
-//
-// Created by Sarah Depew on 5/7/18.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,8 +21,10 @@ tokenizer *pt;
 extern job *all_jobs;
 extern background_job *all_background_jobs;
 
+//TODO: Fix parsing here...
 int split_white_space(char **user_input, char ***tokenized_input)
 {
+    printf("user input: %s\n", *user_input);
     int buffer_mark = BUFFER_SIZE;
 
     (*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);
@@ -225,6 +223,7 @@ int perform_parse()
             break;
         }
 
+        //TODO: add parsing functionality here
         if (split_white_space(&(temp_job->job_string), &(tokenized_process)) == EXIT) {
             break;
         }

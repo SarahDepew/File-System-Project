@@ -60,9 +60,13 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
 3)Test opening root dir only
 */
 
+void test_fopendir_root(char *disk_to_mount, char* filepath); //3)
 
-
-
+//Tests for f_readdir
+/*
+1) Open root and check the root inode's values (should be . and .. at beginning)
+2) Open a valid filepath for a directory and check the entries in the directory...use mkdir and an array to confirm (single, double, triple, and direct)
+*/
 
 //...
 
@@ -82,3 +86,4 @@ void test_funmount(char *disk_to_mount);
 //Helper Methods
 void help();
 void run_tests(char *disk_to_test);
+void check_freehead();
