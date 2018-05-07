@@ -267,7 +267,6 @@ void set_permissions(permission_value old_value, permission_value *new_value) {
 }
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
-  /*
     //check if the file accociated with this fd has been open
     superblock* sp = current_mounted_disk->superblock1;
     if (file_table[fd]->free_file == TRUE) {
@@ -313,8 +312,6 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
           //TODO. complete the check of enough free space on disk
           int start_of_block_to_write = -1;
           int new_offset = old_offset + size*ntimes;
-          /*
-          TODO: ask ROSE about this section
           int file_offset = old_offset;          int total_block = 0;
           if(free_space == 0){
             if (file_table[fd]->access == APPEND){
@@ -409,7 +406,6 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         printf("%s\n", "writing to a dir file");
         //make_dir should do the same thing
     }
-    */
     return EXIT_SUCCESS;
 }
 
@@ -685,9 +681,9 @@ directory_entry* f_mkdir(char* filepath){
       //request new blocks
       //update inodes
     }
-    
+
   }
-  
+
 }
 //TODO: update the time with the last accessed time, here!
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
