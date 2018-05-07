@@ -106,7 +106,9 @@ void write_boot_block() {
         inodes[i]->mtime = 0;
         inodes[i]->atime = 0;
         inodes[i]->type = DIR;
-        inodes[i]->permission = 0;
+        inodes[i]->permission.owner = '\a';
+        inodes[i]->permission.group = '\a';
+        inodes[i]->permission.others = '\a';
         inodes[i]->inode_index = i; //this is the only value that won't be replaced
         inodes[i]->i2block = -1;
         inodes[i]->i3block = -1;
@@ -132,7 +134,9 @@ void write_boot_block() {
       inodes[i]->mtime = 0;
       inodes[i]->atime = 0;
       inodes[i]->type = REG;
-      inodes[i]->permission = 0;
+      inodes[i]->permission.owner = '\a';
+      inodes[i]->permission.group = '\a';
+      inodes[i]->permission.others = '\a';
       inodes[i]->inode_index = i; //this is the only value that won't be replaced
       inodes[i]->i2block = -1;
       inodes[i]->i3block = -1;

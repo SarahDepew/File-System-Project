@@ -72,6 +72,12 @@ typedef struct mounted_disk{
     void* inode_region;
 } mounted_disk;
 
+typedef struct permission_value {
+    char owner;
+    char group;
+    char others;
+} permission_value;
+
 // structure for f_stat, information all taken from the inode/vnode
 typedef struct stat {
     int size; /* number of bytes in file */
@@ -81,7 +87,7 @@ typedef struct stat {
     int mtime; /* last data modification time */
     int atime; /* last access time */
     int type; // dir or regular file
-    int permission;
+    struct permission_value permission; //file access information
     int inode_index; // the index number for this inode
 } stat;
 
@@ -122,12 +128,6 @@ typedef struct file_table_entry {
     int access;
 } file_table_entry;
 
-typedef struct permission_value {
-    char owner;
-    char group;
-    char others;
-} permission_value;
-
 /* Methods */
 int f_open(char* filepath, int access, permission_value *permissions);
 int f_read(void *buffer, int size, int n_times, int file_descriptor);
@@ -141,7 +141,8 @@ directory_entry* f_opendir(char* filepath);
 directory_entry* f_readdir(int index_into_file_table);
 boolean f_closedir(directory_entry *entry);
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
-/* TODO - TBD: f_mkdir, f_rmdir, and f_unmount*/
+boolean f_unmount(int mid);
+/* TODO - TBD: f_mkdir and f_rmdir*/
 
 /* Helper Methods */
 boolean setup();
@@ -169,9 +170,19 @@ void free_data_block(void *block_to_free);
 int write_data_to_block(int block_index, void* content, int size);
 int already_in_table(inode* node);
 int find_next_freehead();
-void set_permissions(permission_value *old_value, permission_value *new_value); 
+void set_permissions(permission_value old_value, permission_value *new_value);
 
 inode* get_inode(int index);
 //filepath must be absolute path
 // validity* checkvalidity(char *filepath);
+
+//methods for testing
+int first_free_location_in_mount();
+int second_free_location_in_table();
+int first_free_inode();
+file_table_entry *get_table_entry(int index);
+mount_table_entry *get_mount_table_entry(int index);
+int get_fd_from_inode_value(int inode_index);
+directory_entry get_last_directory_entry(int fd);
+
 #endif //HW7_FILESYSTEM_H
