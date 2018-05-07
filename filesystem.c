@@ -684,10 +684,8 @@ directory_entry* f_mkdir(char* filepath){
 
       //update inodes
     }
-
-  }
-
 }
+
 //TODO: update the time with the last accessed time, here!
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     if(file_descriptor < 0 || file_descriptor >= FILETABLESIZE) {
