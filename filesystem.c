@@ -670,15 +670,18 @@ directory_entry* f_mkdir(char* filepath){
   printf("newfolder: %s\n", newfolder);
   directory_entry *dir = f_opendir(path);
   if(dir == NULL){
-    printf("%s\n", cannot create directory);
+    printf("%s\n", "cannot create directory");
     return NULL;
   }else{
     directory_entry* newf = malloc(sizeof(directory_entry));
-    newf->filenmae = newfolder;
+    // newf->filename = newfolder;
+    strcpy(newf->filename, newfolder);
     inode* node = get_inode(dir->inode_index);
     void* dir_data = get_data_block(node->last_block_index);
     if(node->size == BLOCKSIZE * (node->size/BLOCKSIZE)){
       //request new blocks
+      int new_block_index = request_new_block();
+
       //update inodes
     }
 
