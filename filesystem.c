@@ -641,50 +641,49 @@ directory_entry* f_opendir(char* filepath){
   return dir_entry;
 }
 
-directory_entry* f_mkdir(char* filepath){
-  //filepath need to be converted to absolute path before hand
-  char *newfolder = NULL;
-  char *path = malloc(strlen(filepath));
-  memset(path, 0, strlen(filepath));
-  char path_copy[strlen(filepath) + 1];
-  char copy[strlen(filepath) + 1];
-  strcpy(path_copy, filepath);
-  strcpy(copy, filepath);
-  char *s = "/'";
-  //calculate the level of depth of dir
-  char *token = strtok(copy, s);
-  int count = 0;
-  while (token != NULL) {
-      count++;
-      token = strtok(NULL, s);
-  }
-  // printf("count : %d\n", count);
-  newfolder = strtok(path_copy, s);
-  while (count > 1) {
-      count--;
-      path = strcat(path, "/");
-      path = strcat(path, newfolder);
-      newfolder = strtok(NULL, s);
-  }
-  printf("path: %s\n", path);
-  printf("newfolder: %s\n", newfolder);
-  directory_entry *dir = f_opendir(path);
-  if(dir == NULL){
-    printf("%s\n", cannot create directory);
-    return NULL;
-  }else{
-    directory_entry* newf = malloc(sizeof(directory_entry));
-    newf->filenmae = newfolder;
-    inode* node = get_inode(dir->inode_index);
-    void* dir_data = get_data_block(node->last_block_index);
-    if(node->size == BLOCKSIZE * (node->size/BLOCKSIZE)){
-      //request new blocks
-      //update inodes
+directory_entry* f_mkdir(char* filepath) {
+    //filepath need to be converted to absolute path before hand
+    char *newfolder = NULL;
+    char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
+    char path_copy[strlen(filepath) + 1];
+    char copy[strlen(filepath) + 1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char *s = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while (token != NULL) {
+        count++;
+        token = strtok(NULL, s);
     }
-
-  }
-
+    // printf("count : %d\n", count);
+    newfolder = strtok(path_copy, s);
+    while (count > 1) {
+        count--;
+        path = strcat(path, "/");
+        path = strcat(path, newfolder);
+        newfolder = strtok(NULL, s);
+    }
+    printf("path: %s\n", path);
+    printf("newfolder: %s\n", newfolder);
+    directory_entry *dir = f_opendir(path);
+    if (dir == NULL) {
+        printf("%s\n", "cannot create directory");
+        return NULL;
+    } else {
+        directory_entry *newf = malloc(sizeof(directory_entry));
+        strcpy(newf->filename, newfolder);
+        inode *node = get_inode(dir->inode_index);
+        void *dir_data = get_data_block(node->last_block_index);
+        if (node->size == BLOCKSIZE * (node->size / BLOCKSIZE)) {
+            //request new blocks
+            //update inodes
+        }
+    }
 }
+
 //TODO: update the time with the last accessed time, here!
 int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     if(file_descriptor < 0 || file_descriptor >= FILETABLESIZE) {
