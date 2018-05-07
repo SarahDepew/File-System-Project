@@ -34,4 +34,4 @@ parser: parser.c parser.h boolean.h builtins.h
 	gcc -c -Wall -c parser.c -lreadline
 
 clean:
-	rm *.o format libfile.so test open_dir formatdir test_mount_read_write f_readdir_test tests shell parser
+	rm *.o format libfile.so test open_dir formatdir test_mount_read_write f_readdir_test tests shell

@@ -13,7 +13,7 @@ void help() {
 
 //Pass in the name of the disk to be tested
 int main(int argc, char *argv[]) {
-    if(argc != CORRECTNUMARGUMENTS) {
+    if (argc != CORRECTNUMARGUMENTS) {
         help();
     } else {
         run_tests(argv[FILELOCATION]);
@@ -33,7 +33,6 @@ void run_tests(char *disk_to_test) {
     test_funmount(disk_to_test);
     printf("*************Done Testing f_unmount*************\n");
 
-    //
     // printf("*************Testing f_open*************\n");
     // printf("Testing f_open on a file that does not exist with a valid path and writing/appending as the value.\n");
     //
@@ -46,7 +45,7 @@ void run_tests(char *disk_to_test) {
 }
 
 //1) Check that the values mounted are as expected for the given disk
-void test_fmount(char *disk_to_mount){
+void test_fmount(char *disk_to_mount) {
     int expected_mid = first_free_location_in_mount();
     FILE *disk = fopen(disk_to_mount, "rb");
     superblock *expectedSuperblock = malloc(SIZEOFSUPERBLOCK);
@@ -59,7 +58,7 @@ void test_fmount(char *disk_to_mount){
     mount_table_entry *table_entry = get_mount_table_entry(mid);
     assert(table_entry->free_spot == FALSE);
     assert(table_entry->disk_image_ptr != NULL);
-    assert(table_entry->superblock1!=NULL);
+    assert(table_entry->superblock1 != NULL);
 
     superblock *actualSuperblock = table_entry->superblock1;
     assert(actualSuperblock->size == expectedSuperblock->size);

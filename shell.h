@@ -12,6 +12,7 @@
 #include <string.h>
 #include "boolean.h"
 #include "parser.h"
+#include "filesystem.h"
 #include <termios.h>
 
 #define BUFFERSIZE 4096
@@ -80,6 +81,12 @@ background_job *get_background_from_pgid(pid_t pgid);
 int lengthOf(char *str);
 
 int arrayLength(char **array);
+
+/* Make sure that the filesystem is set up */
+void initializeFilesystem();
+
+/* Make sure that the file system's memory is freed */
+void shutdownFilesystem();
 
 /* make structs for built in commands */
 void buildBuiltIns();
