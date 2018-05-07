@@ -131,7 +131,9 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
             inodes[i]->mtime = 0;
             inodes[i]->atime = 0;
             inodes[i]->type = DIR;
-            inodes[i]->permission = 0;
+            inodes[i]->permission.owner = '\a';
+            inodes[i]->permission.group = '\a';
+            inodes[i]->permission.others = '\a';
             inodes[i]->inode_index = i; //this is the only value that won't be replaced
             inodes[i]->i2block = -1;
             inodes[i]->i3block = -1;
@@ -155,7 +157,9 @@ void write_inode_region(int num_inodes, int num_blocks_inodes) {
         inodes[i]->mtime = 0;
         inodes[i]->atime = 0;
         inodes[i]->type = -1;
-        inodes[i]->permission = 0;
+        inodes[i]->permission.owner = '\a';
+        inodes[i]->permission.group = '\a';
+        inodes[i]->permission.others = '\a';
         inodes[i]->inode_index = i; //this is the only value that won't be replaced
         inodes[i]->i2block = -1;
         inodes[i]->i3block = -1;
@@ -196,6 +200,9 @@ void check_inode_region() {
         assert(currentInode->i2block == -1);
         assert(currentInode->i3block == -1);
         assert(currentInode->inode_index == i); //this is the only value that won't be replaced
+        assert(currentInode->permission.owner == '\a');
+        assert(currentInode->permission.group == '\a');
+        assert(currentInode->permission.others == '\a');
 
         if (i == 0) {
             assert(currentInode->parent_inode_index == 0); //the root inode is it's own parent :)
@@ -209,7 +216,6 @@ void check_inode_region() {
             assert(currentInode->mtime == 0);
             assert(currentInode->atime == 0);
             assert(currentInode->type == DIR);
-            assert(currentInode->permission == 0); //TODO: fix here!
             assert(currentInode->last_block_index == 0); //since the only block is this block...
         } else {
           assert(currentInode->parent_inode_index == -1);
@@ -220,7 +226,6 @@ void check_inode_region() {
           assert(currentInode->mtime == 0);
           assert(currentInode->atime == 0);
           assert(currentInode->type == -1);
-          assert(currentInode->permission == 0); //TODO: fix this...
           assert(currentInode->last_block_index == -1);
 
           if(i == num_inodes-1) {

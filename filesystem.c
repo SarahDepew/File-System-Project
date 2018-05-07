@@ -12,7 +12,6 @@ int table_freehead = 0;
 
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
-    printf("Size of directory struct: %lu\n", sizeof(directory_entry));
     for (int i = 0; i < MOUNTTABLESIZE; i++) {
         mounted_disks[i] = (mount_table_entry *) malloc(sizeof(mount_table_entry));
         mounted_disks[i]->free_spot = TRUE;
@@ -24,8 +23,6 @@ boolean setup() {
         file_table[j]->file_inode = malloc(sizeof(inode));
         file_table[j]->free_file = TRUE;
     }
-
-    // current_mounted_disk = malloc(sizeof(mount_table_entry));
 
     return TRUE;
 }
@@ -42,9 +39,73 @@ boolean shutdown() {
         free(file_table[j]);
     }
 
-    // free(current_mounted_disk);
-
     return TRUE;
+}
+
+int first_free_location_in_mount() {
+  int index = -1;
+  for(int i=0; i<MOUNTTABLESIZE; i++) {
+    if(mounted_disks[i]->free_spot == TRUE) {
+        index = i;
+        break;
+    }
+  }
+
+  return index;
+}
+
+int second_free_location_in_table() {
+  int num_locations = 0;
+  int index = -1;
+  for(int i=0; i<FILETABLESIZE; i++) {
+    if(file_table[i]->free_file == TRUE) {
+      if(num_locations == 0) {
+        num_locations++;
+      } else {
+        index = i;
+        break;
+      }
+    }
+  }
+
+  return index;
+}
+
+file_table_entry *get_table_entry(int index) {
+    return file_table[index];
+}
+
+mount_table_entry *get_mount_table_entry(int index) {
+    return mounted_disks[index];
+}
+
+int first_free_inode() {
+  return current_mounted_disk->superblock1->free_inode;
+}
+
+int get_fd_from_inode_value(int inode_index) {
+  int val = -1;
+  for(int i=0; i<FILETABLESIZE; i++) {
+    if(file_table[i]->free_file == FALSE && file_table[i]->file_inode->inode_index == inode_index) {
+        val = i;
+    }
+  }
+
+  return val;
+}
+
+directory_entry get_last_directory_entry(int fd){
+    int directory_size = file_table[fd]->file_inode->size;
+    int last_block_index = directory_size/BLOCKSIZE;
+    int block_location = last_block_index%BLOCKSIZE;
+    int directory_location = block_location/sizeof(directory_entry) - 1;
+    inode *file_inode = file_table[fd]->file_inode;
+    int data_region_index = -1;
+    void *last_block = get_block_from_index(last_block_index, file_inode, &data_region_index);
+    directory_entry *array = last_block;
+    directory_entry value = array[directory_location];
+    free_data_block(last_block);
+    return value;
 }
 
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
@@ -61,7 +122,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     }
 
     if (free_index != -1) {
-        mount_table_index = &free_index;
+        *mount_table_index = free_index;
         FILE *file_to_mount = fopen(disk_img, "rb+");
         FILE *current_disk = file_to_mount;
         if (current_disk == NULL) {
@@ -80,17 +141,13 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         fread(mounted_disks[free_index]->superblock1, sizeof(superblock), 1, file_to_mount);
         current_mounted_disk = mounted_disks[free_index];
 
-        print_superblock(mounted_disks[free_index]->superblock1); //TODO: remove at some point...
-
         //for testing: find data block
         superblock *sp = mounted_disks[free_index]->superblock1;
         fseek(file_to_mount, (sp->data_offset) * sp->size + SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK, SEEK_SET);
         void *data_content = malloc(sizeof(char) * sp->size);
         fread(data_content, sp->size, 1, file_to_mount);
-
-        printf("%s\n", (char *) data_content + sizeof(int));
-
         free(data_content);
+
         //TODO: figure out what to do with inodes and pointing to them (remaining values in the structs)
         return TRUE;
     } else {
@@ -99,37 +156,21 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
     return FALSE;
 }
 
-/*
-
-void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory){
-  //get the filename and the path seperately
-  char *filename = NULL;
-  char *path = malloc(strlen(filepath));
-  char path_copy[strlen(filepath) + 1];
-  char copy[strlen(filepath) + 1];
-  strcpy(path_copy, filepath);
-  strcpy(copy, filepath);
-  char *s = "/'";
-  //calculate the level of depth of dir
-  char *token = strtok(copy, s);
-  int count = 0;
-  while (token != NULL) {
-      count++;
-      token = strtok(NULL, s);
-  }
-  // printf("count : %d\n", count);
-  filename = strtok(path_copy, s);
-  while (count > 1) {
-      count--;
-      path = strcat(path, "/");
-      path = strcat(path, filename);
-      filename = strtok(NULL, s);
-  }
-
-  *filename_to_return = filename;
-  *path_to_directory = path;
+boolean f_unmount(int mid) {
+    if(mid >=0 && mid <MOUNTTABLESIZE){
+        if(mounted_disks[mid]->free_spot == FALSE) {
+            mounted_disks[mid]->free_spot = TRUE;
+            fclose(mounted_disks[mid]->disk_image_ptr);
+            // free(mounted_disks[mid]->mounted_inode); //not doing anything with this, yet...
+            // free(mounted_disks[mid]->superblock1); //free this in the shutdown() method...
+            return TRUE;
+        } else {
+            return FALSE;
+        }
+    } else {
+        return FALSE;
+    }
 }
-*/
 
 /* f_open() method */ //TODO: add permissions functionality //TODO: add access fulctonality with timing...
 int f_open(char* filepath, int access, permission_value *permissions) {
@@ -219,13 +260,14 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     // return EXIT_SUCCESS;
 }
 
-void set_permissions(permission_value *old_value, permission_value *new_value) {
-    old_value->owner = new_value->owner;
-    old_value->group = new_value->group;
-    old_value->others = new_value->others;
+void set_permissions(permission_value old_value, permission_value *new_value) {
+    old_value.owner = new_value->owner;
+    old_value.group = new_value->group;
+    old_value.others = new_value->others;
 }
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
+  /*
     //check if the file accociated with this fd has been open
     superblock* sp = current_mounted_disk->superblock1;
     if (file_table[fd]->free_file == TRUE) {
@@ -271,8 +313,9 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
           //TODO. complete the check of enough free space on disk
           int start_of_block_to_write = -1;
           int new_offset = old_offset + size*ntimes;
-          int file_offset = old_offset;
-          int total_block = 0;
+          /*
+          TODO: ask ROSE about this section
+          int file_offset = old_offset;          int total_block = 0;
           if(free_space == 0){
             if (file_table[fd]->access == APPEND){
               ;
@@ -280,6 +323,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
               int block_written = file_table[fd]->byte_offset/BLOCKSIZE;
               total_block = block_written+1; // the block we are writing to in the future
             }
+
           }else{
             void* data = malloc(BLOCKSIZE);
             //copy the data from the last block to data1
@@ -365,6 +409,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         printf("%s\n", "writing to a dir file");
         //make_dir should do the same thing
     }
+    */
     return EXIT_SUCCESS;
 }
 
@@ -374,8 +419,6 @@ boolean f_close(int file_descriptor) {
     } else {
         file_table[file_descriptor]->free_file = TRUE;
         free(file_table[file_descriptor]->file_inode);
-        //TODO: figure out how to free permissions...
-
         table_freehead = find_next_freehead();
         return TRUE;
     }
@@ -444,7 +487,9 @@ boolean f_stat(char *filepath, stat *st) {
     st->mtime = inode1->mtime;
     st->atime = inode1->atime;
     st->type = inode1->type;
-    st->permission = inode1->permission;
+    st->permission.owner = inode1->permission.owner;
+    st->permission.group = inode1->permission.group;
+    st->permission.others = inode1->permission.others;
     st->inode_index = inode1->inode_index;
 
     f_close(fd);
@@ -462,7 +507,9 @@ void print_inode (inode *entry) {
     printf("file mtime: %d\n", entry->mtime);
     printf("file atime: %d\n", entry->atime);
     printf("file type: %d\n", entry->type);
-    printf("file permissions: %d\n", entry->permission);
+    printf("file permissions owner: %d\n", entry->permission.owner);
+    printf("file permissions group: %d\n", entry->permission.group);
+    printf("file permissions others: %d\n", entry->permission.others);
     printf("inode index: %d\n", entry->inode_index);  //TODO: add printing out all file blocks as needed
     for (int i = 0; i < N_DBLOCKS; i++) {
         printf("%d th block with inode index %d\n", i, entry->dblocks[i]);
@@ -755,8 +802,8 @@ void *get_block_from_index(int block_index, inode *file_inode, int *data_region_
   //get direct block
   block *block_to_return = NULL;
   if (block_index >= 0 && block_index <= 9) {
-      block_to_return = get_data_block(block_index);
-      *data_region_index = block_index;
+      block_to_return = get_data_block(file_inode->dblocks[block_index]);
+      *data_region_index = file_inode->dblocks[block_index];
   } else if (block_index >= 10 && block_index <= 521) {
       block_index -= 10; //adjust to array here
       int indirect_array_index = block_index / 128;
