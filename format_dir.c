@@ -151,6 +151,7 @@ void write_boot_block() {
       if(i == 2){
         inodes[i]->type = REG;
         inodes[i]->dblocks[0] = 2;
+        inodes[i]->parent_inode_index = 1;
         printf("hit here with inode value of %d\n", i);
         inodes[i]->size = strlen(data);
         inodes[i]->last_block_index = 2;
