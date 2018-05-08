@@ -68,6 +68,8 @@ void test_fopendir_root(char *disk_to_mount, char* filepath); //3)
 2) Open a valid filepath for a directory and check the entries in the directory...use mkdir and an array to confirm (single, double, triple, and direct)
 */
 
+void test_freaddir_root(char *disk_to_mount); //1)
+
 //...
 
 
