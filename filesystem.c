@@ -577,7 +577,6 @@ directory_entry* f_opendir(char* filepath) {
 
     //add root directory to the open_file_table. Assume it is found.
     //if root already exists, should not add any more.
-
     if (file_table[0]->free_file == TRUE) {
         file_table_entry *root_table_entry = file_table[0];
         root_table_entry->free_file = FALSE;
@@ -585,6 +584,9 @@ directory_entry* f_opendir(char* filepath) {
         root_table_entry->file_inode = root_node;
         root_table_entry->byte_offset = 0;
         root_table_entry->access = READANDWRITE; //TODO: tell Rose about this...
+        dir_entry = malloc(sizeof(dir_entry));
+        dir_entry->inode_index = 0;
+        strcpy(dir_entry->filename ,"/");
     } else {
         free(root_node);
     }
