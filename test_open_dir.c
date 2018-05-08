@@ -10,7 +10,8 @@ int main() {
 
   setup();
   printf("%s\n", "-------------end set up--------");
-  f_mount("DISKDIR", "", 0);
+  int num = 0;
+  f_mount("DISKDIR", "", &num);
   printf("%s\n", "----------end f_mount---------");
   f_open("/a/d/s/4.txt", READ, NULL);
   print_file_table();
@@ -24,14 +25,21 @@ int main() {
   char* content = "1";
   char* large = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
   f_write(content, 1, 1, fd);
-  void *block = get_data_block(2);
-  printf("Contents of block2: %s\n", (char*) block);
-  printf("%s\n", "----------done writing 1----------");
-  f_write(large, strlen(large), 1, fd);
-  block = get_data_block(3);
-  printf("Contents of block3: %s\n", (char*) block);
+  // void *block = get_data_block(2);
+  // printf("Contents of block2: %s\n", (char*) block);
   inode* node = get_inode(2);
   print_inode(node);
+  free(node);
+  printf("%s\n", "----------done writing 1----------");
+  // printf("large data size: %d\n", strlen(large));
+  f_write(large, strlen(large), 1, fd);
+  // block = get_data_block(2);
+  // printf("Contents of block2: %s\n", (char*) block);
+  // block = get_data_block(3);
+  // printf("Contents of block3: %s\n", (char*) block);
+  inode* node2 = get_inode(2);
+  print_inode(node2);
+  free(node2);
   // f_stat("/user/test.txt", stats);
   // stat *stats = malloc(sizeof(stat));
   // printf("stats values %d, %d\n", stats->size, stats->inode_index);
