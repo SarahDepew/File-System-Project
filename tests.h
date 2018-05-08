@@ -2,12 +2,19 @@
 
 //Tests for f_open
 /*
-1) test fopen on a file that does not exist with a valid path and writing/appending as the value - expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
-2) test fopen on a file that exists - expected behavior is that the file is opened with the certian access and permissions values and inserted in the file table
-3) test fopen on a file that does not exist and that has an invalid path name - expected behavior is returning an invalid file descriptor and an error
-4) test fopen on a file that does not exist and trying to read it - expected behavior is that the file is not created and an error value is returned
+1) test fopen on a file that does not exist with a valid path and writing/appending as the value
+- expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
+2) test fopen on a file that exists
+- expected behavior is that the file is opened with the certian access and permissions values and inserted in the file table
+3) test fopen on a file that does not exist and that has an invalid path name
+- expected behavior is returning an invalid file descriptor and an error
+4) test fopen on a file that does not exist and trying to read it
+- expected behavior is that the file is not created and an error value is returned
+5) test fopen on a file that does not exist and trying to READANDWRITE
+6)test fopen on a file that does not exist and trying to WRITE
 */
-void test_fopen_create(char *filepath, int access, permission_value *permissions);
+void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions);
+void test_fopen_validfile(char* disk_to_mount, char* filepath, int access, permission_value *permission); //2
 
 //Tests for f_read
 /*

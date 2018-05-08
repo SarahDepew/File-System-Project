@@ -19,11 +19,12 @@ boolean setup() {
   }
 
   for (int j = 0; j < FILETABLESIZE; j++) {
-    file_table[j] = (file_table_entry*)malloc(sizeof(file_table_entry));
+    file_table[j] = malloc(sizeof(file_table_entry));
     file_table[j]->file_inode = malloc(sizeof(inode));
     file_table[j]->free_file = TRUE;
   }
 
+  root_dir_entry = malloc(sizeof(directory_entry));
   return TRUE;
 }
 
@@ -218,7 +219,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     file_table[parent_fd]->byte_offset = 0;
     for(int i=0; i<dir_node->size; i+= sizeof(directory_entry)){
       entry = f_readdir(parent_fd);
-      printf("entry: %s\n", entry->filename );
       if (strcmp(entry->filename, filename) == 0){
         printf("%s found\n", entry->filename);
         file_table_entry *file_entry = file_table[table_freehead];
@@ -226,13 +226,11 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         free(file_entry->file_inode);
         inode *file_inode = get_inode(entry->inode_index);
         // set_permissions(file_inode->permission, permissions);
-        // printf("%s\n", "-----------");
         update_single_inode_ondisk(file_inode, file_inode->inode_index);
         file_entry->file_inode = file_inode;
         file_entry->byte_offset = 0;
         file_entry->access = access;
         free(path);
-        print_file_table();
         int fd = table_freehead;
         table_freehead = find_next_freehead();
         free(entry);
@@ -591,7 +589,6 @@ directory_entry* f_opendir(char* filepath) {
     }
 
     //create directory_entry for the root
-    // directory_entry* entry = malloc(sizeof(directory_entry));
     directory_entry *dir_entry = NULL;
     inode *root_node = get_inode(0);
 
@@ -600,14 +597,19 @@ directory_entry* f_opendir(char* filepath) {
     if (file_table[0]->free_file == TRUE) {
         file_table_entry *root_table_entry = file_table[0];
         root_table_entry->free_file = FALSE;
-        free(root_table_entry->file_inode);
+        // free(root_table_entry->file_inode);
         root_table_entry->file_inode = root_node;
         root_table_entry->byte_offset = 0;
         root_table_entry->access = READANDWRITE; //TODO: tell Rose about this...
-        root_dir_entry = malloc(sizeof(directory_entry));
         root_dir_entry->inode_index = 0;
         strcpy(root_dir_entry->filename ,"/");
+        dir_entry = root_dir_entry;
     } else {
+        printf("%s\n","-----2" );
+        file_table[0]->byte_offset = 0;
+        root_dir_entry->inode_index = 0;
+        strcpy(root_dir_entry->filename ,"/");
+        dir_entry = root_dir_entry;
         free(root_node);
     }
     table_freehead = find_next_freehead();
@@ -655,7 +657,7 @@ directory_entry* f_opendir(char* filepath) {
         if (already_in_table(node) == -1) {
             file_table_entry *table_ent = file_table[i];
             table_ent->free_file = FALSE;
-            free(table_ent->file_inode);
+            // free(table_ent->file_inode);
             table_ent->file_inode = node;
             table_ent->byte_offset = 0;
             table_ent->access = READANDWRITE; //TODO: tell Rose about this...
@@ -665,6 +667,7 @@ directory_entry* f_opendir(char* filepath) {
         //update table_freehead //TODO?
         token = strtok(NULL, s);
     }
+    table_freehead = find_next_freehead();
     printf("%s\n", "end of open_dir-----");
     return dir_entry;
 }
@@ -1208,6 +1211,7 @@ directory_entry* f_readdir(int index_into_file_table) {
     long offset_into_file = file_table[index_into_file_table]->byte_offset;
     inode *current_directory = file_table[index_into_file_table]->file_inode;
     if (current_directory->size - offset_into_file < sizeof(directory_entry)) {
+        printf("int reader: %d\n", index_into_file_table);
         printf("Error! Attempting to read past the end of the directory file.\n");
         return NULL;
     }
