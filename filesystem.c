@@ -240,17 +240,100 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       }
       free(entry);
     }
-    free(dir_node);
     if(access == READ){
       printf("%s\n", "file does not found");
       free(path);
       free(dir);
+      free(dir_node);
       return EXIT_FAILURE;
     }else{
-      printf("%s\n", "need to create this new file");
-      free(path);
+      printf("%s\n", "need to create this new file--------------!!!");
+      //creating new directory entry
+      directory_entry *newfile = malloc(sizeof(directory_entry));
+      strcpy(newfile->filename, filename);
+      int new_inode_index = current_mounted_disk->superblock1->free_inode;
+      if (new_inode_index == -1) {
+          printf("%s\n", "not enough space to create new folder");
+          free(newfile);
+          free(dir_node);
+          return EXIT_FAILURE;
+      }
+      newfile->inode_index = new_inode_index;
+      inode* new_inode = get_inode(new_inode_index);
+      current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
+      void *dir_data = get_data_block(dir_node->last_block_index);
+      if (dir_node->size == BLOCKSIZE * (dir_node->size / BLOCKSIZE) || dir_node->size % BLOCKSIZE < sizeof(directory_entry)) {
+          //request new blocks
+          if (dir_node->size % BLOCKSIZE < sizeof(directory_entry)) {
+              //require padding first
+              int padding_size = BLOCKSIZE - dir_node->size % BLOCKSIZE;
+              //Could be off by 1. CHECK. TODO
+              int padding = 0;
+              memcpy(dir_data + dir_node->size % BLOCKSIZE , &padding, padding_size);
+              write_data_to_block(dir_node->last_block_index, dir_data, BLOCKSIZE);
+          }
+          // int new_block_index = request_new_block();
+          int total_block = dir_node->size / BLOCKSIZE + 1;
+          int new_block_index = find_next_datablock(dir_node, total_block, dir_node->size, dir_node->size);
+          void *content = malloc(BLOCKSIZE);
+          memcpy(content, newfile, sizeof(directory_entry));
+          write_data_to_block(new_block_index, content, sizeof(directory_entry));
+          //update superblock
+          update_superblock_ondisk(current_mounted_disk->superblock1);
+          //update inodes of parent dir
+          //get inode_index
+          // int total_inode_num = dir_node->size / BLOCKSIZE;
+          dir_node->size += sizeof(directory_entry);
+          dir_node->last_block_index = new_block_index;
+          free(dir_node);
+          update_single_inode_ondisk(dir_node, dir_node->inode_index);
+          //update inode for the new dir
+          new_inode->size += sizeof(directory_entry);
+          new_inode->type = DIR;
+          if (new_inode->inode_index != new_inode_index) {
+              printf("%s\n", "There is a problem.");
+          }
+          new_inode->dblocks[0] = new_block_index;
+          update_single_inode_ondisk(new_inode, new_inode_index);
+      }else{
+        //append to the parent dir data block without padding
+        printf("%s\n", "should be here");
+        int block_offset = dir_node->size % BLOCKSIZE;
+        memcpy(dir_data + block_offset, (void *) newfile, sizeof(directory_entry));
+        write_data_to_block(dir_node->last_block_index, dir_data, BLOCKSIZE);
+        //update parent dir inode
+        dir_node->size += sizeof(directory_entry);
+        update_single_inode_ondisk(dir_node, dir_node->inode_index);
+      }
+      file_table_entry *file_entry = file_table[table_freehead];
+      file_entry->free_file = FALSE;
+      printf("notice~~~~~~~~~~~~~~~``%d\n", entry->inode_index);
+      inode *file_inode = get_inode(entry->inode_index);
+      file_inode->type = REG;
+      file_inode->size = 0;
+      file_inode->dblocks[0]= current_mounted_disk->superblock1->free_block;
+      // set_permissions(file_inode->permission, permissions);
+      update_single_inode_ondisk(file_inode, file_inode->inode_index);
+      print_inode(file_inode);
+      file_entry->file_inode = file_inode;
+      file_entry->byte_offset = 0;
+      file_entry->access = access;
+      void* data = get_data_block(current_mounted_disk->superblock1->free_block);
+      current_mounted_disk->superblock1->free_block = *(int*)data;
+      current_mounted_disk->superblock1->free_inode = file_inode->next_inode;
+      update_superblock_ondisk(current_mounted_disk->superblock1);
+      print_superblock(current_mounted_disk->superblock1);
+      print_file_table();
+      int fd = table_freehead;
+      table_freehead = find_next_freehead();
+      free(dir_node);
+      free(dir_data);
       free(dir);
-      return EXIT_SUCCESS;
+      free(newfile);
+      free(path);
+      free(new_inode);
+      free(data);
+      return fd;
     }
   }
 
@@ -266,7 +349,7 @@ void set_permissions(permission_value old_value, permission_value *new_value) {
 
 int f_write(void* buffer, int size, int ntimes, int fd ) {
   //check if the file accociated with this fd has been open
-  superblock* sp = current_mounted_disk->superblock1;
+  // superblock* sp = current_mounted_disk->superblock1;
   if (file_table[fd]->free_file == TRUE) {
     printf("%s\n", "The file must be open before write");
     return (EXIT_FAILURE);
@@ -605,7 +688,7 @@ directory_entry* f_opendir(char* filepath) {
         strcpy(root_dir_entry->filename ,"/");
         dir_entry = root_dir_entry;
     } else {
-        printf("%s\n","-----2" );
+        printf("%s\n","root already exists, in opendir-----2" );
         file_table[0]->byte_offset = 0;
         root_dir_entry->inode_index = 0;
         strcpy(root_dir_entry->filename ,"/");
@@ -632,7 +715,9 @@ directory_entry* f_opendir(char* filepath) {
                 printf("%s\n", "found");
                 found = TRUE;
             }
-            if (found == FALSE) free(dir_entry);
+            if (found == FALSE){
+              free(dir_entry);
+            }
         }
         if (i != 0) {
             printf("%s\n", "here");
@@ -730,7 +815,8 @@ directory_entry* f_mkdir(char* filepath) {
                 //require padding first
                 int padding_size = BLOCKSIZE - node->size % BLOCKSIZE;
                 //Could be off by 1. CHECK. TODO
-                memcpy(dir_data + node->size % BLOCKSIZE + 1, 0, padding_size);
+                int padding = 0;
+                memcpy(dir_data + node->size % BLOCKSIZE + 1, &padding, padding_size);
                 write_data_to_block(node->last_block_index, dir_data, BLOCKSIZE);
             }
             // int new_block_index = request_new_block();
@@ -743,7 +829,7 @@ directory_entry* f_mkdir(char* filepath) {
             update_superblock_ondisk(current_mounted_disk->superblock1);
             //update inodes of parent dir
             //get inode_index
-            int total_inode_num = node->size / BLOCKSIZE;
+            // int total_inode_num = node->size / BLOCKSIZE;
             node->size += sizeof(directory_entry);
             node->last_block_index = new_block_index;
             free(node);
@@ -1211,7 +1297,8 @@ directory_entry* f_readdir(int index_into_file_table) {
     long offset_into_file = file_table[index_into_file_table]->byte_offset;
     inode *current_directory = file_table[index_into_file_table]->file_inode;
     if (current_directory->size - offset_into_file < sizeof(directory_entry)) {
-        printf("int reader: %d\n", index_into_file_table);
+        printf("file table byte offset: %ld\n", offset_into_file);
+        printf("index_file_table: %d\n", index_into_file_table);
         printf("Error! Attempting to read past the end of the directory file.\n");
         return NULL;
     }
@@ -1297,10 +1384,8 @@ int request_new_block() {
     superblock *sp = current_mounted_disk->superblock1;
     int free_block = sp->free_block;
     void *prevfree_block_on_disk = get_data_block(free_block);
-    printf("%s\n", "+++++");
+    printf("%s\n", "request_new_block +++++");
     int next_free = ((block *) prevfree_block_on_disk)->next_free_block;
-    printf("free_block: %d\n", free_block);
-    printf("newt_free: %d\n", next_free);
     sp->free_block = next_free;
     update_superblock_ondisk(sp);
     free(prevfree_block_on_disk);
