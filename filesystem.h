@@ -1,7 +1,3 @@
-//
-// Created by Sarah Depew on 4/25/18.
-//
-
 #ifndef HW7_FILESYSTEM_H
 #define HW7_FILESYSTEM_H
 

@@ -43,21 +43,22 @@ void run_tests(char *disk_to_test) {
     //
     if(strcmp(disk_to_test, "DISKDIR")==0){
       //TODO. permission
-      test_fopen_validfile(disk_to_test, "/user/test.txt", READ, NULL);
+      test_fopen_validfile(disk_to_test, "/user/test.txt", READ, NULL); //2
     }
     printf("*************Done Testing f_open*************\n");
 
 
     printf("*************Testing f_opendir*************\n");
-    test_fopendir_root(disk_to_test, "/");
-    test_fopendir_invalid(disk_to_test, "/helloworld");
+    test_fopendir_root(disk_to_test, "/"); //3
+    test_fopendir_invalid(disk_to_test, "/helloworld"); //2
     if(strcmp(disk_to_test, "DISKDIR")==0){
-      test_fopendir_valid(disk_to_test, "/user");
+      test_fopendir_valid(disk_to_test, "/user"); //1
+      test_fopendir_alread_open(disk_to_test, "/user"); //4
     }
     printf("*************Done Testing f_opendir*************\n");
 
     printf("*************Testing f_readdir*************\n");
-    test_freaddir_root(disk_to_test);
+    test_freaddir_root(disk_to_test);  //1
     printf("*************Done Testing f_readdir*************\n");
 
     printf("*************Testing f_unmount*************\n");
@@ -329,12 +330,49 @@ void test_fopendir_root(char *disk_to_mount, char* filepath) {
 void test_fopendir_alread_open(char *disk_to_mount, char* filepath) {
     int mid = -1;
     f_mount(disk_to_mount, "N/A", &mid);
+    int expected_tid = desired_free_location_in_table(1);
+
+    char *filename = NULL;
+    char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
+    char path_copy[strlen(filepath) + 1];
+    char copy[strlen(filepath) + 1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char *s = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while (token != NULL) {
+        count++;
+        token = strtok(NULL, s);
+    }
+
+    filename = strtok(path_copy, s);
+    while (count > 1) {
+        count--;
+        path = strcat(path, "/");
+        path = strcat(path, filename);
+        filename = strtok(NULL, s);
+    }
+
+    free(path);
 
     directory_entry *directory_entry1 = f_opendir(filepath);
     assert(directory_entry1 != NULL);
 
     directory_entry *directory_entry2 = f_opendir(filepath);
-    assert(directory_entry1 == NULL);
+    assert(directory_entry1 != NULL);
+
+    assert(expected_tid == get_fd_from_inode_value(directory_entry1->inode_index));
+    assert(expected_tid == get_fd_from_inode_value(directory_entry2->inode_index));
+    assert(strcmp(directory_entry1->filename, filename)==0);
+
+    file_table_entry *entry = get_table_entry(expected_tid);
+    assert(entry->free_file == FALSE);
+    assert(entry->file_inode->inode_index == directory_entry1->inode_index);
+    assert(entry->byte_offset == 0);
+    assert(entry->file_inode->type == DIR);
 
     check_freehead(1);
     f_closedir(directory_entry1);
