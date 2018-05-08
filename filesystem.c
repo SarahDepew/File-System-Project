@@ -828,7 +828,7 @@ int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int c
         }else if(total_block - N_DBLOCKS - idtotal - i2total <= i3total){
           location = I3BLOCK;
         }
-        update_inodes_datablocks(inode_loc, total_block);
+        update_inodes_datablocks(location, total_block);
         return start_of_block_to_write;
     }
     if (total_block <= N_DBLOCKS) {
