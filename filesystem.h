@@ -33,6 +33,7 @@ enum fileseek {SSET, SCUR, SEND};
 enum permission{SUPER, REGULAR};
 enum access{READ, WRITE, READANDWRITE, APPEND};
 enum whence{SEEKSET, SEEKCUR, SEEKEND};
+enum inode_loc{DBLOCK, IDBLOCK, I2BLOCK, I3BLOCK};
 
 typedef struct superblock {
     int size; /* size of blocks in bytes */
@@ -151,11 +152,13 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 void print_file_table();
+
 void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory); //TODO: ask Rose about expected behavior...
 inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index);
 int update_single_inode_ondisk(inode* new_inode, int new_inode_index);
 
 int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int current_offset);
+int update_inodes_datablocks(int inode_loc, int total_block);
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
@@ -178,11 +181,12 @@ inode* get_inode(int index);
 
 //methods for testing
 int first_free_location_in_mount();
-int second_free_location_in_table();
+int desired_free_location_in_table(int location_sought);
 int first_free_inode();
 file_table_entry *get_table_entry(int index);
 mount_table_entry *get_mount_table_entry(int index);
 int get_fd_from_inode_value(int inode_index);
 directory_entry get_last_directory_entry(int fd);
+int get_table_freehead();
 
 #endif //HW7_FILESYSTEM_H
