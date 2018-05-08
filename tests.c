@@ -30,9 +30,9 @@ void run_tests(char *disk_to_test) {
     setup();
     printf("*************Done setting up filesystem*************\n");
 
-//    printf("*************Testing f_mount*************\n");
-//    test_fmount(disk_to_test);
-//    printf("*************Done Testing f_mount*************\n");
+    printf("*************Testing f_mount*************\n");
+    test_fmount(disk_to_test);
+    printf("*************Done Testing f_mount*************\n");
 //
 //    printf("*************Testing f_unmount*************\n");
 //    test_funmount(disk_to_test);
@@ -47,7 +47,6 @@ void run_tests(char *disk_to_test) {
 
     printf("*************Testing f_opendir*************\n");
     test_fopendir_root(disk_to_test, "/");
-    printf("%s\n", "before invalid");
     test_fopendir_invalid(disk_to_test, "/helloworld");
     printf("*************Done Testing f_opendir*************\n");
 
@@ -155,6 +154,69 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
     f_close(fd);
 }
 
+//2) test fopen on a file that exists - expected behavior is that the file is opened with the certian access and permissions values and inserted in the file table
+void test_fopen_validfile(char* filepath, int access, permission_value *permission){
+  int expected_fd = desired_free_location_in_table(3);
+  int expected_inode = first_free_inode();
+  file_table_entry *entry = NULL;
+
+   char *filename = NULL;
+    char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
+    char path_copy[strlen(filepath) + 1];
+    char copy[strlen(filepath) + 1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char *s = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while (token != NULL) {
+        count++;
+        token = strtok(NULL, s);
+    }
+    // printf("count : %d\n", count);
+    filename = strtok(path_copy, s);
+    while (count > 1) {
+        count--;
+        path = strcat(path, "/");
+        path = strcat(path, filename);
+        filename = strtok(NULL, s);
+    }
+
+    free(path);
+ char *filename = NULL;
+    char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
+    char path_copy[strlen(filepath) + 1];
+    char copy[strlen(filepath) + 1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char *s = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while (token != NULL) {
+        count++;
+        token = strtok(NULL, s);
+    }
+    // printf("count : %d\n", count);
+    filename = strtok(path_copy, s);
+    while (count > 1) {
+        count--;
+        path = strcat(path, "/");
+        path = strcat(path, filename);
+        filename = strtok(NULL, s);
+    }
+
+    free(path);
+    int fd = f_open(filepath, access, permissions);
+    assert(fd == expected_fd);
+    
+    f_close(fd_parent_dir);
+    f_close(fd);
+
+}
 
 /* Testing f_opendir */
 //1)Test a valid path
@@ -281,7 +343,7 @@ void test_freaddir_root(char *disk_to_mount) {
     assert(fd == expected_fd);
 
     directory_entry *entry = f_readdir(fd);
-    
+
     assert(entry->inode_index == 0);
     assert(strcmp(entry->filename, ".") == 0);
 
