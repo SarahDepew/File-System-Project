@@ -307,8 +307,8 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       }
       file_table_entry *file_entry = file_table[table_freehead];
       file_entry->free_file = FALSE;
-      printf("notice~~~~~~~~~~~~~~~``%d\n", entry->inode_index);
-      inode *file_inode = get_inode(entry->inode_index);
+      printf("notice~~~~~~~~~~~~~~~``%d\n", newfile->inode_index);
+      inode *file_inode = get_inode(newfile->inode_index);
       file_inode->type = REG;
       file_inode->size = 0;
       file_inode->dblocks[0]= current_mounted_disk->superblock1->free_block;
