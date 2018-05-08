@@ -328,7 +328,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         void* data = malloc(BLOCKSIZE);
         //copy the data from the last block to data
         memcpy(data, last_data_block, offset_into_last_block);
-        memcpy(data+offset_into_last_block, datatowrite, free_space);
+        if(sizeof(datatowrite) < free_space){
+          memcpy(data+offset_into_last_block, datatowrite, sizeof(datatowrite));
+        }else{
+          memcpy(data+offset_into_last_block, datatowrite, free_space);
+        }
         if(file_table[fd]->access == APPEND){
           write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
         }else{
@@ -360,15 +364,18 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         if(lefttowrite < BLOCKSIZE){
           size_to_write = lefttowrite;
         }
-        memcpy(data, datatowrite+datatowrite_offset, size);
+        memcpy(data, datatowrite+datatowrite_offset, size_to_write);
         write_data_to_block(start_of_block_to_write, data, size_to_write);
         lefttowrite -= size_to_write;
         // file_offset += size_to_write;
         free(data);
+        file_table[fd]->byte_offset += size_to_write;
         if(file_table[fd]->access == APPEND){
           file_table[fd]->file_inode->size += size_to_write;
         }else{
-          // if()
+          if(file_table[fd]->file_inode->size < file_table[fd]->byte_offset){
+            file_table[fd]->file_inode->size = file_table[fd]->byte_offset;
+          }
         }
         update_single_inode_ondisk(file_table[fd]->file_inode, file_table[fd]->file_inode->inode_index);
       }
@@ -1315,8 +1322,10 @@ int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
         printf("%s\n", "NOT ENOUGH SPACE FOR INODES");
         return EXIT_FAILURE;
     }
+    // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * sp->size +
+      // (new_inode->inode_index) * sizeof(inode), SEEK_SET);
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * sp->size +
-                        (new_inode->inode_index) * sizeof(inode), SEEK_SET);
+      new_inode_index * sizeof(inode), SEEK_SET);
     fwrite(new_inode, sizeof(inode), 1, current_disk);
     return sizeof(new_inode);
 }
