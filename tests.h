@@ -76,6 +76,12 @@ void test_fopendir_alread_open(char *disk_to_mount, char* filepath); //4)
 void test_freaddir_root(char *disk_to_mount); //1)
 void test_freaddir_past_end(char *disk_to_mount, char *filepath); //3)
 
+//Tests for f_mkdir
+/*
+1) create a new directory under an existing directory
+2) create a new directory under a non-existing directory
+3) create a new directory under root
+*/
 //...
 
 
@@ -89,7 +95,7 @@ void test_fmount(char *disk_to_mount);
 /*
 1) First mount a disk and then check that the spot in the mounted disks array is marked as free and that there are no memory leaks
 */
-void test_funmount(char *disk_to_mount); 
+void test_funmount(char *disk_to_mount);
 
 //Helper Methods
 void help();

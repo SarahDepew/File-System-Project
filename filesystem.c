@@ -341,12 +341,12 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         total_block += 1;
       }
       while (lefttowrite > 0) {
-        if(file_table[fd]->access == APPEND){
-          start_of_block_to_write = request_new_block();
-          //TODO. update inode
-        }else{
-          start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_filesize, file_table[fd]->byte_offset);
-        }
+        // if(file_table[fd]->access == APPEND){
+        //   start_of_block_to_write = request_new_block();
+        //   //TODO. update inode
+        // }else{
+        start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_filesize, file_table[fd]->byte_offset);
+        // }
         int size_to_write = BLOCKSIZE;
         void* data = malloc(BLOCKSIZE);
         if(lefttowrite < BLOCKSIZE){
@@ -830,7 +830,7 @@ int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int c
         }else if(total_block - N_DBLOCKS - idtotal - i2total <= i3total){
           location = I3BLOCK;
         }
-        update_inodes_datablocks(location, total_block);
+        update_inodes_datablocks(location, total_block, inode, start_of_block_to_write);
         return start_of_block_to_write;
     }
     if (total_block <= N_DBLOCKS) {
@@ -871,9 +871,48 @@ int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int c
     return start_of_block_to_write;
 }
 
-int update_inodes_datablocks(int inode_loc, int total_block){
+int update_inodes_datablocks(int inode_loc, int total_block, inode* node, int data_index){
+  int num_entry_perblock = BLOCKSIZE/sizeof(int);
+  int idtotal = N_IBLOCKS * num_entry_perblock;
+  int i2total = num_entry_perblock * num_entry_perblock;
+  int i3total = i2total * num_entry_perblock;
   if (inode_loc == DBLOCK){
-
+    node->dblocks[total_block] = data_index;
+    update_single_inode_ondisk(node, node->inode_index);
+  }else if(inode_loc == IDBLOCK){
+    int index = (total_block-N_DBLOCKS)/ num_entry_perblock;
+    if(index >= N_IBLOCKS-1){
+      printf("%s\n", "inode_loc is not calculated correctly");
+      exit(EXIT_FAILURE);
+    }
+    void* data1 = get_data_block(node->iblocks[index+1]);
+    int index2 = (total_block-N_DBLOCKS)% num_entry_perblock;
+    memcpy(data1 + index2*sizeof(int), &data_index, sizeof(int));
+    write_data_to_block(node->iblocks[index+1], data1, BLOCKSIZE);
+    free(data1);
+  }else if(inode_loc == I2BLOCK){
+    int index = (total_block-N_DBLOCKS-idtotal)/num_entry_perblock;
+    void* data1 = get_data_block(node->i2block);
+    int index2 = *(int*)(data1 + index*sizeof(int));
+    void* data2 = get_data_block(index2);
+    int offset = (total_block-N_DBLOCKS-idtotal)% num_entry_perblock;
+    memcpy(data2+offset*sizeof(int), &data_index, sizeof(int));
+    write_data_to_block(index2, data2, BLOCKSIZE);
+    free(data2);
+    free(data1);
+  }else if(inode_loc == I3BLOCK){
+    int index = (total_block-N_DBLOCKS-idtotal-i2total)/num_entry_perblock/num_entry_perblock;
+    void* data1 = get_data_block(node->i3block);
+    int index2 = *(int*)(data1+index*sizeof(int));
+    void*data2 = get_data_block(index2);
+    int index3 = (total_block-N_DBLOCKS-idtotal-i2total)/num_entry_perblock;
+    void* data3 = get_data_block(index3);
+    int offset = (total_block-N_DBLOCKS-idtotal-i2total)% num_entry_perblock;
+    memcpy(data3 + offset*sizeof(int), &data_index, sizeof(int));
+    write_data_to_block(index3, data3, BLOCKSIZE);
+    free(data3);
+    free(data2);
+    free(data1);
   }
   return EXIT_SUCCESS;
 }
