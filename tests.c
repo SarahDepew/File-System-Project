@@ -185,34 +185,17 @@ void test_fopen_validfile(char* filepath, int access, permission_value *permissi
     }
 
     free(path);
- char *filename = NULL;
-    char *path = malloc(strlen(filepath));
-    memset(path, 0, strlen(filepath));
-    char path_copy[strlen(filepath) + 1];
-    char copy[strlen(filepath) + 1];
-    strcpy(path_copy, filepath);
-    strcpy(copy, filepath);
-    char *s = "/'";
-    //calculate the level of depth of dir
-    char *token = strtok(copy, s);
-    int count = 0;
-    while (token != NULL) {
-        count++;
-        token = strtok(NULL, s);
-    }
-    // printf("count : %d\n", count);
-    filename = strtok(path_copy, s);
-    while (count > 1) {
-        count--;
-        path = strcat(path, "/");
-        path = strcat(path, filename);
-        filename = strtok(NULL, s);
-    }
 
-    free(path);
     int fd = f_open(filepath, access, permissions);
     assert(fd == expected_fd);
-    
+
+    //check that the expected inode is given to the file
+    entry = get_table_entry(fd);
+    assert(entry->file_inode->inode_index == expected_inode);
+    assert(entry->free_file == FALSE);
+    assert(entry->byte_offset == 0);
+    assert(entry->access == access);
+
     f_close(fd_parent_dir);
     f_close(fd);
 
