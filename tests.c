@@ -47,6 +47,7 @@ void run_tests(char *disk_to_test) {
 
     printf("*************Testing f_opendir*************\n");
     test_fopendir_root(disk_to_test, "/");
+    test_fopendir_invalid(disk_to_test, "/helloworld");
     printf("*************Done Testing f_opendir*************\n");
 
     printf("*************Testing f_readdir*************\n");
@@ -156,13 +157,65 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
 
 /* Testing f_opendir */
 //1)Test a valid path
-void test_fopendir_valid(char* filepath) {
+void test_fopendir_valid(char *disk_to_mount, char* filepath) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
 
+    //get the filename
+    char *filename = NULL;
+    char *path = malloc(strlen(filepath));
+    memset(path, 0, strlen(filepath));
+    char path_copy[strlen(filepath) + 1];
+    char copy[strlen(filepath) + 1];
+    strcpy(path_copy, filepath);
+    strcpy(copy, filepath);
+    char *s = "/'";
+    //calculate the level of depth of dir
+    char *token = strtok(copy, s);
+    int count = 0;
+    while (token != NULL) {
+        count++;
+        token = strtok(NULL, s);
+    }
+
+    filename = strtok(path_copy, s);
+    while (count > 1) {
+        count--;
+        path = strcat(path, "/");
+        path = strcat(path, filename);
+        filename = strtok(NULL, s);
+    }
+
+    free(path);
+
+    int expected_tid = desired_free_location_in_table(1);
+
+    directory_entry *directory_entry1 = f_opendir(filepath);
+    assert(directory_entry1 != NULL);
+    assert(expected_tid == get_fd_from_inode_value(directory_entry1->inode_index));
+    assert(directory_entry1->filename == filename);
+
+    file_table_entry *entry = get_table_entry(expected_tid);
+    assert(entry->free_file == FALSE);
+    assert(entry->file_inode->inode_index == directory_entry1->inode_index);
+    assert(entry->byte_offset == 0);
+    assert(entry->file_inode->type == DIR);
+
+    check_freehead();
+    f_closedir(directory_entry1);
+    f_unmount(mid);
 }
 
 //2)Test an invalid path
-void test_fopendir_invalid(char* filepath) {
+void test_fopendir_invalid(char *disk_to_mount, char* filepath) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
 
+    directory_entry *directory_entry1 = f_opendir(filepath);
+    assert(directory_entry1 == NULL);
+
+    check_freehead();
+    f_unmount(mid);
 }
 
 //3)Test opening root dir only
@@ -175,8 +228,10 @@ void test_fopendir_root(char *disk_to_mount, char* filepath) {
     file_table_entry *entry = get_table_entry(expected_tid);
     assert(entry->free_file == TRUE);
     directory_entry *directory_entry1 = f_opendir(filepath);
+    assert(expected_tid == get_fd_from_inode_value(directory_entry1->inode_index));
 
     //TODO: uncomment once not NULL
+//    assert(directory_entry1 != NULL)
 //    assert(directory_entry1->inode_index == expected_inode);
 //    assert(strcmp(directory_entry1->filename, "/") == 0);
 
@@ -194,6 +249,22 @@ void test_fopendir_root(char *disk_to_mount, char* filepath) {
 //    f_closedir(directory_entry1);
 //    check_freehead();
 
+    f_unmount(mid);
+}
+
+//4)Test opening a directory that is already opened
+void test_fopendir_alread_open(char *disk_to_mount, char* filepath) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
+
+    directory_entry *directory_entry1 = f_opendir(filepath);
+    assert(directory_entry1 != NULL);
+
+    directory_entry *directory_entry2 = f_opendir(filepath);
+    assert(directory_entry1 == NULL);
+
+    check_freehead();
+    f_closedir(directory_entry1);
     f_unmount(mid);
 }
 
@@ -220,5 +291,29 @@ void test_freaddir_root(char *disk_to_mount) {
     //TODO: uncomment once not null
 //    f_closedir(return_from_opendir);
 
+    f_unmount(mid);
+}
+
+//3) Test reading past the end of a file
+void test_freaddir_past_end(char *disk_to_mount, char *filepath) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
+    int expected_fd = desired_free_location_in_table(1);
+
+    directory_entry *return_from_opendir = f_opendir(filepath);
+    assert(expected_fd == get_fd_from_inode_value(return_from_opendir->inode_index));
+
+    int file_size = get_table_entry(get_fd_from_inode_value(return_from_opendir->inode_index))->file_inode->size;
+    int num_directory_entries = file_size/sizeof(directory_entry);
+    assert(num_directory_entries*sizeof(directory_entry) == file_size);
+    directory_entry *entry = NULL;
+
+    for(int i=0; i<=num_directory_entries; i++) {
+        entry = f_readdir(expected_fd);
+    }
+
+
+
+    f_closedir(return_from_opendir);
     f_unmount(mid);
 }

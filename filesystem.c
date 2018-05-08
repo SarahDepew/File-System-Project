@@ -1114,21 +1114,28 @@ inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, in
     return NULL;
 }
 
-//TODO: add skipping empty directory entries...
 directory_entry* f_readdir(int index_into_file_table) {
-    //TODO: error check here for valid index into file... (not trying to read past end of file)
+    if (index_into_file_table < 0 || index_into_file_table >= FILETABLESIZE) {
+        printf("Index into the file table is invalid.\n");
+        return NULL;
+    }
 
     //fetch the inode of the directory to be read (assume the directory file is already open in the file table and that you are given the index into the file table)
     long offset_into_file = file_table[index_into_file_table]->byte_offset;
     inode *current_directory = file_table[index_into_file_table]->file_inode;
+    if (current_directory->size - offset_into_file < sizeof(directory_entry)) {
+        printf("Error! Attempting to read past the end of the directory file.\n");
+        return NULL;
+    }
+
     superblock *superblockPtr = current_mounted_disk->superblock1;
-    // long directory_index_in_block = offset_into_file/sizeof(directory_entry); //TODO: make directory padded so that we have block divisible by directory entries
+    long directory_index_in_block = offset_into_file / sizeof(directory_entry);
     long block = ((float) offset_into_file /
                   (float) superblockPtr->size);
     directory_entry *next_directory = malloc(sizeof(directory_entry));
     long offset_in_block = offset_into_file - (superblockPtr->size * block);
     long num_indirect = superblockPtr->size / sizeof(int);
-    // long num_directories = superblockPtr->size / sizeof(directory_entry);
+    long num_directories = superblockPtr->size / sizeof(directory_entry);
     if (offset_into_file <= current_directory->size) {
         direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
     } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
