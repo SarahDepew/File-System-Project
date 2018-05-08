@@ -21,10 +21,10 @@ int main() {
   int fd = f_open("/user/test.txt", APPEND, NULL);
   printf("%s\n", "------------end f_open3----------");
   int fd2 = f_open("/user/1.txt", WRITE, NULL);
-  // int fd3 = f_open("/user/2.txt", WRITE, NULL);
+  int fd3 = f_open("/user/2.txt", WRITE, NULL);
   printf("fd: %d\n", fd);
   printf("fd2: %d\n", fd2);
-  // printf("fd3: %d\n", fd3);
+  printf("fd3: %d\n", fd3);
 
   // char* content = "1";
   // char* large = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";

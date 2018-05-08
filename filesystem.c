@@ -218,6 +218,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     int parent_fd = already_in_table(dir_node);
     file_table[parent_fd]->byte_offset = 0;
     for(int i=0; i<dir_node->size; i+= sizeof(directory_entry)){
+      file_table[parent_fd]->byte_offset =0;
       entry = f_readdir(parent_fd);
       if (strcmp(entry->filename, filename) == 0){
         printf("%s found\n", entry->filename);
@@ -307,7 +308,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       }
       file_table_entry *file_entry = file_table[table_freehead];
       file_entry->free_file = FALSE;
-      printf("notice~~~~~~~~~~~~~~~``%d\n", newfile->inode_index);
       inode *file_inode = get_inode(newfile->inode_index);
       file_inode->type = REG;
       file_inode->size = 0;
@@ -705,6 +705,7 @@ directory_entry* f_opendir(char* filepath) {
         int found = FALSE;
         file_table[i]->byte_offset = 0;
         while (found == FALSE) {
+            printf("token: %s\n", token);
             dir_entry = f_readdir(i);
             if (dir_entry == NULL) {
                 //reach the last byte in the file
@@ -713,6 +714,7 @@ directory_entry* f_opendir(char* filepath) {
             char *name = dir_entry->filename;
             if (strcmp(name, token) == 0) {
                 printf("%s\n", "found");
+                file_table[i]->byte_offset = 0;
                 found = TRUE;
             }
             if (found == FALSE){
