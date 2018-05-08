@@ -58,17 +58,23 @@ void test_fopen_create(char *filepath, int access, permission_value *permissions
 1)Test a valid path
 2)Test an invalid path
 3)Test opening root dir only
+4)Test opening a directory that is already opened
 */
 
+void test_fopendir_valid(char *disk_to_mount, char* filepath); //1)
+void test_fopendir_invalid(char *disk_to_mount, char* filepath); //2)
 void test_fopendir_root(char *disk_to_mount, char* filepath); //3)
+void test_fopendir_alread_open(char *disk_to_mount, char* filepath); //4)
 
 //Tests for f_readdir
 /*
 1) Open root and check the root inode's values (should be . and .. at beginning)
 2) Open a valid filepath for a directory and check the entries in the directory...use mkdir and an array to confirm (single, double, triple, and direct)
+3) Test reading past the end of a file
 */
 
 void test_freaddir_root(char *disk_to_mount); //1)
+void test_freaddir_past_end(char *disk_to_mount, char *filepath); //3)
 
 //...
 
