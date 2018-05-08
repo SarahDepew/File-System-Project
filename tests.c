@@ -47,6 +47,7 @@ void run_tests(char *disk_to_test) {
 
     printf("*************Testing f_opendir*************\n");
     test_fopendir_root(disk_to_test, "/");
+    printf("%s\n", "before invalid");
     test_fopendir_invalid(disk_to_test, "/helloworld");
     printf("*************Done Testing f_opendir*************\n");
 
@@ -274,13 +275,13 @@ void test_freaddir_root(char *disk_to_mount) {
     int mid = -1;
     f_mount(disk_to_mount, "N/A", &mid);
     directory_entry *return_from_opendir = f_opendir("/");
-
     int expected_fd = 0;
 
     int fd = get_fd_from_inode_value(return_from_opendir->inode_index);
     assert(fd == expected_fd);
 
     directory_entry *entry = f_readdir(fd);
+    
     assert(entry->inode_index == 0);
     assert(strcmp(entry->filename, ".") == 0);
 

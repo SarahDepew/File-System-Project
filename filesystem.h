@@ -158,7 +158,7 @@ inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, in
 int update_single_inode_ondisk(inode* new_inode, int new_inode_index);
 
 int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int current_offset);
-int update_inodes_datablocks(int inode_loc, int total_block);
+int update_inodes_datablocks(int inode_loc, int total_block, inode* node, int data_index);
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block);
 void indirect_copy(directory_entry *entry, inode *current_directory, int index, long indirect_block_to_fetch, long offset_in_block);
 
