@@ -41,24 +41,24 @@ void run_tests(char *disk_to_test) {
     // printf("Testing f_open on a file that does not exist with a valid path and writing/appending as the value.\n");
     //
     //
-    if(strcmp(disk_to_test, "DISKDIR")==0){
+    //if(strcmp(disk_to_test, "DISKDIR")==0){
       //TODO. permission
       test_fopen_create(disk_to_test, "/user/1.txt", READ, NULL); //4
       test_fopen_create(disk_to_test, "/user/2.txt", WRITE, NULL); //1
       test_fopen_create(disk_to_test, "/user/3.txt", APPEND, NULL); //1
       test_fopen_create(disk_to_test, "/user/4.txt", READANDWRITE, NULL); //1
       test_fopen_validfile(disk_to_test, "/user/test.txt", READ, NULL); //2
-    }
+      //}
     printf("*************Done Testing f_open*************\n");
 
 
     printf("*************Testing f_opendir*************\n");
     test_fopendir_root(disk_to_test, "/"); //3
     test_fopendir_invalid(disk_to_test, "/helloworld"); //2
-    if(strcmp(disk_to_test, "DISKDIR")==0){
+    //    if(strcmp(disk_to_test, "DISKDIR")==0){
       test_fopendir_valid(disk_to_test, "/user"); //1
       test_fopendir_alread_open(disk_to_test, "/user"); //4
-    }
+      //}
     printf("*************Done Testing f_opendir*************\n");
 
     printf("*************Testing f_readdir*************\n");
