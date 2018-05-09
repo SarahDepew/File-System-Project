@@ -21,13 +21,14 @@ int main() {
   int fd = f_open("/user/test.txt", APPEND, NULL);
   printf("%s\n", "------------end f_open3----------");
   int fd2 = f_open("/user/1.txt", WRITE, NULL);
-  int fd3 = f_open("/user/2.txt", WRITE, NULL);
+  int fd3 = f_open("/user/2.txt", READ, NULL);
   printf("fd: %d\n", fd);
   printf("fd2: %d\n", fd2);
   printf("fd3: %d\n", fd3);
-
+  print_file_table();
   // char* content = "1";
-  // char* large = "bootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+  char* large = "123456789roseROSEsarahSARAHbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
+  printf("total added: %ld\n", strlen(large)*500);
   // f_write(content, 1, 1, fd);
   // void *block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
@@ -36,14 +37,14 @@ int main() {
   // free(node);
   // printf("%s\n", "----------done writing 1----------");
   // printf("large data size: %d\n", strlen(large));
-  // f_write(large, strlen(large), 1, fd);
+  f_write(large, strlen(large), 200, fd);
   // block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
   // block = get_data_block(3);
   // printf("Contents of block3: %s\n", (char*) block);
-  // inode* node2 = get_inode(2);
-  // print_inode(node2);
-  // free(node2);
+  inode* node2 = get_inode(2);
+  print_inode(node2);
+  free(node2);
   // f_stat("/user/test.txt", stats);
   // stat *stats = malloc(sizeof(stat));
   // printf("stats values %d, %d\n", stats->size, stats->inode_index);
