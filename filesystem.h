@@ -136,6 +136,7 @@ boolean f_rewind(int file_descriptor);
 boolean f_stat(char *filepath, stat *st);
 boolean f_remove(char *filepath);
 directory_entry* f_opendir(char* filepath);
+directory_entry* f_mkdir(char* filepath);
 directory_entry* f_readdir(int index_into_file_table);
 boolean f_closedir(directory_entry *entry);
 boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index);
