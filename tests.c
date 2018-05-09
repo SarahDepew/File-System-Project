@@ -44,6 +44,9 @@ void run_tests(char *disk_to_test) {
     if(strcmp(disk_to_test, "DISKDIR")==0){
       //TODO. permission
       test_fopen_create(disk_to_test, "/user/1.txt", READ, NULL); //4
+      test_fopen_create(disk_to_test, "/user/2.txt", WRITE, NULL); //1
+      test_fopen_create(disk_to_test, "/user/3.txt", APPEND, NULL); //1
+      test_fopen_create(disk_to_test, "/user/4.txt", READANDWRITE, NULL); //1
       test_fopen_validfile(disk_to_test, "/user/test.txt", READ, NULL); //2
     }
     printf("*************Done Testing f_open*************\n");
@@ -112,7 +115,7 @@ void test_funmount(char *disk_to_mount) {
 void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions) {
     int mid = -1;
     f_mount(disk_to_mount, "N/A", &mid);
-    int expected_fd = desired_free_location_in_table(2);
+    int expected_fd = desired_free_location_in_table(1);
     int expected_inode = first_free_inode();
     file_table_entry *entry = NULL;
 
@@ -145,11 +148,13 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
 
     //check the file is added to the file table in the correct location
     int fd = f_open(filepath, access, permissions);
-
+    print_file_table();
     if (access == READ){
       assert(fd == EXITFAILURE);
       check_freehead(1);
     }else{
+      printf("fd: %d\n", fd);
+      printf("expected_fd: %d\n", expected_fd);
       assert(fd == expected_fd);
       //check that the expected inode is given to the file
       entry = get_table_entry(fd);
@@ -167,7 +172,6 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
       check_freehead(1);
       f_close(fd_parent_dir);
     }
-
 
 
     f_close(fd);
