@@ -55,10 +55,7 @@ void run_tests(char *disk_to_test) {
     printf("*************Testing f_opendir*************\n");
     test_fopendir_root(disk_to_test, "/"); //3
     test_fopendir_invalid(disk_to_test, "/helloworld"); //2
-    //    if(strcmp(disk_to_test, "DISKDIR")==0){
-      test_fopendir_valid(disk_to_test, "/user"); //1
-      test_fopendir_alread_open(disk_to_test, "/user"); //4
-      //}
+
     printf("*************Done Testing f_opendir*************\n");
 
     printf("*************Testing f_readdir*************\n");
@@ -115,7 +112,11 @@ void test_funmount(char *disk_to_mount) {
 void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions) {
     int mid = -1;
     f_mount(disk_to_mount, "N/A", &mid);
+<<<<<<< HEAD
     //    int expected_fd = desired_free_location_in_table(2);
+=======
+    int expected_fd = desired_free_location_in_table(1);
+>>>>>>> 730729f5bc7f6ff22333f966c609b0b0c70c8979
     int expected_inode = first_free_inode();
     file_table_entry *entry = NULL;
 
@@ -154,8 +155,13 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
       check_freehead(1);
     }else{
       printf("fd: %d\n", fd);
+<<<<<<< HEAD
       // printf("expected_fd: %d\n", expected_fd);
       //      //assert(fd == expected_fd);
+=======
+      printf("expected_fd: %d\n", expected_fd);
+      // assert(fd == expected_fd);
+>>>>>>> 730729f5bc7f6ff22333f966c609b0b0c70c8979
       //check that the expected inode is given to the file
       entry = get_table_entry(fd);
       assert(entry->file_inode->inode_index == expected_inode);
@@ -166,7 +172,11 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
       //check that the filename is added to the directory with the correct inode index
       int parent_inode_index = entry->file_inode->parent_inode_index;
       int fd_parent_dir = get_fd_from_inode_value(parent_inode_index);
+      printf("fd_parent_dir: %d\n", fd_parent_dir);
       directory_entry dir_entry = get_last_directory_entry(fd_parent_dir);
+      printf("expected_inode: %d\n", expected_inode);
+      printf("filename: %s\n", dir_entry.filename);
+      printf("inode_index: %d\n", dir_entry.inode_index);
       assert(dir_entry.inode_index == expected_inode);
       assert(strcmp(dir_entry.filename, filename) == 0);
       check_freehead(1);
