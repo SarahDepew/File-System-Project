@@ -43,6 +43,7 @@ void run_tests(char *disk_to_test) {
     //
     if(strcmp(disk_to_test, "DISKDIR")==0){
       //TODO. permission
+      test_fopen_create(disk_to_test, "/user/1.txt", READ, NULL); //4
       test_fopen_validfile(disk_to_test, "/user/test.txt", READ, NULL); //2
     }
     printf("*************Done Testing f_open*************\n");
@@ -109,6 +110,8 @@ void test_funmount(char *disk_to_mount) {
 
 //1) test fopen on a file that does not exist with a valid path and writing/appending as the value - expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
 void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions) {
+    int mid = -1;
+    f_mount(disk_to_mount, "N/A", &mid);
     int expected_fd = desired_free_location_in_table(2);
     int expected_inode = first_free_inode();
     file_table_entry *entry = NULL;
@@ -142,33 +145,40 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
 
     //check the file is added to the file table in the correct location
     int fd = f_open(filepath, access, permissions);
-    assert(fd == expected_fd);
 
-    //check that the expected inode is given to the file
-    entry = get_table_entry(fd);
-    assert(entry->file_inode->inode_index == expected_inode);
-    assert(entry->free_file == FALSE);
-    assert(entry->byte_offset == 0);
-    assert(entry->access == access);
+    if (access == READ){
+      assert(fd == EXITFAILURE);
+      check_freehead(1);
+    }else{
+      assert(fd == expected_fd);
+      //check that the expected inode is given to the file
+      entry = get_table_entry(fd);
+      assert(entry->file_inode->inode_index == expected_inode);
+      assert(entry->free_file == FALSE);
+      assert(entry->byte_offset == 0);
+      assert(entry->access == access);
 
-    //check that the filename is added to the directory with the correct inode index
-    int parent_inode_index = entry->file_inode->parent_inode_index;
-    int fd_parent_dir = get_fd_from_inode_value(parent_inode_index);
-    directory_entry dir_entry = get_last_directory_entry(fd_parent_dir);
-    assert(dir_entry.inode_index == expected_inode);
-    assert(strcmp(dir_entry.filename, filename) == 0);
+      //check that the filename is added to the directory with the correct inode index
+      int parent_inode_index = entry->file_inode->parent_inode_index;
+      int fd_parent_dir = get_fd_from_inode_value(parent_inode_index);
+      directory_entry dir_entry = get_last_directory_entry(fd_parent_dir);
+      assert(dir_entry.inode_index == expected_inode);
+      assert(strcmp(dir_entry.filename, filename) == 0);
+      check_freehead(1);
+      f_close(fd_parent_dir);
+    }
 
-    check_freehead(1);
 
-    f_close(fd_parent_dir);
+
     f_close(fd);
+    f_unmount(mid);
 }
 
 //2) test fopen on a file that exists - expected behavior is that the file is opened with the certian access and permissions values and inserted in the file table
 void test_fopen_validfile(char* disk_to_mount,char* filepath, int access, permission_value *permission){
   int mid = -1;
   f_mount(disk_to_mount, "N/A", &mid);
-  int expected_fd = desired_free_location_in_table(3);
+  int expected_fd = desired_free_location_in_table(1);
   int expected_inode = 2;
   file_table_entry *entry = NULL;
 
