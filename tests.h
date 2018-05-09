@@ -2,13 +2,19 @@
 
 //Tests for f_open
 /*
-1) test fopen on a file that does not exist with a valid path and writing/appending as the value - expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
-2) test fopen on a file that exists - expected behavior is that the file is opened with the certain access and permissions values and inserted in the file table
-3) test fopen on a file that does not exist and that has an invalid path name - expected behavior is returning an invalid file descriptor and an error
-4) test fopen on a file that does not exist and trying to read it - expected behavior is that the file is not created and an error value is returned
+1) test fopen on a file that does not exist with a valid path and writing/appending as the value
+- expected behavior is that the file is created and the file is added to the directory as well as opened in the file table
+2) test fopen on a file that exists
+- expected behavior is that the file is opened with the certian access and permissions values and inserted in the file table
+3) test fopen on a file that does not exist and that has an invalid path name
+- expected behavior is returning an invalid file descriptor and an error
+4) test fopen on a file that does not exist and trying to read it
+- expected behavior is that the file is not created and an error value is returned
+5) test fopen on a file that does not exist and trying to READANDWRITE
+6)test fopen on a file that does not exist and trying to WRITE
 */
-void test_fopen_create(char *filepath, int access, permission_value *permissions); //1)
-
+void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions); //1)
+void test_fopen_validfile(char* disk_to_mount, char* filepath, int access, permission_value *permission); //2
 
 //Tests for f_read
 /*
@@ -78,6 +84,12 @@ void test_freaddir_root(char *disk_to_mount); //1)
 //TODO: 2) test!
 void test_freaddir_past_end(char *disk_to_mount, char *filepath); //3)
 
+//Tests for f_mkdir
+/*
+1) create a new directory under an existing directory
+2) create a new directory under a non-existing directory
+3) create a new directory under root
+*/
 //...
 
 
@@ -91,7 +103,7 @@ void test_fmount(char *disk_to_mount);
 /*
 1) First mount a disk and then check that the spot in the mounted disks array is marked as free and that there are no memory leaks
 */
-void test_funmount(char *disk_to_mount); 
+void test_funmount(char *disk_to_mount);
 
 //Helper Methods
 void help();
