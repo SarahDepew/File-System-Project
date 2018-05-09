@@ -535,7 +535,8 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
 }
 
 boolean f_close(int file_descriptor) {
-    if (file_descriptor >= FILETABLESIZE) {
+    if (file_descriptor >= FILETABLESIZE || file_descriptor < 0) {
+        printf("I am sorry, but that is an invalid file descriptor.\n");
         return FALSE;
     } else {
         file_table[file_descriptor]->free_file = TRUE;

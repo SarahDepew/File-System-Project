@@ -173,7 +173,6 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
       f_close(fd_parent_dir);
     }
 
-
     f_close(fd);
     f_unmount(mid);
 }
