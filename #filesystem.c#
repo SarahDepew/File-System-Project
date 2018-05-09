@@ -89,8 +89,8 @@ int get_fd_from_inode_value(int inode_index) {
   for(int i=0; i<FILETABLESIZE; i++) {
     if(file_table[i]->free_file == FALSE && file_table[i]->file_inode->inode_index == inode_index) {
       val = i;
-      break; 
-    }
+
+      break; }
   }
 
   return val;
