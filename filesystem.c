@@ -252,6 +252,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       free(path);
       free(dir);
       free(dir_node);
+      f_closedir(dir);
       print_superblock(current_mounted_disk->superblock1);
       return EXITFAILURE;
     }else{
@@ -981,6 +982,7 @@ int find_next_datablock(inode* inode, int total_block, int old_fileoffest, int c
             update_single_inode_ondisk(inode, inode->inode_index);
           }
         }else if(total_block - N_DBLOCKS - idtotal <= i2total){
+          printf("%s\n", "############going to i2 region##########");
           location = I2BLOCK;
         }else if(total_block - N_DBLOCKS - idtotal - i2total <= i3total){
           location = I3BLOCK;
@@ -1040,13 +1042,13 @@ int update_inodes_datablocks(int inode_loc, int total_block, inode* node, int da
   }else if(inode_loc == IDBLOCK){
     printf("%s\n", "************update iblocks***********");
     int index = (total_block-N_DBLOCKS)/ num_entry_perblock;
-    if(index >= N_IBLOCKS){
-      printf("index: %d\n", index);
-      printf("N_IBLOCKS: %d\n", N_IBLOCKS);
-      print_inode(node);
-      printf("%s\n", "inode_loc is not calculated correctly");
-      exit(EXITFAILURE);
-    }
+    // if(index >= N_IBLOCKS){
+    //   printf("index: %d\n", index);
+    //   printf("N_IBLOCKS: %d\n", N_IBLOCKS);
+    //   print_inode(node);
+    //   printf("%s\n", "inode_loc is not calculated correctly");
+    //   exit(EXITFAILURE);
+    // }
     void* data1 = get_data_block(node->iblocks[index+1]);
     int index2 = (total_block-N_DBLOCKS)% num_entry_perblock;
     memcpy(data1 + index2*sizeof(int), &data_index, sizeof(int));
