@@ -204,7 +204,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
   if (dir == NULL) {
     printf("%s\n", "directory does not exist");
     free(path);
-    return EXIT_FAILURE;
+    return EXITFAILURE;
   } else {
     //directory exits, need to check if the file exits
     printf("%s\n", "directory exits. GOOD news.");
@@ -216,10 +216,16 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     //go into the dir_entry to find the inode of the file
     printf("size: %d\n", dir_node->size);
     int parent_fd = already_in_table(dir_node);
+    printf("parent_fd: %d\n", parent_fd);
+    printf("parent name: %s\n", dir->filename);
     file_table[parent_fd]->byte_offset = 0;
     for(int i=0; i<dir_node->size; i+= sizeof(directory_entry)){
-      file_table[parent_fd]->byte_offset =0;
       entry = f_readdir(parent_fd);
+      if(entry == NULL){
+        free(entry);
+        break;
+      }
+      printf("entry name: %s\n", entry->filename);
       if (strcmp(entry->filename, filename) == 0){
         printf("%s found\n", entry->filename);
         file_table_entry *file_entry = file_table[table_freehead];
@@ -246,7 +252,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       free(path);
       free(dir);
       free(dir_node);
-      return EXIT_FAILURE;
+      return EXITFAILURE;
     }else{
       printf("%s\n", "need to create this new file--------------!!!");
       //creating new directory entry
@@ -257,7 +263,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
           printf("%s\n", "not enough space to create new folder");
           free(newfile);
           free(dir_node);
-          return EXIT_FAILURE;
+          return EXITFAILURE;
       }
       newfile->inode_index = new_inode_index;
       inode* new_inode = get_inode(new_inode_index);
@@ -306,6 +312,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         dir_node->size += sizeof(directory_entry);
         update_single_inode_ondisk(dir_node, dir_node->inode_index);
       }
+      file_table[parent_fd]->byte_offset = 0;
       file_table_entry *file_entry = file_table[table_freehead];
       file_entry->free_file = FALSE;
       inode *file_inode = get_inode(newfile->inode_index);
@@ -338,7 +345,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
   }
 
   // free(dir);
-  // return EXIT_SUCCESS;
+  // return EXITSUCCESS;
 }
 
 void set_permissions(permission_value old_value, permission_value *new_value) {
@@ -352,11 +359,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
   // superblock* sp = current_mounted_disk->superblock1;
   if (file_table[fd]->free_file == TRUE) {
     printf("%s\n", "The file must be open before write");
-    return (EXIT_FAILURE);
+    return (EXITFAILURE);
   }
   if(file_table[fd]->access == READ){
     printf("%s\n", "File is not readable.");
-    return EXIT_FAILURE;
+    return EXITFAILURE;
   }
   if (file_table[fd]->file_inode->type == REG){
     printf("%s\n", "writing to a regular file");
@@ -392,7 +399,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         printf("%s\n", "Not having enough space on the disk");
         free(datatowrite);
         free(last_data_block);
-        return EXIT_FAILURE;
+        return EXITFAILURE;
       }
       //TODO. complete the check of enough free space on disk
       int start_of_block_to_write = -1;
@@ -512,7 +519,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
     printf("%s\n", "writing to a dir file");
     //make_dir should do the same thing
   }
-  return EXIT_SUCCESS;
+  return EXITSUCCESS;
 }
 
 boolean f_close(int file_descriptor) {
@@ -705,7 +712,6 @@ directory_entry* f_opendir(char* filepath) {
         int found = FALSE;
         file_table[i]->byte_offset = 0;
         while (found == FALSE) {
-            printf("token: %s\n", token);
             dir_entry = f_readdir(i);
             if (dir_entry == NULL) {
                 //reach the last byte in the file
@@ -995,7 +1001,7 @@ int update_inodes_datablocks(int inode_loc, int total_block, inode* node, int da
     int index = (total_block-N_DBLOCKS)/ num_entry_perblock;
     if(index >= N_IBLOCKS-1){
       printf("%s\n", "inode_loc is not calculated correctly");
-      exit(EXIT_FAILURE);
+      exit(EXITFAILURE);
     }
     void* data1 = get_data_block(node->iblocks[index+1]);
     int index2 = (total_block-N_DBLOCKS)% num_entry_perblock;
@@ -1026,7 +1032,7 @@ int update_inodes_datablocks(int inode_loc, int total_block, inode* node, int da
     free(data2);
     free(data1);
   }
-  return EXIT_SUCCESS;
+  return EXITSUCCESS;
 }
 
 
@@ -1411,7 +1417,7 @@ int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
     int total_inode_num = (sp->data_offset - sp->inode_offset) * sp->size / sizeof(inode);
     if (new_inode_index > total_inode_num) {
         printf("%s\n", "NOT ENOUGH SPACE FOR INODES");
-        return EXIT_FAILURE;
+        return EXITFAILURE;
     }
     // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * sp->size +
       // (new_inode->inode_index) * sizeof(inode), SEEK_SET);
@@ -1427,14 +1433,14 @@ int write_data_to_block(int block_index, void* content, int size) {
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
     if (size > sp->size) {
         printf("%s\n", "Writing too much into one block.write_data_to_block()");
-        return EXIT_FAILURE;
+        return EXITFAILURE;
     }
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->size * (sp->data_offset + block_index), SEEK_SET);
     // if(fwrite(content, size, 1, current_disk) == size){
     //     return size;
     // }
     fwrite(content, size, 1, current_disk);
-    return EXIT_SUCCESS;
+    return EXITSUCCESS;
 }
 
 int already_in_table(inode* node) {
@@ -1458,7 +1464,7 @@ int find_next_freehead() {
             return i;
         }
     }
-    return EXIT_FAILURE;
+    return EXITFAILURE;
 }
 
 void free_data_block(void *block_to_free) {

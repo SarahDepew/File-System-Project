@@ -9,8 +9,9 @@
 #define ERROR -1
 #define N_DBLOCKS 10
 #define N_IBLOCKS 4
-#define EXIT_FAILURE -1
-#define EXIT_SUCCESS 0
+#define EXITFAILURE -1
+#define EXITSUCCESS 0
+
 //change this to OPENFILE_MAX?
 #define FILETABLESIZE 20
 #define FILENAMEMAX 60
