@@ -1243,8 +1243,13 @@ int cd_builtin(char **args) {
 }
 
 int pwd_builtin(char **args) {
-    printf("%s\n", pwd_directory->filename);
-    return 0;
+  
+  if(pwd_directory->filename[0] != '/'){
+    
+  }
+  char* absolute_path = convert_absolute(pwd_directory->filename);
+  printf("%s\n", absolute_path);
+  return 0;
 }
 
 int cat_builitn(char **args) {
@@ -1287,19 +1292,24 @@ directory_entry* goto_destination(char* filepath){
     for(; token != NULL; token = strtok(NULL,s)){
       if(strcmp(token, ".") != 0){
         inode* prev_node = curnode;
-        curnode = get_inode(current_working_dir->inode_index);
-        print_inode(curnode);
+        //curnode = get_inode(current_working_dir->inode_index);
+	curnode = get_table_entry(get_fd_from_inode_value(current_working_dir->inode_index))->file_inode;
+        //print_inode(curnode);
         int current_fd = get_fd_from_inode_value(curnode->inode_index);
+	printf("current_fd: %d\n", current_fd);
         directory_entry* entry = NULL;
         for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
           entry = f_readdir(current_fd);
+	  printf("i: %d\n", i);
+	  
           if (entry == NULL){
             printf("%s\n","Not found" );
             free(entry);
-            free(curnode);
+            //free(curnode);
             free(current_working_dir);
             return NULL;
           }
+	  printf("entry_name: %s\n", entry->filename);
           if (strcmp(entry->filename, token) == 0) {
             if(prev_node != NULL){
               remove_from_file_table(prev_node);
@@ -1313,7 +1323,7 @@ directory_entry* goto_destination(char* filepath){
         }
         // get_table_entry(current_fd)->byte_offset = 0;
         f_rewind(current_fd);
-        free(curnode);
+        //free(curnode);
       }
     }
   }else{
@@ -1336,21 +1346,55 @@ directory_entry* goto_destination(char* filepath){
   return pwd_directory;
 }
 
-//REALLY NEED THIS FOR cd ?? TODO.s
+/*only take in a dir path*/
 char* convert_absolute(char* filepath){
   directory_entry* destination = NULL;
   if((destination = goto_destination(filepath)) == NULL){
     printf("%s does not exists\n", filepath);
     return NULL;
   }
+  printf("in convert_absolute\n");
   char* absolute_path_collection[FILENAMEMAX];
-  int count =0;
   directory_entry* cur = destination;
-  for(; cur->inode_index!=0; ){
-    inode* cur_node = get_inode(cur->inode_index);
-    inode* parent_node = get_inode(cur_node->parent_inode_index);
+  int cur_fd = get_fd_from_inode_value(cur->inode_index);
+  inode* cur_node = get_table_entry(cur_fd)->file_inode;
+  int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
+  inode* parent_node = get_table_entry(parent_fd)->file_inode;
+  int old_parent_index = parent_node->inode_index;
+  int count = 0;
+  for(; cur->inode_index!=0;){
     for(int i = 0; i < cur_node->size; i += sizeof(directory_entry)){
-      // directory_entry* entry = f_readdir()
+      directory_entry* entry = f_readdir(parent_fd);
+      if(entry == NULL){
+	printf("something wrong in conver_absolute\n");
+	printf("%s not found\n", filepath);
+	return NULL;
+      }
+      if(strcmp(entry->filename, "..")==0){
+	//add new parent dir to file table
+	parent_node= get_inode(entry->inode_index);
+	addto_file_table(parent_node, APPEND);
+	parent_fd = get_fd_from_inode_value(parent_node->inode_index);
+      }
+      if(entry->inode_index == cur->inode_index){
+	remove_from_file_table(cur_node);
+	cur_fd = get_fd_from_inode_value(old_parent_index);
+	cur_node = get_table_entry(cur_fd)->file_inode;
+	strcpy(absolute_path_collection[count], entry->filename);
+      }
     }
+    cur->inode_index =  old_parent_index;
+    old_parent_index = cur_node->inode_index;
+    count ++;
   }
+  if(count == 0){
+    return "/";
+  }
+  char* absolute_path = malloc(count*FILENAMEMAX );
+  while(count >= 0){
+    absolute_path = strcat(absolute_path, "/");
+    absolute_path = strcat(absolute_path, absolute_path_collection[count]);
+    count --;
+  }
+  return absolute_path;
 }

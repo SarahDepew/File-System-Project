@@ -775,14 +775,12 @@ directory_entry* f_opendir(char* filepath) {
         if (already_in_table(node) == -1) {
             file_table_entry *table_ent = file_table[i];
             table_ent->free_file = FALSE;
-            // free(table_ent->file_inode);
             table_ent->file_inode = node;
             table_ent->byte_offset = 0;
             table_ent->access = READANDWRITE; //TODO: tell Rose about this...
         } else {
             free(node);
         }
-        //update table_freehead //TODO?
         token = strtok(NULL, s);
     }
     table_freehead = find_next_freehead();
@@ -868,11 +866,8 @@ directory_entry* f_mkdir(char* filepath) {
             void *content = malloc(BLOCKSIZE);
             memcpy(content, newf, sizeof(directory_entry));
             write_data_to_block(new_block_index, content, sizeof(directory_entry));
-            //update superblock
-            // update_superblock_ondisk(current_mounted_disk->superblock1);
             //update inodes of parent dir
             //get inode_index
-            // int total_inode_num = node->size / BLOCKSIZE;
             node->size += sizeof(directory_entry);
             node->last_block_index = new_block_index;
             update_single_inode_ondisk(node, node->inode_index);
@@ -890,7 +885,7 @@ directory_entry* f_mkdir(char* filepath) {
             memcpy(data, current, sizeof(directory_entry));
             memcpy(data + sizeof(directory_entry), parent, sizeof(directory_entry));
             write_data_to_block(new_inode->dblocks[0], data, BLOCKSIZE);
-            print_dir_block(new_inode, new_inode->dblocks[0]);
+            print_dir_block(node, new_inode->dblocks[0]);
             update_superblock_ondisk(current_mounted_disk->superblock1);
             update_single_inode_ondisk(new_inode, new_inode_index);
             free(data);
@@ -898,7 +893,7 @@ directory_entry* f_mkdir(char* filepath) {
         } else {
             //append to the parent dir data block without padding
             printf("%s\n", "appending to the data in mkdir");
-            int block_offset = node->size % BLOCKSIZE;
+            int block_offset = (node->size-sizeof(directory_entry)) % BLOCKSIZE;
             memcpy(dir_data + block_offset, (void *) newf, sizeof(directory_entry));
             printf("added to this data block: %d\n", node->last_block_index);
             write_data_to_block(node->last_block_index, dir_data, BLOCKSIZE);
@@ -912,6 +907,7 @@ directory_entry* f_mkdir(char* filepath) {
             new_inode->size = 2 * sizeof(directory_entry);
             new_inode->type = DIR;
             new_inode->parent_inode_index = node->inode_index;
+	    printf("parent_inode_index should be: %d\n", node->inode_index);
             if (new_inode->inode_index != new_inode_index) {
                 printf("%s\n", "There is a problem.");
             }
