@@ -1224,7 +1224,12 @@ int chmod_builtin(char **args) {
 }
 
 int mkdir_builtin(char **args) {
-    f_mkdir(*args);
+    printf("new_dir: %s\n", args[1]);
+    if(args[1] == NULL){
+      printf("%s\n", "incorrect format for mkdir");
+      return EXITFAILURE;
+    }
+    f_mkdir(args[1]);
     return 0;
 }
 
@@ -1233,7 +1238,7 @@ int rmdir_builtin(char **args) {
 }
 
 int cd_builtin(char **args) {
-    goto_destination(*args);
+    goto_destination(args[1]);
     return 0;
 }
 
@@ -1276,17 +1281,20 @@ directory_entry* goto_destination(char* filepath){
   current_working_dir->inode_index = pwd_directory->inode_index;
   strcpy(current_working_dir->filename, pwd_directory->filename);
   inode* curnode = NULL;
-  if(strcmp(token, ".") == 0 || strcmp(token, "..")==0){
+  if(filepath[0]!= '/'){
+    printf("%s\n", "relative path");
     //relative path
     for(; token != NULL; token = strtok(NULL,s)){
       if(strcmp(token, ".") != 0){
         inode* prev_node = curnode;
         curnode = get_inode(current_working_dir->inode_index);
+        print_inode(curnode);
         int current_fd = get_fd_from_inode_value(curnode->inode_index);
         directory_entry* entry = NULL;
         for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
           entry = f_readdir(current_fd);
           if (entry == NULL){
+            printf("%s\n","Not found" );
             free(entry);
             free(curnode);
             free(current_working_dir);
@@ -1303,11 +1311,13 @@ directory_entry* goto_destination(char* filepath){
           }
           free(entry);
         }
-        get_table_entry(current_fd)->byte_offset = 0;
+        // get_table_entry(current_fd)->byte_offset = 0;
+        f_rewind(current_fd);
         free(curnode);
       }
     }
   }else{
+    printf("%s\n", "absolute path");
     //absolute path
     directory_entry* entry = f_opendir(filepath);
     if(entry == NULL){
