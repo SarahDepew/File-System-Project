@@ -41,9 +41,9 @@ char *mount_string = "mount\0";
 char *unmount_string = "unmount\0";
 
 //TODO: add flags to the parser
-////flags
-//char *F = "-F\0";
-//char *l = "-l\0";
+//flags
+char *F = "-F\0";
+char *l = "-l\0";
 
 
 //strings and variables for jobs printout
@@ -1174,23 +1174,50 @@ void print_args(char **args) {
 
 //TODO: fill in the following methods :)
 int ls_builtin(char **args) {
-    printf("got to ls\n");
-    print_args(args);
+//    print_args(args);
 
-    int ars_length = arrayLength(args);
+    int args_length = arrayLength(args);
 
-    if(ars_length == 1) {
+    if (args_length == 1) {
         int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+        f_rewind(file_table_index);
         directory_entry *entry = f_readdir(file_table_index);
-        while(entry != NULL) {
+        while (entry != NULL) {
             printf("%s\n", entry->filename);
             entry = f_readdir(file_table_index);
         }
-    } else { //case where there are flags :)
+        return TRUE;
+    } else if (args_length == 2) { //case where there are flags :)
+        if (strcmp(F, args[1]) == 0 || strcmp(l, args[1]) == 0) {
+            int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+            f_rewind(file_table_index);
+            if (strcmp(F, args[1]) == 0) {
+                directory_entry *entry = f_readdir(file_table_index);
 
+                while (entry != NULL) {
+                    inode *inode1 = get_inode(entry->inode_index);
+                    if (inode1->type == DIR) {
+                        printf("%s/\n", entry->filename);
+                    } else {
+                        printf("%s\n", entry->filename);
+                    }
+                    entry = f_readdir(file_table_index);
+                    free(inode1);
+                }
+                return TRUE;
+            } else {
+                //-l flag
+            }
+        } else {
+            perror("An error occurred in ls. Please try again.\n");
+            return FALSE;
+        }
+    } else {
+        perror("An error occurred in ls. Please try again.\n");
+        return FALSE;
     }
 
-    return 0;
+    return FALSE;
 }
 
 int chmod_builtin(char **args) {
@@ -1211,6 +1238,7 @@ int cd_builtin(char **args) {
 }
 
 int pwd_builtin(char **args) {
+
     return 0;
 }
 

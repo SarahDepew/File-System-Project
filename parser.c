@@ -24,7 +24,7 @@ extern background_job *all_background_jobs;
 //TODO: Fix parsing here...
 int split_white_space(char **user_input, char ***tokenized_input)
 {
-    printf("user input: %s\n", *user_input);
+//    printf("user input: %s\n", *user_input);
     int buffer_mark = BUFFER_SIZE;
 
     (*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);

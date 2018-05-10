@@ -1375,18 +1375,18 @@ inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, in
 
 directory_entry* f_readdir(int index_into_file_table) {
     if (index_into_file_table < 0 || index_into_file_table >= FILETABLESIZE) {
-        printf("Index into the file table is invalid.\n");
+//        printf("Index into the file table is invalid.\n");
         return NULL;
     }
 
     //fetch the inode of the directory to be read (assume the directory file is already open in the file table and that you are given the index into the file table)
     long offset_into_file = file_table[index_into_file_table]->byte_offset;
-    printf("in readir offset_into_file: %d\n", offset_into_file);
+//    printf("in readir offset_into_file: %d\n", offset_into_file);
     inode *current_directory = file_table[index_into_file_table]->file_inode;
     if (current_directory->size - offset_into_file < sizeof(directory_entry)) {
-        printf("file table byte offset: %ld\n", offset_into_file);
-        printf("index_file_table: %d\n", index_into_file_table);
-        printf("Error! Attempting to read past the end of the directory file.\n");
+//        printf("file table byte offset: %ld\n", offset_into_file);
+//        printf("index_file_table: %d\n", index_into_file_table);
+//        printf("Error! Attempting to read past the end of the directory file.\n");
         return NULL;
     }
 
@@ -1394,14 +1394,14 @@ directory_entry* f_readdir(int index_into_file_table) {
     long directory_index_in_block = offset_into_file / sizeof(directory_entry);
     long block = ((float) offset_into_file /
                   (float) superblockPtr->size);
-    printf("%s\n", "-------");
-    printf("block: %d\n", block);
+//    printf("%s\n", "-------");
+//    printf("block: %d\n", block);
     directory_entry *next_directory = malloc(sizeof(directory_entry));
     long offset_in_block = offset_into_file - (superblockPtr->size * block);
     long num_indirect = superblockPtr->size / sizeof(int);
     long num_directories = superblockPtr->size / sizeof(directory_entry);
     if (offset_into_file <= current_directory->size) {
-        printf("%s\n", "=====");
+//        printf("%s\n", "=====");
         direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
     } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
         long adjusted_block = block - N_DBLOCKS; //index into indirect block range
@@ -1442,7 +1442,7 @@ directory_entry* f_readdir(int index_into_file_table) {
 
     //increment offset into the file
     file_table[index_into_file_table]->byte_offset += sizeof(directory_entry);
-    printf("%s\n", next_directory->filename);
+//    printf("%s\n", next_directory->filename);
     return next_directory;
 }
 
@@ -1454,7 +1454,7 @@ void indirect_copy(directory_entry *entry, inode *current_directory, int index, 
 }
 
 void direct_copy(directory_entry *entry, inode *current_directory, long block_to_fetch, long offset_in_block) {
-    printf("block_to_fetch: %d\n", block_to_fetch);
+//    printf("block_to_fetch: %d\n", block_to_fetch);
     void *data_block = get_data_block(block_to_fetch);
     printf("%d\n", *(int *) data_block);
     memcpy(entry, data_block + offset_in_block, sizeof(directory_entry));
