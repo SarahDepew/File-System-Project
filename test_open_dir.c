@@ -27,8 +27,9 @@ int main() {
   printf("fd3: %d\n", fd3);
   print_file_table();
   // char* content = "1";
+  printf("%s\n", "-----------------done open files-------------");
   char* large = "123456789roseROSEsarahSARAHbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootbootboot";
-  printf("total added: %ld\n", strlen(large)*500);
+  printf("total added: %ld\n", strlen(large)*100);
   // f_write(content, 1, 1, fd);
   // void *block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
@@ -37,14 +38,25 @@ int main() {
   // free(node);
   // printf("%s\n", "----------done writing 1----------");
   // printf("large data size: %d\n", strlen(large));
-  f_write(large, strlen(large), 200, fd);
+  // f_write(large, strlen(large), 200, fd);
   // block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
   // block = get_data_block(3);
   // printf("Contents of block3: %s\n", (char*) block);
-  inode* node2 = get_inode(2);
-  print_inode(node2);
-  free(node2);
+  // inode* node2 = get_inode(2);
+  // print_inode(node2);
+  // free(node2);
+  // inode* node1 = get_inode(1);
+  // print_inode(node1);
+  // free(node1);
+  // f_close(fd2);
+  // f_remove("/user/1.txt");
+  // print_file_table();
+  directory_entry* rose = f_mkdir("/user/rose");
+  // directory_entry* roselevel3 = f_mkdir("/user/rose/documents");
+  // directory_entry* sarah = f_mkdir("/user/sarah");
+  // directory_entry* sarahlevel3 = f_mkdir("/user/sarah/photos");
+
   // f_stat("/user/test.txt", stats);
   // stat *stats = malloc(sizeof(stat));
   // printf("stats values %d, %d\n", stats->size, stats->inode_index);
@@ -53,5 +65,7 @@ int main() {
   // f_read(buffer, 5, 1, 1);
   // inode *i = get_inode(2);
   // printf("%s\n", (char*) buffer);
+  // free(rose);
+  f_unmount(num);
   shutdown();
 }

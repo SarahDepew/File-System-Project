@@ -274,15 +274,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       void *dir_data = get_data_block(dir_node->last_block_index);
       if (dir_node->size == BLOCKSIZE * (dir_node->size / BLOCKSIZE) || dir_node->size % BLOCKSIZE < sizeof(directory_entry)) {
           //request new blocks
-          if (dir_node->size % BLOCKSIZE < sizeof(directory_entry)) {
-              //require padding first
-              int padding_size = BLOCKSIZE - dir_node->size % BLOCKSIZE;
-              //Could be off by 1. CHECK. TODO
-              int padding = 0;
-              memcpy(dir_data + dir_node->size % BLOCKSIZE , &padding, padding_size);
-              write_data_to_block(dir_node->last_block_index, dir_data, BLOCKSIZE);
-          }
-          // int new_block_index = request_new_block();
           int total_block = dir_node->size / BLOCKSIZE + 1;
           int new_block_index = find_next_datablock(dir_node, total_block, dir_node->size, dir_node->size);
           void *content = malloc(BLOCKSIZE);
@@ -347,9 +338,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
       return fd;
     }
   }
-
-  // free(dir);
-  // return EXITSUCCESS;
 }
 
 void set_permissions(permission_value old_value, permission_value *new_value) {
@@ -535,6 +523,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
 }
 
 boolean f_close(int file_descriptor) {
+  printf("%s\n", "in f_close");
   if (file_descriptor >= FILETABLESIZE) {
     return FALSE;
   } else {
