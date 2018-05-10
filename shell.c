@@ -28,6 +28,23 @@ char *kill_string = "kill\0";
 char *jobs_string = "jobs\0";
 char *fg_string = "fg\0";
 char *bg_string = "bg\0";
+char *ls_string = "ls\0";
+char *chmod_string = "chmod\0";
+char *mkdir_string = "mkdir\0";
+char *rmdir_string = "rmdir\0";
+char *cd_string = "cd\0";
+char *pwd_string = "pwd\0";
+char *cat_string = "cat\0";
+char *more_string = "more\0";
+char *rm_string = "rm\0";
+char *mount_string = "mount\0";
+char *unmount_string = "unmount\0";
+
+//TODO: add flags to the parser
+////flags
+//char *F = "-F\0";
+//char *l = "-l\0";
+
 
 //strings and variables for jobs printout
 char *running = "Running\0";
@@ -37,6 +54,13 @@ char *killed = "Killed\0";
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
+int root_index_into_mount_table = -1;
+directory_entry *pwd_directory = NULL;
+int root_directory_ft_entry = 0;
+
+user *current_user;
+user *valid_users[NUMBER_OF_VALID_USERS];
+
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
     EXIT = FALSE;
@@ -44,6 +68,18 @@ int main (int argc, char **argv) {
     initializeFilesystem();
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
+
+    //mount filesystem and open root
+    if(f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
+        EXIT = TRUE;
+    }
+
+    //ask the user to log into the shell
+    create_users();
+    login();
+
+    pwd_directory = f_opendir(current_user->absolute_path_home_directory);
+
     while (!EXIT) {
 
         perform_parse();
@@ -84,6 +120,7 @@ int main (int argc, char **argv) {
 
     }
 
+    f_unmount(root_index_into_mount_table);
     shutdownFilesystem();
 
     /* free any background jobs still in LL before exiting */
@@ -174,22 +211,97 @@ void initializeShell() {
 
 /* Make array for built in commands. */
 void buildBuiltIns() {
-    char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {exit_string, kill_string, jobs_string, fg_string, bg_string};
+    char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {exit_string, kill_string, jobs_string, fg_string, bg_string,
+                                                       ls_string,
+                                                       chmod_string, mkdir_string, rmdir_string, cd_string, pwd_string,
+                                                       cat_string, more_string, rm_string, mount_string,
+                                                       unmount_string};
 
     for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         allBuiltIns[i].tag = builtInTags[i];
 
-        if (i == ZERO) {
+        if (i == 0) {
             allBuiltIns[i].function = exit_builtin;
-        } else if (i == ONE) {
+        } else if (i == 1) {
             allBuiltIns[i].function = kill_builtin;
-        } else if (i == TWO) {
+        } else if (i == 2) {
             allBuiltIns[i].function = jobs_builtin;
-        } else if (i == THREE) {
+        } else if (i == 3) {
             allBuiltIns[i].function = foreground_builtin;
-        } else {
+        } else if (i == 4) {
             allBuiltIns[i].function = background_builtin;
+        } else if (i == 5) {
+            allBuiltIns[i].function = ls_builtin;
+        } else if (i == 6) {
+            allBuiltIns[i].function = chmod_builtin;
+        } else if (i == 7) {
+            allBuiltIns[i].function = mkdir_builtin;
+        } else if (i == 8) {
+            allBuiltIns[i].function = rmdir_builtin;
+        } else if (i == 9) {
+            allBuiltIns[i].function = cd_builtin;
+        } else if (i == 10) {
+            allBuiltIns[i].function = pwd_builtin;
+        } else if (i == 11) {
+            allBuiltIns[i].function = cat_builitn;
+        } else if (i == 12) {
+            allBuiltIns[i].function = more_builtin;
+        } else if (i == 13) {
+            allBuiltIns[i].function = rm_builtin;
+        } else if (i == 14) {
+            allBuiltIns[i].function = mount_builtin;
+        } else {
+            allBuiltIns[i].function = unmount_builtin;
         }
+    }
+}
+
+void create_users() {
+    user *super_user = malloc(sizeof(user));
+    user *basic_user = malloc(sizeof(user));
+
+    super_user->uid = 0;
+    basic_user->uid = 1;
+    //TODO: add home directories for users to the disk created in format...
+    super_user->absolute_path_home_directory = "/";
+    basic_user->absolute_path_home_directory = "/";
+    super_user->name = "super\n";
+    basic_user->name = "basic\n";
+    super_user->password = "suser\n";
+    basic_user->password = "buser\n";
+
+    valid_users[0] = super_user;
+    valid_users[1] = basic_user;
+}
+
+void login() {
+    boolean login_valid = FALSE;
+    char *buffer = malloc(BUFFERSIZE);
+
+    while (!login_valid) {
+        printf("Please enter a username less than 80 characters: ");
+        memset(buffer, 0, BUFFERSIZE);
+        fgets(buffer, sizeof(buffer), stdin);
+        if (strcmp(valid_users[0]->name, buffer) != 0 && strcmp(valid_users[1]->name, buffer) != 0) {
+            printf("Invalid username: %s. Please try again.\n", buffer);
+            continue;
+        }
+
+        printf("Please enter a password: ");
+        memset(buffer, 0, BUFFERSIZE);
+        fgets(buffer, sizeof(buffer), stdin);
+        if (strcmp(valid_users[0]->password, buffer) != 0 && strcmp(valid_users[1]->password, buffer) != 0) {
+            printf("Invalid password: %s. Please try again.\n", buffer);
+            continue;
+        }
+
+        if (strcmp(valid_users[0]->password, buffer) == 0) {
+            current_user = valid_users[0];
+        } else {
+            current_user = valid_users[1];
+        }
+
+        login_valid = TRUE;
     }
 }
 
@@ -320,7 +432,7 @@ void removeNode(pid_t pidToRemove) {
  */
 int isBuiltInCommand(process cmd) {
     for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
-        if(process_equals(cmd, allBuiltIns[i])) {
+        if (process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
         }
     }
@@ -1050,4 +1162,79 @@ int foreground_builtin(char** args) {
         return TRUE;
     }
     return FALSE;
+}
+
+void print_args(char **args) {
+    //get args length
+    int argsLength = arrayLength(args);
+    for (int i = 0; i < argsLength; i++) {
+        printf("%s\n", args[i]);
+    }
+}
+
+//TODO: fill in the following methods :)
+int ls_builtin(char **args) {
+    printf("got to ls\n");
+    print_args(args);
+
+    int ars_length = arrayLength(args);
+
+    if(ars_length == 1) {
+        int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+        directory_entry *entry = f_readdir(file_table_index);
+        while(entry != NULL) {
+            printf("%s\n", entry->filename);
+            entry = f_readdir(file_table_index);
+        }
+    } else { //case where there are flags :)
+
+    }
+
+    return 0;
+}
+
+int chmod_builtin(char **args) {
+
+    return 0;
+}
+
+int mkdir_builtin(char **args) {
+    return 0;
+}
+
+int rmdir_builtin(char **args) {
+    return 0;
+}
+
+int cd_builtin(char **args) {
+    return 0;
+}
+
+int pwd_builtin(char **args) {
+    return 0;
+}
+
+int cat_builitn(char **args) {
+    //get args length
+    int argsLength = arrayLength(args);
+    for(int i=0; i<argsLength; i++) {
+        printf("%s\n", args[i]);
+    }
+    return 0;
+}
+
+int more_builtin(char **args) {
+    return 0;
+}
+
+int rm_builtin(char **args) {
+    return 0;
+}
+
+int mount_builtin(char **args) {
+    return 0;
+}
+
+int unmount_builtin(char **args) {
+    return 0;
 }

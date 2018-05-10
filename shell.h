@@ -21,7 +21,8 @@
 #define KILLED 2
 #define FALSE 0
 #define TRUE 1
-#define NUMBER_OF_BUILT_IN_FUNCTIONS 5
+#define NUMBER_OF_BUILT_IN_FUNCTIONS 16
+#define NUMBER_OF_VALID_USERS 2
 #define NOT_FOUND -1
 
 int EXIT;
@@ -74,6 +75,13 @@ typedef struct background_job {
     struct termios termios_modes;
 } background_job;
 
+typedef struct user {
+    char *name;
+    char *password;
+    int uid;
+    char *absolute_path_home_directory;
+} user;
+
 void printoutargs();
 
 background_job *get_background_from_pgid(pid_t pgid);
@@ -90,6 +98,12 @@ void shutdownFilesystem();
 
 /* make structs for built in commands */
 void buildBuiltIns();
+
+/* Create the array of valid users */
+void create_users();
+
+/* Login process for shell */
+void login();
 
 /* Displays error message */
 void printError(char* message);
@@ -148,5 +162,17 @@ int background_builtin(char** args);
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args);
+
+int ls_builtin(char **args);
+int chmod_builtin(char **args);
+int mkdir_builtin(char **args);
+int rmdir_builtin(char **args);
+int cd_builtin(char **args);
+int pwd_builtin(char **args);
+int cat_builitn(char **args);
+int more_builtin(char **args);
+int rm_builtin(char **args);
+int mount_builtin(char **args);
+int unmount_builtin(char **args);
 
 #endif //HW7_SHELL_H

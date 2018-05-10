@@ -173,7 +173,9 @@ void test_fopen_create(char* disk_to_mount, char *filepath, int access, permissi
       f_close(fd_parent_dir);
     }
 
-    f_close(fd);
+    if(fd != -1) { //file -1 descriptor means that the file is not valid
+        f_close(fd);
+    }
     f_unmount(mid);
 }
 
