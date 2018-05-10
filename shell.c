@@ -1229,7 +1229,8 @@ int mkdir_builtin(char **args) {
       printf("%s\n", "incorrect format for mkdir");
       return EXITFAILURE;
     }
-    f_mkdir(args[1]);
+    directory_entry* entry = f_mkdir(args[1]);
+    free(entry);
     return 0;
 }
 
@@ -1243,9 +1244,9 @@ int cd_builtin(char **args) {
 }
 
 int pwd_builtin(char **args) {
-  
+
   if(pwd_directory->filename[0] != '/'){
-    
+
   }
   char* absolute_path = convert_absolute(pwd_directory->filename);
   printf("%s\n", absolute_path);
@@ -1291,33 +1292,38 @@ directory_entry* goto_destination(char* filepath){
     //relative path
     for(; token != NULL; token = strtok(NULL,s)){
       if(strcmp(token, ".") != 0){
+        printf("cur inode index: %d\n", current_working_dir->inode_index);
+        int cur_fd = get_fd_from_inode_value(current_working_dir->inode_index);
+        printf("cur_fd: %d\n", cur_fd);
+        curnode = get_table_entry(cur_fd)->file_inode;
         inode* prev_node = curnode;
-        //curnode = get_inode(current_working_dir->inode_index);
-	curnode = get_table_entry(get_fd_from_inode_value(current_working_dir->inode_index))->file_inode;
         //print_inode(curnode);
         int current_fd = get_fd_from_inode_value(curnode->inode_index);
-	printf("current_fd: %d\n", current_fd);
+        f_rewind(current_fd);
+        printf("current_fd: %d\n", current_fd);
         directory_entry* entry = NULL;
         for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
           entry = f_readdir(current_fd);
-	  printf("i: %d\n", i);
-	  
+          printf("i: %d\n", i);
+
           if (entry == NULL){
             printf("%s\n","Not found" );
             free(entry);
-            //free(curnode);
             free(current_working_dir);
             return NULL;
           }
-	  printf("entry_name: %s\n", entry->filename);
+          printf("entry_name: %s\n", entry->filename);
           if (strcmp(entry->filename, token) == 0) {
-            if(prev_node != NULL){
-              remove_from_file_table(prev_node);
+            if(prev_node != NULL && prev_node->inode_index != 0){
+              printf("curnode index: %d\n",curnode->inode_index );
+              remove_from_file_table(curnode);
             }
             printf("found: %s\n", token);
             current_working_dir->inode_index = entry->inode_index;
             strcpy(current_working_dir->filename,entry->filename);
+            curnode = get_inode(current_working_dir->inode_index);
             addto_file_table(curnode, APPEND);
+            break;
           }
           free(entry);
         }
@@ -1343,6 +1349,7 @@ directory_entry* goto_destination(char* filepath){
   printf("distination exists: %s\n", filepath );
   free(pwd_directory);
   pwd_directory = current_working_dir;
+  // print_file_table();
   return pwd_directory;
 }
 
