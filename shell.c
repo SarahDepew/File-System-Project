@@ -1,7 +1,3 @@
-//
-// Created by Sarah Depew on 5/7/18.
-//
-
 #include "shell.h"
 #include "parser.h"
 #include "filesystem.h"
@@ -37,11 +33,12 @@ char *killed = "Killed\0";
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
+char* current_wroking_dir;
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
     EXIT = FALSE;
 
-    initializeFilesystem();
+    initializeFilesystem(-1);
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
@@ -84,7 +81,7 @@ int main (int argc, char **argv) {
 
     }
 
-    shutdownFilesystem();
+    shutdownFilesystem(-1);
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
@@ -92,12 +89,14 @@ int main (int argc, char **argv) {
 }
 
 /* Make sure that the filesystem is set up */
-void initializeFilesystem() {
+void initializeFilesystem(mid) {
     setup();
+    f_mount("DISKDIR", "N/A", &mid);
 }
 
 /* Make sure that the file system's memory is freed */
-void shutdownFilesystem() {
+void shutdownFilesystem(int mid) {
+    f_unmount(mid);
     shutdown();
 }
 
