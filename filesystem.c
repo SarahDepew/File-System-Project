@@ -127,7 +127,7 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
         FILE *file_to_mount = fopen(disk_img, "rb+");
         FILE *current_disk = file_to_mount;
         if (current_disk == NULL) {
-            printf("%s\n", "Open Disk failed.");
+            printf("%s\n", "Open Disk failed. Please check that you have run format to create a file named DISK.");
             return FALSE;
         }
         int disksize = ftell(current_disk);
@@ -158,19 +158,19 @@ boolean f_mount(char *disk_img, char *mounting_point, int *mount_table_index) {
 }
 
 boolean f_unmount(int mid) {
-  if(mid >=0 && mid <MOUNTTABLESIZE){
-    if(mounted_disks[mid]->free_spot == FALSE) {
-      mounted_disks[mid]->free_spot = TRUE;
-      fclose(mounted_disks[mid]->disk_image_ptr);
-      // free(mounted_disks[mid]->mounted_inode); //not doing anything with this, yet...
-      // free(mounted_disks[mid]->superblock1); //free this in the shutdown() method...
-      return TRUE;
+    if (mid >= 0 && mid < MOUNTTABLESIZE) {
+        if (mounted_disks[mid]->free_spot == FALSE) {
+            mounted_disks[mid]->free_spot = TRUE;
+            fclose(mounted_disks[mid]->disk_image_ptr);
+            // free(mounted_disks[mid]->mounted_inode); //not doing anything with this, yet...
+            // free(mounted_disks[mid]->superblock1); //free this in the shutdown() method...
+            return TRUE;
+        } else {
+            return FALSE;
+        }
     } else {
-      return FALSE;
+        return FALSE;
     }
-  } else {
-    return FALSE;
-  }
 }
 
 /* f_open() method */ //TODO: add permissions functionality //TODO: add access fulctonality with timing...
@@ -267,9 +267,14 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                 free(dir_node);
                 return EXITFAILURE;
             }
+
             newfile->inode_index = new_inode_index;
+
+            //need to write newfile's directory entry to disk and create inode for newfile
             inode *new_inode = get_inode(new_inode_index);
             current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
+
+            //get the datablock to write the newfile directory entry into
             void *dir_data = get_data_block(dir_node->last_block_index);
             if (dir_node->size == BLOCKSIZE * (dir_node->size / BLOCKSIZE) ||
                 dir_node->size % BLOCKSIZE < sizeof(directory_entry)) {
@@ -282,8 +287,9 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                     memcpy(dir_data + dir_node->size % BLOCKSIZE, &padding, padding_size);
                     write_data_to_block(dir_node->last_block_index, dir_data, BLOCKSIZE);
                 }
+
                 // int new_block_index = request_new_block();
-                int total_block = dir_node->size / BLOCKSIZE + 1;
+                int total_block = ceilf((float) dir_node->size / (float) BLOCKSIZE); //TODO: let Rose know I changed this
                 int new_block_index = find_next_datablock(dir_node, total_block, dir_node->size, dir_node->size);
                 void *content = malloc(BLOCKSIZE);
                 memcpy(content, newfile, sizeof(directory_entry));
@@ -295,7 +301,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                 // int total_inode_num = dir_node->size / BLOCKSIZE;
                 dir_node->size += sizeof(directory_entry);
                 dir_node->last_block_index = new_block_index;
-                free(dir_node);
+//                free(dir_node); //TODO: why freed before using?
                 update_single_inode_ondisk(dir_node, dir_node->inode_index);
                 //update inode for the new dir
                 new_inode->size += sizeof(directory_entry);
