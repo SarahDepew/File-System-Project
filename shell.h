@@ -175,6 +175,7 @@ int rm_builtin(char **args);
 int mount_builtin(char **args);
 int unmount_builtin(char **args);
 
+directory_entry* goto_root();
 directory_entry* goto_destination(char* filepath);
 char* convert_absolute(char* filepath);
 #endif //HW7_SHELL_H
