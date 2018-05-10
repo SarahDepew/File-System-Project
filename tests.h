@@ -13,7 +13,7 @@
 5) test fopen on a file that does not exist and trying to READANDWRITE
 6)test fopen on a file that does not exist and trying to WRITE
 */
-void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions);
+void test_fopen_create(char* disk_to_mount, char *filepath, int access, permission_value *permissions); //1)
 void test_fopen_validfile(char* disk_to_mount, char* filepath, int access, permission_value *permission); //2
 
 //Tests for f_read
@@ -81,6 +81,7 @@ void test_fopendir_alread_open(char *disk_to_mount, char* filepath); //4)
 */
 
 void test_freaddir_root(char *disk_to_mount); //1)
+//TODO: 2) test!
 void test_freaddir_past_end(char *disk_to_mount, char *filepath); //3)
 
 //Tests for f_mkdir
