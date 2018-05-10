@@ -649,6 +649,7 @@ void print_inode (inode *entry) {
 
 void print_dir_block(inode* node, int block_index){
     void* data = get_data_block(block_index);
+    printf("how much needed to be print: %d\n", node->size);
     for(int i=0; i<node->size; i+= sizeof(directory_entry)){
       printf("inode_index: %d, filename: %s\n", *(int*)(data+i), (char*)(data+i+sizeof(int)));
     }
@@ -848,7 +849,7 @@ directory_entry* f_mkdir(char* filepath) {
         // printf("%s\n","+++++3" );
         newf->inode_index = new_inode_index;
         //this node is the inode of parent dir
-        inode *node = get_inode(dir->inode_index);
+        inode *node = file_table[get_fd_from_inode_value(dir->inode_index)]->file_inode;
         inode *new_inode = get_inode(new_inode_index);
         current->inode_index = new_inode_index;
         parent->inode_index = node->inode_index;
@@ -933,7 +934,7 @@ directory_entry* f_mkdir(char* filepath) {
         }
         free(current);
         free(parent);
-        free(node);
+        //free(node);
         free(new_inode);
         free(dir_data);
         free(dir);
