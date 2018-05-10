@@ -183,7 +183,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     char copy[strlen(filepath) + 1];
     strcpy(path_copy, filepath);
     strcpy(copy, filepath);
-    char *s = "/'";
+    char *s = "/";
     //calculate the level of depth of dir
     char *token = strtok(copy, s);
     int count = 0;
@@ -350,8 +350,6 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             return fd;
         }
     }
-    // free(dir);
-    // return EXITSUCCESS;
 }
 
 void set_permissions(permission_value old_value, permission_value *new_value) {
@@ -846,14 +844,6 @@ directory_entry* f_mkdir(char* filepath) {
 
         if (node->size == BLOCKSIZE * (node->size / BLOCKSIZE)) {
             //request new blocks to add the newfolder directory_entry
-            // if (node->size % BLOCKSIZE < sizeof(directory_entry)) {
-            //     //require padding first
-            //     int padding_size = BLOCKSIZE - node->size % BLOCKSIZE;
-            //     //Could be off by 1. CHECK. TODO
-            //     int padding = 0;
-            //     memcpy(dir_data + node->size % BLOCKSIZE + 1, &padding, padding_size);
-            //     write_data_to_block(node->last_block_index, dir_data, BLOCKSIZE);
-            // }
             // int new_block_index = request_new_block();
             printf("%s\n", "need to request_new_block in mkdir");
             int total_block = node->size / BLOCKSIZE + 1;
@@ -1564,4 +1554,36 @@ inode* get_inode(int index) {
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + index * sizeof(inode), SEEK_SET);
     fread(node, sizeof(inode), 1, current_disk);
     return node;
+}
+
+int addto_file_table(inode* node, int access){
+  int fd = already_in_table(node);
+  if(fd != -1){
+    return fd;
+  }
+  fd = find_next_freehead();
+  if(fd == -1){
+    printf("%s\n", "No more space in file table. Sorry");
+    return fd;
+  }
+  file_table[fd]->free_file = FALSE;
+  file_table[fd]->file_inode = node;
+  file_table[fd]->byte_offset = 0;
+  if(node->type == DIR){
+    file_table[fd]->access = APPEND;
+  }else{
+    file_table[fd]->access = access;
+  }
+  return fd;
+}
+
+int remove_from_file_table(inode* node){
+  int fd = already_in_table(node);
+  if(fd == -1){
+    printf("%s\n", "cannot remove. no such file in file_table");
+    return fd;
+  }
+  file_table[fd]->free_file = TRUE;
+  table_freehead = fd;
+  return fd;
 }
