@@ -1415,7 +1415,6 @@ directory_entry* f_readdir(int index_into_file_table) {
     long num_indirect = superblockPtr->size / sizeof(int);
     long num_directories = superblockPtr->size / sizeof(directory_entry);
     if (offset_into_file <= current_directory->size) {
-       printf("%s\n", "=====");
         direct_copy(next_directory, current_directory, current_directory->dblocks[block], offset_in_block);
     } else if (offset_into_file > DBLOCKS && offset_into_file <= IBLOCKS) {
         long adjusted_block = block - N_DBLOCKS; //index into indirect block range

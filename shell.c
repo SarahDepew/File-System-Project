@@ -1239,15 +1239,16 @@ int rmdir_builtin(char **args) {
 }
 
 int cd_builtin(char **args) {
-    goto_destination(args[1]);
+    if(arrayLength(args) == 1){
+      //go to the root directory
+      pwd_directory = goto_root();
+    }else{
+      pwd_directory = goto_destination(args[1]);
+    }
     return 0;
 }
 
 int pwd_builtin(char **args) {
-
-  if(pwd_directory->filename[0] != '/'){
-
-  }
   char* absolute_path = convert_absolute(pwd_directory->filename);
   printf("%s\n", absolute_path);
   return 0;
@@ -1276,6 +1277,20 @@ int mount_builtin(char **args) {
 
 int unmount_builtin(char **args) {
     return 0;
+}
+
+directory_entry* goto_root(){
+  inode* root = get_table_entry(0)->file_inode;
+  int cur_inode_index = pwd_directory->inode_index;
+  int cur_fd = get_fd_from_inode_value(cur_inode_index);
+  inode* curnode = get_table_entry(cur_fd)->file_inode;
+  remove_from_file_table(curnode);
+
+  addto_file_table(root, APPEND);
+  pwd_directory->inode_index = 0;
+  strcpy(pwd_directory->filename, "/");
+  print_file_table();
+  return pwd_directory;
 }
 
 directory_entry* goto_destination(char* filepath){
@@ -1327,9 +1342,7 @@ directory_entry* goto_destination(char* filepath){
           }
           free(entry);
         }
-        // get_table_entry(current_fd)->byte_offset = 0;
         f_rewind(current_fd);
-        //free(curnode);
       }
     }
   }else{
@@ -1350,6 +1363,7 @@ directory_entry* goto_destination(char* filepath){
   free(pwd_directory);
   pwd_directory = current_working_dir;
   // print_file_table();
+  printf("pwd_dir: %s\n", pwd_directory->filename);
   return pwd_directory;
 }
 
@@ -1378,7 +1392,6 @@ char* convert_absolute(char* filepath){
         return NULL;
       }
       if(strcmp(entry->filename, "..")==0){
-        //add new parent dir to file table
         parent_node= get_inode(entry->inode_index);
         // addto_file_table(parent_node, APPEND);
       }
