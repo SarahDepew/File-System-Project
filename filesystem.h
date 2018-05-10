@@ -174,6 +174,8 @@ int find_next_freehead();
 void set_permissions(permission_value old_value, permission_value *new_value);
 
 inode* get_inode(int index);
+int addto_file_table(inode* node, int access);
+int remove_from_file_table(inode* node);
 //filepath must be absolute path
 // validity* checkvalidity(char *filepath);
 
@@ -186,5 +188,4 @@ mount_table_entry *get_mount_table_entry(int index);
 int get_fd_from_inode_value(int inode_index);
 directory_entry get_last_directory_entry(int fd);
 int get_table_freehead();
-
 #endif //HW7_FILESYSTEM_H

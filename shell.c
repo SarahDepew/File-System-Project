@@ -277,14 +277,14 @@ void login() {
     char *buffer = malloc(BUFFERSIZE);
 
     while (!login_valid) {
-        printf("Please enter a username less than 80 characters: ");
+        printf("Please enter a username less than 80 characters(super or basic): ");
         memset(buffer, 0, BUFFERSIZE);
         fgets(buffer, sizeof(buffer), stdin);
         if (strcmp(valid_users[0]->name, buffer) != 0 && strcmp(valid_users[1]->name, buffer) != 0) {
             printf("Invalid username: %s. Please try again.\n", buffer);
             continue;
         }
-
+        //password: suser buser
         printf("Please enter a password: ");
         memset(buffer, 0, BUFFERSIZE);
         fgets(buffer, sizeof(buffer), stdin);
@@ -1224,6 +1224,7 @@ int chmod_builtin(char **args) {
 }
 
 int mkdir_builtin(char **args) {
+    f_mkdir(*args);
     return 0;
 }
 
@@ -1232,11 +1233,12 @@ int rmdir_builtin(char **args) {
 }
 
 int cd_builtin(char **args) {
+    goto_destination(*args);
     return 0;
 }
 
 int pwd_builtin(char **args) {
-
+    printf("%s\n", pwd_directory->filename);
     return 0;
 }
 
@@ -1263,4 +1265,82 @@ int mount_builtin(char **args) {
 
 int unmount_builtin(char **args) {
     return 0;
+}
+
+directory_entry* goto_destination(char* filepath){
+  char copy[strlen(filepath) + 1];
+  strcpy(copy, filepath);
+  char *s = "/";
+  char* token = strtok(copy,s);
+  directory_entry* current_working_dir = malloc(sizeof(directory_entry));
+  current_working_dir->inode_index = pwd_directory->inode_index;
+  strcpy(current_working_dir->filename, pwd_directory->filename);
+  inode* curnode = NULL;
+  if(strcmp(token, ".") == 0 || strcmp(token, "..")==0){
+    //relative path
+    for(; token != NULL; token = strtok(NULL,s)){
+      if(strcmp(token, ".") != 0){
+        inode* prev_node = curnode;
+        curnode = get_inode(current_working_dir->inode_index);
+        int current_fd = get_fd_from_inode_value(curnode->inode_index);
+        directory_entry* entry = NULL;
+        for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
+          entry = f_readdir(current_fd);
+          if (entry == NULL){
+            free(entry);
+            free(curnode);
+            free(current_working_dir);
+            return NULL;
+          }
+          if (strcmp(entry->filename, token) == 0) {
+            if(prev_node != NULL){
+              remove_from_file_table(prev_node);
+            }
+            printf("found: %s\n", token);
+            current_working_dir->inode_index = entry->inode_index;
+            strcpy(current_working_dir->filename,entry->filename);
+            addto_file_table(curnode, APPEND);
+          }
+          free(entry);
+        }
+        get_table_entry(current_fd)->byte_offset = 0;
+        free(curnode);
+      }
+    }
+  }else{
+    //absolute path
+    directory_entry* entry = f_opendir(filepath);
+    if(entry == NULL){
+      printf("cannot go to :%s \n", filepath);
+      free(entry);
+      free(current_working_dir);
+      return NULL;
+    }else{
+      current_working_dir->inode_index = entry->inode_index;
+      strcpy(current_working_dir->filename, entry->filename);
+    }
+  }
+  printf("distination exists: %s\n", filepath );
+  free(pwd_directory);
+  pwd_directory = current_working_dir;
+  return pwd_directory;
+}
+
+//REALLY NEED THIS FOR cd ?? TODO.s
+char* convert_absolute(char* filepath){
+  directory_entry* destination = NULL;
+  if((destination = goto_destination(filepath)) == NULL){
+    printf("%s does not exists\n", filepath);
+    return NULL;
+  }
+  char* absolute_path_collection[FILENAMEMAX];
+  int count =0;
+  directory_entry* cur = destination;
+  for(; cur->inode_index!=0; ){
+    inode* cur_node = get_inode(cur->inode_index);
+    inode* parent_node = get_inode(cur_node->parent_inode_index);
+    for(int i = 0; i < cur_node->size; i += sizeof(directory_entry)){
+      // directory_entry* entry = f_readdir()
+    }
+  }
 }
