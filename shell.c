@@ -1370,24 +1370,26 @@ char* convert_absolute(char* filepath){
   int old_parent_index = parent_node->inode_index;
   int count = 0;
   for(; cur->inode_index!=0;){
-    for(int i = 0; i < cur_node->size; i += sizeof(directory_entry)){
+    for(int i = 0; i < parent_node->size; i += sizeof(directory_entry)){
       directory_entry* entry = f_readdir(parent_fd);
       if(entry == NULL){
-	printf("something wrong in conver_absolute\n");
-	printf("%s not found\n", filepath);
-	return NULL;
+        printf("something wrong in conver_absolute\n");
+        printf("%s not found\n", filepath);
+        return NULL;
       }
       if(strcmp(entry->filename, "..")==0){
-	//add new parent dir to file table
-	parent_node= get_inode(entry->inode_index);
-	addto_file_table(parent_node, APPEND);
-	parent_fd = get_fd_from_inode_value(parent_node->inode_index);
+        //add new parent dir to file table
+        parent_node= get_inode(entry->inode_index);
+        // addto_file_table(parent_node, APPEND);
       }
       if(entry->inode_index == cur->inode_index){
-	remove_from_file_table(cur_node);
-	cur_fd = get_fd_from_inode_value(old_parent_index);
-	cur_node = get_table_entry(cur_fd)->file_inode;
-	strcpy(absolute_path_collection[count], entry->filename);
+        parent_fd = get_fd_from_inode_value(parent_node->inode_index);
+        // remove_from_file_table(cur_node);
+        cur_fd = get_fd_from_inode_value(old_parent_index);
+        cur_node = get_table_entry(cur_fd)->file_inode;
+        printf("%s\n", entry->filename);
+        absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
+        strcpy(absolute_path_collection[count], entry->filename);
       }
     }
     cur->inode_index =  old_parent_index;
@@ -1398,10 +1400,11 @@ char* convert_absolute(char* filepath){
     return "/";
   }
   char* absolute_path = malloc(count*FILENAMEMAX );
-  while(count >= 0){
+  while(count > 0){
+    count --;
     absolute_path = strcat(absolute_path, "/");
     absolute_path = strcat(absolute_path, absolute_path_collection[count]);
-    count --;
   }
+  print_file_table();
   return absolute_path;
 }

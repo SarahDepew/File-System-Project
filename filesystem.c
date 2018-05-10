@@ -867,6 +867,13 @@ directory_entry* f_mkdir(char* filepath) {
             //get inode_index
             node->size += sizeof(directory_entry);
             node->last_block_index = new_block_index;
+            if (total_block <= N_DBLOCKS) {
+              node->dblocks[total_block-1] = new_block_index;
+              print_dir_block(node, node->dblocks[total_block-1]);
+            }else{
+              printf("%s\n", "using iblocks of cur dir. TODO.");
+              return NULL;
+            }
             update_single_inode_ondisk(node, node->inode_index);
             //update inode for the new dir
             new_inode->size = sizeof(directory_entry) * 2;
@@ -875,8 +882,8 @@ directory_entry* f_mkdir(char* filepath) {
             if (new_inode->inode_index != new_inode_index) {
                 printf("%s\n", "There is a problem.");
             }
-            new_inode->dblocks[0] = new_block_index;
-            // new_inode->dblocks[0] = current_mounted_disk->superblock1->free_block;
+            // new_inode->dblocks[0] = new_block_index;
+            new_inode->dblocks[0] = current_mounted_disk->superblock1->free_block;
             void *data = get_data_block(current_mounted_disk->superblock1->free_block);
             current_mounted_disk->superblock1->free_block = *(int *) data;
             memcpy(data, current, sizeof(directory_entry));
@@ -915,7 +922,7 @@ directory_entry* f_mkdir(char* filepath) {
             memcpy(data, current, sizeof(directory_entry));
             memcpy(data + sizeof(directory_entry), parent, sizeof(directory_entry));
             write_data_to_block(new_inode->dblocks[0], data, BLOCKSIZE);
-            print_dir_block(new_inode, new_inode->dblocks[0]);
+            // print_dir_block(new_inode, new_inode->dblocks[0]);
             printf("%s\n", "-----4");
             //update superblock
             current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
