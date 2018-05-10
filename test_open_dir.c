@@ -65,7 +65,7 @@ int main() {
   // f_read(buffer, 5, 1, 1);
   // inode *i = get_inode(2);
   // printf("%s\n", (char*) buffer);
-  // free(rose);
+  free(rose);
   f_unmount(num);
   shutdown();
 }

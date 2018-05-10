@@ -150,6 +150,7 @@ void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);
 void print_file_table();
+void print_dir_block(inode* node, int block_index);
 
 void get_filepath_and_filename(char *filepath, char **filename_to_return, char **path_to_directory); //TODO: ask Rose about expected behavior...
 inode *get_inode_from_file_table_from_directory_entry(directory_entry *entry, int *table_index);
