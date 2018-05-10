@@ -1251,6 +1251,7 @@ int cd_builtin(char **args) {
 int pwd_builtin(char **args) {
   char* absolute_path = convert_absolute(pwd_directory->filename);
   printf("%s\n", absolute_path);
+  free(absolute_path);
   return 0;
 }
 
@@ -1357,6 +1358,7 @@ directory_entry* goto_destination(char* filepath){
     }else{
       current_working_dir->inode_index = entry->inode_index;
       strcpy(current_working_dir->filename, entry->filename);
+      free(entry);
     }
   }
   printf("distination exists: %s\n", filepath );
@@ -1404,15 +1406,19 @@ char* convert_absolute(char* filepath){
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
       }
+      free(entry);
     }
     cur->inode_index =  old_parent_index;
     old_parent_index = cur_node->inode_index;
     count ++;
+    free(parent_node);
   }
+  char* absolute_path = NULL;
   if(count == 0){
-    return "/";
+    absolute_path = malloc(2);
+    absolute_path = strcat(absolute_path, "/");
   }
-  char* absolute_path = malloc(count*FILENAMEMAX );
+  absolute_path = malloc(count*FILENAMEMAX );
   while(count > 0){
     count --;
     absolute_path = strcat(absolute_path, "/");
