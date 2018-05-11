@@ -74,6 +74,9 @@ int desired_free_location_in_table(int location_sought) {
 }
 
 file_table_entry *get_table_entry(int index) {
+  if(file_table[index]->free_file == TRUE || index < 0 || index > FILETABLESIZE){
+    return NULL;
+  }
   return file_table[index];
 }
 
