@@ -66,7 +66,7 @@ int main (int argc, char **argv) {
     buildBuiltIns(); //store all builtins in built in array
 
     //mount filesystem and open root
-    if(f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
+    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
         EXIT = TRUE;
     }
 
@@ -104,7 +104,7 @@ int main (int argc, char **argv) {
         while (bj != NULL) {
             char *status[] = {running, suspended, killed};
             i++;
-            if(bj->verbose) {
+            if (bj->verbose) {
                 printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
                 bj->verbose = FALSE;
             }
@@ -431,6 +431,10 @@ void removeNode(pid_t pidToRemove) {
 int isBuiltInCommand(process cmd) {
     for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         if (process_equals(cmd, allBuiltIns[i])) {
+//            //TODO: comment out when not needed
+//            if (i == 11) {
+//                return NOT_FOUND;
+//            }
             return i; //return index of command
         }
     }
@@ -1205,6 +1209,8 @@ int ls_builtin(char **args) {
                 return TRUE;
             } else {
                 //-l flag
+                //TODO: fill this in here...
+
             }
         } else {
             perror("An error occurred in ls. Please try again.\n");
@@ -1224,9 +1230,9 @@ int chmod_builtin(char **args) {
 }
 
 int mkdir_builtin(char **args) {
-    if(args[1] == NULL){
-      printf("%s\n", "incorrect format for mkdir");
-      return EXITFAILURE;
+    if (args[1] == NULL) {
+        printf("%s\n", "incorrect format for mkdir");
+        return EXITFAILURE;
     }
     char *newfolder = NULL;
     char *path = malloc(strlen(args[1]));
@@ -1253,18 +1259,18 @@ int mkdir_builtin(char **args) {
         newfolder = strtok(NULL, s);
     }
     printf("path: %s\n", path);
-    char* absolute_path = convert_absolute(path);
+    char *absolute_path = convert_absolute(path);
     printf("converted: %s\n", absolute_path);
     free(path);
     printf("newfolder: %s\n", newfolder);
-    char* result = malloc(strlen(absolute_path)+1+strlen(newfolder)+1);
-    memset(result, 0, strlen(absolute_path)+1+strlen(newfolder)+1);
+    char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+    memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
     result = strncat(result, absolute_path, strlen(absolute_path));
     result = strncat(result, "/", 1);
     result = strcat(result, newfolder);
     free(absolute_path);
     printf("resuting string: %s\n", result);
-    directory_entry* entry = f_mkdir(result);
+    directory_entry *entry = f_mkdir(result);
     free(entry);
     free(result);
     return 0;
@@ -1275,33 +1281,87 @@ int rmdir_builtin(char **args) {
 }
 
 int cd_builtin(char **args) {
-    if(arrayLength(args) == 1){
-      //go to the root directory
-      pwd_directory = goto_root();
-    }else{
-      pwd_directory = goto_destination(args[1]);
+    if (arrayLength(args) == 1) {
+        //go to the root directory
+        pwd_directory = goto_root();
+    } else {
+        pwd_directory = goto_destination(args[1]);
     }
     return 0;
 }
 
 int pwd_builtin(char **args) {
-  char* absolute_path = convert_absolute(pwd_directory->filename);
-  printf("%s\n", absolute_path);
-  free(absolute_path);
-  return 0;
+    char *absolute_path = convert_absolute(pwd_directory->filename);
+    printf("%s\n", absolute_path);
+    free(absolute_path);
+    return 0;
+}
+
+directory_entry *in_directory(char *file_name) {
+    directory_entry *found = NULL;
+    int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+    f_rewind(file_table_index);
+    directory_entry *entry = f_readdir(file_table_index);
+    while (entry != NULL) {
+        if (strcmp(entry->filename, file_name) == 0) {
+            found = entry;
+            break;
+        } else {
+            entry = f_readdir(file_table_index);
+        }
+    }
+
+    return found;
 }
 
 int cat_builitn(char **args) {
     //get args length
-    int argsLength = arrayLength(args);
-    for(int i=0; i<argsLength; i++) {
-        printf("%s\n", args[i]);
+    int args_length = arrayLength(args);
+
+//    print_args(args);
+
+    if (args_length == 1) {
+        printf("I am sorry this is an error. cat cannot be used in this way.\n");
+    } else if(args[1])
+
+        //TODO: check for extra parsing values in cat...
+
+    else {
+        inode *inode1;
+        directory_entry *entry;
+        for (int i = 1; i < args_length; i++) {
+            if ((entry = in_directory(args[i])) != NULL) {
+                //print the file to the screen
+                inode1 = get_inode(entry->inode_index);
+                if (inode1->type == DIR) {
+                    printf("You are trying to print out a directory entry. Error!\n");
+                    free(inode1);
+                } else {
+                    //TODO: ask rose about reading in chunks??
+                    free(inode1);
+                    int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
+                    int file_size = inode1->size;
+                    char *file = malloc(sizeof(file_size));
+                    f_read(file, file_size, 1, fd);
+                    f_close(fd);
+                }
+            } else {
+                printf("%s\n", args[i]);
+            }
+        }
     }
-    if(argsLength == 2){
-      //only printing out the file
-      char* filepath = args[1];
-    }
+
     return 0;
+}
+
+
+/*
+ * Error method to handle any error in program
+ */
+void errorMessage() {
+    int lengthOfString = 26;
+    write(1, "Unforeseen error occurred.\n\0", lengthOfString);
+    exit(EXIT_FAILURE);
 }
 
 int more_builtin(char **args) {
@@ -1320,176 +1380,176 @@ int unmount_builtin(char **args) {
     return 0;
 }
 
-directory_entry* goto_root(){
-  inode* root = get_table_entry(0)->file_inode;
-  print_inode(root);
-  int cur_inode_index = pwd_directory->inode_index;
-  int cur_fd = get_fd_from_inode_value(cur_inode_index);
-  inode* curnode = get_table_entry(cur_fd)->file_inode;
-  remove_from_file_table(curnode);
-  addto_file_table(root, APPEND);
-  pwd_directory->inode_index = 0;
-  // strcpy(pwd_directory->filename, "/");
-  pwd_directory->filename[0] = '/';
-  pwd_directory->filename[1] = 0;
-  print_file_table();
-  return pwd_directory;
+directory_entry* goto_root() {
+    inode *root = get_table_entry(0)->file_inode;
+    print_inode(root);
+    int cur_inode_index = pwd_directory->inode_index;
+    int cur_fd = get_fd_from_inode_value(cur_inode_index);
+    inode *curnode = get_table_entry(cur_fd)->file_inode;
+    remove_from_file_table(curnode);
+    addto_file_table(root, APPEND);
+    pwd_directory->inode_index = 0;
+    // strcpy(pwd_directory->filename, "/");
+    pwd_directory->filename[0] = '/';
+    pwd_directory->filename[1] = 0;
+    print_file_table();
+    return pwd_directory;
 }
 
-directory_entry* goto_destination(char* filepath){
-  char copy[strlen(filepath) + 1];
-  strcpy(copy, filepath);
-  char *s = "/";
-  char* token = strtok(copy,s);
-  directory_entry* current_working_dir = malloc(sizeof(directory_entry));
-  current_working_dir->inode_index = pwd_directory->inode_index;
-  strcpy(current_working_dir->filename, pwd_directory->filename);
-  inode* curnode = NULL;
-  if(filepath[0]!= '/'){
-    printf("%s\n", "relative path");
-    //relative path
-    for(; token != NULL; token = strtok(NULL,s)){
-      if(strcmp(token, ".") != 0){
-        printf("token :%s\n", token);
-        printf("cur inode index: %d\n", current_working_dir->inode_index);
-        int cur_fd = get_fd_from_inode_value(current_working_dir->inode_index);
-        printf("cur_fd: %d\n", cur_fd);
-        curnode = get_table_entry(cur_fd)->file_inode;
-        inode* prev_node = curnode;
-        //print_inode(curnode);
-        int current_fd = get_fd_from_inode_value(curnode->inode_index);
-        f_rewind(current_fd);
-        printf("current_fd: %d\n", current_fd);
-        directory_entry* entry = NULL;
-        for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
-          entry = f_readdir(current_fd);
-          if (entry == NULL){
-            printf("%s\n","Not found" );
+directory_entry* goto_destination(char* filepath) {
+    char copy[strlen(filepath) + 1];
+    strcpy(copy, filepath);
+    char *s = "/";
+    char *token = strtok(copy, s);
+    directory_entry *current_working_dir = malloc(sizeof(directory_entry));
+    current_working_dir->inode_index = pwd_directory->inode_index;
+    strcpy(current_working_dir->filename, pwd_directory->filename);
+    inode *curnode = NULL;
+    if (filepath[0] != '/') {
+        printf("%s\n", "relative path");
+        //relative path
+        for (; token != NULL; token = strtok(NULL, s)) {
+            if (strcmp(token, ".") != 0) {
+                printf("token :%s\n", token);
+                printf("cur inode index: %d\n", current_working_dir->inode_index);
+                int cur_fd = get_fd_from_inode_value(current_working_dir->inode_index);
+                printf("cur_fd: %d\n", cur_fd);
+                curnode = get_table_entry(cur_fd)->file_inode;
+                inode *prev_node = curnode;
+                //print_inode(curnode);
+                int current_fd = get_fd_from_inode_value(curnode->inode_index);
+                f_rewind(current_fd);
+                printf("current_fd: %d\n", current_fd);
+                directory_entry *entry = NULL;
+                for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
+                    entry = f_readdir(current_fd);
+                    if (entry == NULL) {
+                        printf("%s\n", "Not found");
+                        free(entry);
+                        free(current_working_dir);
+                        return NULL;
+                    }
+                    printf("entry_name: %s\n", entry->filename);
+                    if (strcmp(entry->filename, token) == 0) {
+                        if (prev_node != NULL && prev_node->inode_index != 0) {
+                            printf("curnode index: %d\n", curnode->inode_index);
+                            remove_from_file_table(curnode);
+                        }
+                        printf("found: %s\n", token);
+                        current_working_dir->inode_index = entry->inode_index;
+                        strcpy(current_working_dir->filename, entry->filename);
+                        curnode = get_inode(current_working_dir->inode_index);
+                        inode *parent_node = get_inode(curnode->parent_inode_index);
+                        int parent_fd = addto_file_table(parent_node, APPEND);
+                        // if (parent_fd == -1){
+                        //   free(parent_node);
+                        // }
+                        addto_file_table(curnode, APPEND);
+                        free(entry);
+                        break;
+                    }
+                    free(entry);
+                }
+                f_rewind(current_fd);
+            }
+        }
+    } else {
+        printf("%s\n", "absolute path");
+        //absolute path
+        directory_entry *entry = f_opendir(filepath);
+        if (entry == NULL) {
+            printf("cannot go to :%s \n", filepath);
             free(entry);
             free(current_working_dir);
             return NULL;
-          }
-          printf("entry_name: %s\n", entry->filename);
-          if (strcmp(entry->filename, token) == 0) {
-            if(prev_node != NULL && prev_node->inode_index != 0){
-              printf("curnode index: %d\n",curnode->inode_index );
-              remove_from_file_table(curnode);
-            }
-            printf("found: %s\n", token);
+        } else {
             current_working_dir->inode_index = entry->inode_index;
-            strcpy(current_working_dir->filename,entry->filename);
-            curnode = get_inode(current_working_dir->inode_index);
-            inode* parent_node = get_inode(curnode->parent_inode_index);
-            int parent_fd = addto_file_table(parent_node, APPEND);
-            // if (parent_fd == -1){
-            //   free(parent_node);
-            // }
-            addto_file_table(curnode, APPEND);
+            strcpy(current_working_dir->filename, entry->filename);
             free(entry);
-            break;
-          }
-          free(entry);
         }
-        f_rewind(current_fd);
-      }
     }
-  }else{
-    printf("%s\n", "absolute path");
-    //absolute path
-    directory_entry* entry = f_opendir(filepath);
-    if(entry == NULL){
-      printf("cannot go to :%s \n", filepath);
-      free(entry);
-      free(current_working_dir);
-      return NULL;
-    }else{
-      current_working_dir->inode_index = entry->inode_index;
-      strcpy(current_working_dir->filename, entry->filename);
-      free(entry);
-    }
-  }
-  // printf("distination exists: %s\n", filepath );
-  // free(pwd_directory);
-  pwd_directory = current_working_dir;
-  // print_file_table();
-  printf("pwd_dir: %s\n", pwd_directory->filename);
-  return pwd_directory;
+    // printf("distination exists: %s\n", filepath );
+    // free(pwd_directory);
+    pwd_directory = current_working_dir;
+    // print_file_table();
+    printf("pwd_dir: %s\n", pwd_directory->filename);
+    return pwd_directory;
 }
 
 /*only take in a dir path*/
-char* convert_absolute(char* filepath){
-  directory_entry* destination = NULL;
-  if((destination = goto_destination(filepath)) == NULL){
-    printf("%s does not exists\n", filepath);
-    return NULL;
-  }
-  printf("in convert_absolute\n");
-  char* absolute_path_collection[FILENAMEMAX];
-  directory_entry* cur = destination;
-  printf("destination_filename: %s\n", destination->filename);
-  printf("destination_inode: %d\n", destination->inode_index);
-  // print_file_table();
-  int cur_fd = get_fd_from_inode_value(cur->inode_index);
-  printf("cur_fd: %d\n", cur_fd);
-  inode* cur_node = get_table_entry(cur_fd)->file_inode;
-  int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
-  printf("parent_fd: %d\n", parent_fd);
-  inode* parent_node = get_table_entry(parent_fd)->file_inode;
-  int old_parent_index = parent_node->inode_index;
-  int count = 0;
-  printf("%s\n", "-----");
-  for(; cur->inode_index > 0;){
-    for(int i = 0; i < parent_node->size; i += sizeof(directory_entry)){
-      directory_entry* entry = f_readdir(parent_fd);
-      if(entry == NULL){
-        printf("something wrong in conver_absolute\n");
-        printf("%s not found\n", filepath);
+char* convert_absolute(char* filepath) {
+    directory_entry *destination = NULL;
+    if ((destination = goto_destination(filepath)) == NULL) {
+        printf("%s does not exists\n", filepath);
         return NULL;
-      }
-      printf("entry->filename: %s\n", entry->filename);
-      printf("cur->inode_index: %d\n", cur->inode_index);
-      printf("entry->inode_index: %d\n", entry->inode_index);
-      if(strcmp(entry->filename, "..")==0){
-        printf("%s\n", "find parent in conver_absolute");
-        parent_node= get_inode(entry->inode_index);
-        // addto_file_table(parent_node, APPEND);
-      }
-      if(entry->inode_index == cur->inode_index){
-        printf("%s\n", "FOUND" );
-        parent_fd = get_fd_from_inode_value(parent_node->inode_index);
-        // remove_from_file_table(cur_node);
-        cur_fd = get_fd_from_inode_value(old_parent_index);
-        cur_node = get_table_entry(cur_fd)->file_inode;
-        printf("%s\n", entry->filename);
-        absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
-        strcpy(absolute_path_collection[count], entry->filename);
-        break;
-      }
-      free(entry);
     }
-    printf("%s\n", "is it here?");
-    cur->inode_index =  old_parent_index;
-    printf("reset to :%d\n", old_parent_index);
-    old_parent_index = parent_node->inode_index;
-    count ++;
-    free(parent_node);
-  }
-  char* absolute_path = NULL;
-  if(count == 0){
-    absolute_path = malloc(2);
-    memset(absolute_path, 0, 2);
-    absolute_path = strcat(absolute_path, "/");
+    printf("in convert_absolute\n");
+    char *absolute_path_collection[FILENAMEMAX];
+    directory_entry *cur = destination;
+    printf("destination_filename: %s\n", destination->filename);
+    printf("destination_inode: %d\n", destination->inode_index);
     // print_file_table();
-    printf("%s\n", "count == 0");
+    int cur_fd = get_fd_from_inode_value(cur->inode_index);
+    printf("cur_fd: %d\n", cur_fd);
+    inode *cur_node = get_table_entry(cur_fd)->file_inode;
+    int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
+    printf("parent_fd: %d\n", parent_fd);
+    inode *parent_node = get_table_entry(parent_fd)->file_inode;
+    int old_parent_index = parent_node->inode_index;
+    int count = 0;
+    printf("%s\n", "-----");
+    for (; cur->inode_index > 0;) {
+        for (int i = 0; i < parent_node->size; i += sizeof(directory_entry)) {
+            directory_entry *entry = f_readdir(parent_fd);
+            if (entry == NULL) {
+                printf("something wrong in conver_absolute\n");
+                printf("%s not found\n", filepath);
+                return NULL;
+            }
+            printf("entry->filename: %s\n", entry->filename);
+            printf("cur->inode_index: %d\n", cur->inode_index);
+            printf("entry->inode_index: %d\n", entry->inode_index);
+            if (strcmp(entry->filename, "..") == 0) {
+                printf("%s\n", "find parent in conver_absolute");
+                parent_node = get_inode(entry->inode_index);
+                // addto_file_table(parent_node, APPEND);
+            }
+            if (entry->inode_index == cur->inode_index) {
+                printf("%s\n", "FOUND");
+                parent_fd = get_fd_from_inode_value(parent_node->inode_index);
+                // remove_from_file_table(cur_node);
+                cur_fd = get_fd_from_inode_value(old_parent_index);
+                cur_node = get_table_entry(cur_fd)->file_inode;
+                printf("%s\n", entry->filename);
+                absolute_path_collection[count] = malloc(strlen(entry->filename) + 1);
+                strcpy(absolute_path_collection[count], entry->filename);
+                break;
+            }
+            free(entry);
+        }
+        printf("%s\n", "is it here?");
+        cur->inode_index = old_parent_index;
+        printf("reset to :%d\n", old_parent_index);
+        old_parent_index = parent_node->inode_index;
+        count++;
+        free(parent_node);
+    }
+    char *absolute_path = NULL;
+    if (count == 0) {
+        absolute_path = malloc(2);
+        memset(absolute_path, 0, 2);
+        absolute_path = strcat(absolute_path, "/");
+        // print_file_table();
+        printf("%s\n", "count == 0");
+        return absolute_path;
+    }
+    absolute_path = malloc(count * FILENAMEMAX);
+    memset(absolute_path, 0, count * FILENAMEMAX);
+    while (count > 0) {
+        count--;
+        absolute_path = strcat(absolute_path, "/");
+        absolute_path = strcat(absolute_path, absolute_path_collection[count]);
+    }
+    // print_file_table();
     return absolute_path;
-  }
-  absolute_path = malloc(count*FILENAMEMAX );
-  memset(absolute_path, 0 , count*FILENAMEMAX);
-  while(count > 0){
-    count --;
-    absolute_path = strcat(absolute_path, "/");
-    absolute_path = strcat(absolute_path, absolute_path_collection[count]);
-  }
-  // print_file_table();
-  return absolute_path;
 }

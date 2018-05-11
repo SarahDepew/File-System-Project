@@ -6,7 +6,7 @@
 #define BUILTINS_H_INCLUDED
 
 
-#define NUMBER_OF_BUILT_IN_FUNCTIONS 5
+#define NUMBER_OF_BUILT_IN_FUNCTIONS 16
 
 typedef int (*operation)(char**);
 

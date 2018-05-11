@@ -174,6 +174,8 @@ int more_builtin(char **args);
 int rm_builtin(char **args);
 int mount_builtin(char **args);
 int unmount_builtin(char **args);
+void errorMessage();
+void print_args(char **args);
 
 directory_entry* goto_root();
 directory_entry* goto_destination(char* filepath);

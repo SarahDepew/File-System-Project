@@ -22,12 +22,11 @@ extern job *all_jobs;
 extern background_job *all_background_jobs;
 
 //TODO: Fix parsing here...
-int split_white_space(char **user_input, char ***tokenized_input)
-{
+int split_white_space(char **user_input, char ***tokenized_input) {
 //    printf("user input: %s\n", *user_input);
     int buffer_mark = BUFFER_SIZE;
 
-    (*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);
+    (*tokenized_input) = malloc(sizeof(char *) * BUFFER_SIZE);
 
     if (*tokenized_input == NULL) {
         perror("Malloc");
@@ -42,7 +41,7 @@ int split_white_space(char **user_input, char ***tokenized_input)
             buffer_mark += BUFFER_SIZE;
             /* must protect against realloc failure memory leak */
             char **new_tokenized_input;
-            if ((new_tokenized_input = realloc((*tokenized_input), sizeof(char*)*buffer_mark)) == NULL) {
+            if ((new_tokenized_input = realloc((*tokenized_input), sizeof(char *) * buffer_mark)) == NULL) {
                 perror("Malloc: ");
                 return EXIT;
             }
