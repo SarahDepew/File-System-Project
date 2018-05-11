@@ -1322,14 +1322,16 @@ int unmount_builtin(char **args) {
 
 directory_entry* goto_root(){
   inode* root = get_table_entry(0)->file_inode;
+  print_inode(root);
   int cur_inode_index = pwd_directory->inode_index;
   int cur_fd = get_fd_from_inode_value(cur_inode_index);
   inode* curnode = get_table_entry(cur_fd)->file_inode;
   remove_from_file_table(curnode);
-
   addto_file_table(root, APPEND);
   pwd_directory->inode_index = 0;
-  strcpy(pwd_directory->filename, "/");
+  // strcpy(pwd_directory->filename, "/");
+  pwd_directory->filename[0] = '/';
+  pwd_directory->filename[1] = 0;
   print_file_table();
   return pwd_directory;
 }
@@ -1361,8 +1363,6 @@ directory_entry* goto_destination(char* filepath){
         directory_entry* entry = NULL;
         for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
           entry = f_readdir(current_fd);
-          printf("i: %d\n", i);
-
           if (entry == NULL){
             printf("%s\n","Not found" );
             free(entry);
@@ -1379,7 +1379,13 @@ directory_entry* goto_destination(char* filepath){
             current_working_dir->inode_index = entry->inode_index;
             strcpy(current_working_dir->filename,entry->filename);
             curnode = get_inode(current_working_dir->inode_index);
+            inode* parent_node = get_inode(curnode->parent_inode_index);
+            int parent_fd = addto_file_table(parent_node, APPEND);
+            // if (parent_fd == -1){
+            //   free(parent_node);
+            // }
             addto_file_table(curnode, APPEND);
+            free(entry);
             break;
           }
           free(entry);
@@ -1402,8 +1408,8 @@ directory_entry* goto_destination(char* filepath){
       free(entry);
     }
   }
-  printf("distination exists: %s\n", filepath );
-  free(pwd_directory);
+  // printf("distination exists: %s\n", filepath );
+  // free(pwd_directory);
   pwd_directory = current_working_dir;
   // print_file_table();
   printf("pwd_dir: %s\n", pwd_directory->filename);
@@ -1420,14 +1426,19 @@ char* convert_absolute(char* filepath){
   printf("in convert_absolute\n");
   char* absolute_path_collection[FILENAMEMAX];
   directory_entry* cur = destination;
+  printf("destination_filename: %s\n", destination->filename);
+  printf("destination_inode: %d\n", destination->inode_index);
+  // print_file_table();
   int cur_fd = get_fd_from_inode_value(cur->inode_index);
+  printf("cur_fd: %d\n", cur_fd);
   inode* cur_node = get_table_entry(cur_fd)->file_inode;
   int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
+  printf("parent_fd: %d\n", parent_fd);
   inode* parent_node = get_table_entry(parent_fd)->file_inode;
   int old_parent_index = parent_node->inode_index;
   int count = 0;
-  for(; cur->inode_index!=0;){
-    printf("%s\n", "------");
+  printf("%s\n", "-----");
+  for(; cur->inode_index > 0;){
     for(int i = 0; i < parent_node->size; i += sizeof(directory_entry)){
       directory_entry* entry = f_readdir(parent_fd);
       if(entry == NULL){
@@ -1435,11 +1446,16 @@ char* convert_absolute(char* filepath){
         printf("%s not found\n", filepath);
         return NULL;
       }
+      printf("entry->filename: %s\n", entry->filename);
+      printf("cur->inode_index: %d\n", cur->inode_index);
+      printf("entry->inode_index: %d\n", entry->inode_index);
       if(strcmp(entry->filename, "..")==0){
+        printf("%s\n", "find parent in conver_absolute");
         parent_node= get_inode(entry->inode_index);
         // addto_file_table(parent_node, APPEND);
       }
       if(entry->inode_index == cur->inode_index){
+        printf("%s\n", "FOUND" );
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
         cur_fd = get_fd_from_inode_value(old_parent_index);
@@ -1447,11 +1463,14 @@ char* convert_absolute(char* filepath){
         printf("%s\n", entry->filename);
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
+        break;
       }
       free(entry);
     }
+    printf("%s\n", "is it here?");
     cur->inode_index =  old_parent_index;
-    old_parent_index = cur_node->inode_index;
+    printf("reset to :%d\n", old_parent_index);
+    old_parent_index = parent_node->inode_index;
     count ++;
     free(parent_node);
   }
@@ -1465,6 +1484,7 @@ char* convert_absolute(char* filepath){
     return absolute_path;
   }
   absolute_path = malloc(count*FILENAMEMAX );
+  memset(absolute_path, 0 , count*FILENAMEMAX);
   while(count > 0){
     count --;
     absolute_path = strcat(absolute_path, "/");
