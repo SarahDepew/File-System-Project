@@ -66,7 +66,7 @@ int main (int argc, char **argv) {
     buildBuiltIns(); //store all builtins in built in array
 
     //mount filesystem and open root
-    if (f_mount("DISKDIR", "N/A", &root_index_into_mount_table) == FALSE) { //TODO: change back to DISK!
+    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) { //TODO: change back to DISK!
         EXIT = TRUE;
     }
 
@@ -299,7 +299,7 @@ void login() {
         } else {
             current_user = valid_users[1];
         }
-        
+
         free(buffer);
         login_valid = TRUE;
     }
@@ -1354,6 +1354,26 @@ int contains_delimiter(char **args, int start, int end) {
   return -1;
 }
 
+int location_last_delimiter(char **args) {
+  int length_args = arrayLength(args);
+  char *delim;
+  boolean last_found = FALSE;
+  int return_value;
+  int last_found_location = -1;
+  while(!last_found) {
+    for(int i=0; i<length_args-1; i++) {
+      if((return_value = contains_delimiter(args, i, length_args)) != NULL) {
+        last_found_location = return_value;
+      } else {
+        last_found = TRUE;
+        break;
+      }
+    }
+  }
+
+  return last_found_location;
+}
+
 // boolean all_strings(char **args, int start, int stop) {
 //   for(int i=start; i<=stop; i++) {
 //     if(in_directory(args[i]) != NULL) {
@@ -1363,6 +1383,18 @@ int contains_delimiter(char **args, int start, int end) {
 //     }
 //   }
 // }
+
+boolean is_all_delimeters(char **args) {
+  int args_length = arrayLength(args);
+
+  for(int i=1; i<args_length; i++) {
+    if(!((strcmp(args[i], ">") ==0) || (strcmp(args[i], ">>") ==0) || (strcmp(args[i], "<") ==0))) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
 
 int cat_builtin(char **args) {
     //get args length
@@ -1385,24 +1417,96 @@ int cat_builtin(char **args) {
            }
        }
    } else {
-
      int location = -1;
+     int last_found_location = -1;
      char *delim = NULL;
+     int flag = READ;
 
      if((location = contains_delimiter(args, 0, args_length)) != -1) {
-        delim = which_is_contained(args[location]);
-        //append
-        if(delim == ">>") {
-          // if(all_strings(args, 1, location-1) == TRUE) {
+       if(is_all_delimeters(args)) {
+         printf("syntax error in cat\n");
+         return -1;
+       }
 
-        //   } else {
-        //     //TODO: finish this
-        //   }
-        // } else if(delim = ">") { //overwrite
-        //
-        // } else { //accept input with "<"
-        //
+        delim = which_is_contained(args[location]);
+        last_found_location = location_last_delimiter(args);
+
+        if(location == 1) {
+          if(args[last_found_location] == ">>") {
+            flag = APPEND;
+          } else if(args[last_found_location] == ">") {
+            flag = WRITE;
+          }
+
+          int i = last_found_location + 1;
+
+          char *newfolder = NULL;
+          char *path = malloc(strlen(args[i]));
+          memset(path, 0, strlen(args[i]));
+          char path_copy[strlen(args[i]) + 1];
+          char copy[strlen(args[i]) + 1];
+          strcpy(path_copy, args[i]);
+          strcpy(copy, args[i]);
+          char *s = "/";
+          //calculate the level of depth of dir
+          char *token = strtok(copy, s);
+          int count = 0;
+          while (token != NULL) {
+              count++;
+              token = strtok(NULL, s);
+          }
+          printf("count: %d\n", count);
+          newfolder = strtok(path_copy, s);
+          while (count > 1) {
+              count--;
+              printf("new_folder: %s\n", newfolder);
+              path = strcat(path, newfolder);
+              path = strcat(path, "/");
+              newfolder = strtok(NULL, s);
+          }
+          printf("path: %s\n", path);
+          char *absolute_path = convert_absolute(path);
+          printf("converted: %s\n", absolute_path);
+          free(path);
+          printf("newfolder: %s\n", newfolder);
+          char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+          memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+          result = strncat(result, absolute_path, strlen(absolute_path));
+          result = strncat(result, "/", 1);
+          result = strcat(result, newfolder);
+          free(absolute_path);
+          printf("resuting string: %s\n", result);
+
+        int fd = f_open(result, flag, NULL);
+
+        char *c;
+        while (read(STDIN_FILENO, c, 1) > 0) {
+          if (f_write(c, 1, 1, fd) < 0) {
+              errorMessage();
+          }
         }
+      }
+
+          /*   char c;
+            while (read(STDIN_FILENO, &c, 1) > 0) {
+                  (write(1, &c, 1) < 0) {
+                      errorMessage();
+                  }
+                }
+                */
+        // }
+        //append
+        // if(delim == ">>") {
+        //   // if(all_strings(args, 1, location-1) == TRUE) {
+        //
+        // //   } else {
+        // //     //TODO: finish this
+        // //   }
+        // // } else if(delim = ">") { //overwrite
+        // //
+        // // } else { //accept input with "<"
+        // //
+        // }
      } else {
          inode *inode1;
          directory_entry *entry;
