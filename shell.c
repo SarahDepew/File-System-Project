@@ -116,6 +116,7 @@ int main (int argc, char **argv) {
 
     }
 
+    free(pwd_directory);
     f_unmount(root_index_into_mount_table);
     shutdownFilesystem();
 
@@ -298,7 +299,7 @@ void login() {
         } else {
             current_user = valid_users[1];
         }
-
+        free(buffer);
         login_valid = TRUE;
     }
 }
@@ -1194,6 +1195,7 @@ int ls_builtin(char **args) {
         directory_entry *entry = f_readdir(file_table_index);
         while (entry != NULL) {
             printf("%s\n", entry->filename);
+            free(entry);
             entry = f_readdir(file_table_index);
         }
         return TRUE;
@@ -1497,7 +1499,8 @@ directory_entry* goto_destination(char* filepath) {
                 f_rewind(current_fd);
                 printf("current_fd: %d\n", current_fd);
                 directory_entry *entry = NULL;
-                for (int i = 0; i < curnode->size; i += sizeof(directory_entry)) {
+                int size = curnode->size;
+                for (int i = 0; i < size; i += sizeof(directory_entry)) {
                     entry = f_readdir(current_fd);
                     if (entry == NULL) {
                         printf("%s\n", "Not found");
@@ -1526,6 +1529,7 @@ directory_entry* goto_destination(char* filepath) {
                     }
                     free(entry);
                 }
+                size = curnode->size;
                 f_rewind(current_fd);
             }
         }
@@ -1576,15 +1580,13 @@ char* convert_absolute(char* filepath){
   printf("cur_fd: %d\n", cur_fd);
   inode* cur_node = get_table_entry(cur_fd)->file_inode;
   int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
-  printf("parent_fd: %d\n", parent_fd);
   inode* parent_node = get_table_entry(parent_fd)->file_inode;
   int old_parent_index = parent_node->inode_index;
   int count = 0;
-  printf("%s\n", "-----");
-  printf("%d", parent_node->size);
-  printf("%s\n", "need to check this, valgrind not sure why");
+  int size = parent_node->size;
   for(; cur->inode_index > 0;){
-    for(int i = 0; i < parent_node->size; i += sizeof(directory_entry)){
+    for(int i = 0; i < size; i += sizeof(directory_entry)){
+      printf("parent_fd: %d\n", parent_fd);
       directory_entry* entry = f_readdir(parent_fd);
       if(entry == NULL){
         printf("something wrong in conver_absolute\n");
@@ -1613,11 +1615,13 @@ char* convert_absolute(char* filepath){
       }
       free(entry);
     }
+    size = parent_node->size;
     printf("%s\n", "is it here?");
     cur->inode_index =  old_parent_index;
     printf("reset to :%d\n", old_parent_index);
     old_parent_index = parent_node->inode_index;
     count ++;
+    f_rewind(parent_fd);
     free(parent_node);
   }
   free(destination);
@@ -1636,6 +1640,7 @@ char* convert_absolute(char* filepath){
     count --;
     absolute_path = strcat(absolute_path, "/");
     absolute_path = strcat(absolute_path, absolute_path_collection[count]);
+    free(absolute_path_collection[count]);
   }
   // print_file_table();
   return absolute_path;
