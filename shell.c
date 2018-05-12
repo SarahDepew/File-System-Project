@@ -1318,38 +1318,40 @@ int cat_builitn(char **args) {
     //get args length
     int args_length = arrayLength(args);
 
-//    print_args(args);
+    print_args(args);
 
-    if (args_length == 1) {
-        printf("I am sorry this is an error. cat cannot be used in this way.\n");
-    } else if(args[1])
-
-        //TODO: check for extra parsing values in cat...
-
-    else {
-        inode *inode1;
-        directory_entry *entry;
-        for (int i = 1; i < args_length; i++) {
-            if ((entry = in_directory(args[i])) != NULL) {
-                //print the file to the screen
-                inode1 = get_inode(entry->inode_index);
-                if (inode1->type == DIR) {
-                    printf("You are trying to print out a directory entry. Error!\n");
-                    free(inode1);
-                } else {
-                    //TODO: ask rose about reading in chunks??
-                    free(inode1);
-                    int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
-                    int file_size = inode1->size;
-                    char *file = malloc(sizeof(file_size));
-                    f_read(file, file_size, 1, fd);
-                    f_close(fd);
-                }
-            } else {
-                printf("%s\n", args[i]);
-            }
-        }
-    }
+//    if (args_length == 1) {
+//        printf("I am sorry this is an error. cat cannot be used in this way.\n");
+////    } else if(args[1]) {
+//
+//    }
+//
+//        //TODO: check for extra parsing values in cat...
+//
+//    else {
+//        inode *inode1;
+//        directory_entry *entry;
+//        for (int i = 1; i < args_length; i++) {
+//            if ((entry = in_directory(args[i])) != NULL) {
+//                //print the file to the screen
+//                inode1 = get_inode(entry->inode_index);
+//                if (inode1->type == DIR) {
+//                    printf("You are trying to print out a directory entry. Error!\n");
+//                    free(inode1);
+//                } else {
+//                    //TODO: ask rose about reading in chunks??
+//                    free(inode1);
+//                    int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
+//                    int file_size = inode1->size;
+//                    char *file = malloc(sizeof(file_size));
+//                    f_read(file, file_size, 1, fd);
+//                    f_close(fd);
+//                }
+//            } else {
+//                printf("%s\n", args[i]);
+//            }
+//        }
+//    }
 
     return 0;
 }
