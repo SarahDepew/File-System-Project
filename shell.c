@@ -1459,18 +1459,19 @@ int unmount_builtin(char **args) {
 }
 
 directory_entry* goto_root() {
-    inode *root = get_table_entry(0)->file_inode;
-    print_inode(root);
-    int cur_inode_index = pwd_directory->inode_index;
-    int cur_fd = get_fd_from_inode_value(cur_inode_index);
-    inode *curnode = get_table_entry(cur_fd)->file_inode;
-    remove_from_file_table(curnode);
-    addto_file_table(root, APPEND);
-    pwd_directory->inode_index = 0;
-    // strcpy(pwd_directory->filename, "/");
-    pwd_directory->filename[0] = '/';
-    pwd_directory->filename[1] = 0;
-    print_file_table();
+    // inode *root = get_table_entry(0)->file_inode;
+    // print_inode(root);
+    // int cur_inode_index = pwd_directory->inode_index;
+    // int cur_fd = get_fd_from_inode_value(cur_inode_index);
+    // inode *curnode = get_table_entry(cur_fd)->file_inode;
+    // remove_from_file_table(curnode);
+    // addto_file_table(root, APPEND);
+    // pwd_directory->inode_index = 0;
+    // // strcpy(pwd_directory->filename, "/");
+    // pwd_directory->filename[0] = '/';
+    // pwd_directory->filename[1] = 0;
+    // print_file_table();
+    goto_destination("/");
     return pwd_directory;
 }
 
