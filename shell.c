@@ -1574,6 +1574,8 @@ char* get_parentdir_name(directory_entry* entry){
     for(int i=0; i<size; i+=sizeof(directory_entry)){
       directory_entry* ent = f_readdir(grand_fd);
       if(ent->inode_index == parent->inode_index){
+        free(parent);
+        free(grand_parent);
         return ent->filename;
       }
       if(ent == NULL){
