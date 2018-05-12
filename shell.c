@@ -66,7 +66,7 @@ int main (int argc, char **argv) {
     buildBuiltIns(); //store all builtins in built in array
 
     //mount filesystem and open root
-    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
+    if (f_mount("DISKDIR", "N/A", &root_index_into_mount_table) == FALSE) { //TODO: change back to DISK!
         EXIT = TRUE;
     }
 
@@ -1443,24 +1443,29 @@ int cat_builtin(char **args) {
              free(absolute_path);
              printf("resuting string: %s\n", result);
 
-             // if ((entry = in_valid_path(args[i])) != NULL) {
-             //     //print the file to the screen
-             //     inode1 = get_inode(entry->inode_index);
-             //     if (inode1->type == DIR) {
-             //         printf("cat: %s: Is a directory\n", args[i]);
-             //         free(inode1);
-             //     } else {
-             //         //TODO: ask rose about reading in chunks??
-             //         free(inode1);
-             //         int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
-             //         int file_size = inode1->size;
-             //         char *file = malloc(sizeof(file_size));
-             //         f_read(file, file_size, 1, fd);
-             //         f_close(fd);
-             //     }
-             // } else {
-             //     printf("cat: %s: No such file or directory\n", args[i]);
-             // }
+             int fd;
+             if ((fd = f_open(result, READ, NULL)) != EXITFAILURE) {
+                 //print the file to the screen
+                 inode1 = get_table_entry(fd)->file_inode;
+                 if (inode1->type == DIR) {
+                     printf("cat: %s: Is a directory\n", args[i]);
+                 } else {
+                     int file_size = inode1->size;
+                     char *file = malloc(sizeof(file_size));
+                     if(file == NULL) {
+                       perror("Malloc\n");
+                       return -1;
+                     }
+                     printf("gets to the read section\n"); 
+                     f_read(file, file_size, 1, fd);
+                     if (write(STDOUT_FILENO, file, file_size) < 0) {
+                         errorMessage();
+                     }
+                     f_close(fd);
+                 }
+             } else {
+                 printf("cat: %s: Error opening file or file does not exist\n", args[i]);
+             }
          }
      }
  }
