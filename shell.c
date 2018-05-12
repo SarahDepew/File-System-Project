@@ -1516,13 +1516,13 @@ directory_entry* goto_destination(char* filepath) {
                         }
                         printf("found: %s\n", token);
                         current_working_dir->inode_index = entry->inode_index;
-                        strcpy(current_working_dir->filename, entry->filename);
+                        char* name = get_parentdir_name(entry);
+                        printf("tesing: %s\n", name);
+                        strcpy(current_working_dir->filename, name);
+                        // strcpy(current_working_dir->filename, entry->filename);
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
                         int parent_fd = addto_file_table(parent_node, APPEND);
-                        // if (parent_fd == -1){
-                        //   free(parent_node);
-                        // }
                         addto_file_table(curnode, APPEND);
                         free(entry);
                         break;
@@ -1560,6 +1560,33 @@ directory_entry* goto_destination(char* filepath) {
     return pwd_directory;
 }
 
+char* get_parentdir_name(directory_entry* entry){
+  printf("%s\n","in get_parentdir_name" );
+  if(strcmp(entry->filename, "..") == 0){
+    inode* parent = get_inode(entry->inode_index);
+    inode* grand_parent = get_inode(parent->parent_inode_index);
+    int size = grand_parent->size;
+    int grand_fd = get_fd_from_inode_value(grand_parent->inode_index);
+    f_rewind(grand_fd);
+    if(grand_fd == -1){
+      printf("%s\n", "grand_fd not in the file table");
+    }
+    for(int i=0; i<size; i+=sizeof(directory_entry)){
+      directory_entry* ent = f_readdir(grand_fd);
+      if(ent->inode_index == parent->inode_index){
+        return ent->filename;
+      }
+      if(ent == NULL){
+        printf("%s\n", "something wrong in get_parentdir_name");
+      }
+      free(ent);
+    }
+  }else{
+    return entry->filename;
+  }
+
+}
+
 /*only take in a dir path*/
 char* convert_absolute(char* filepath){
   directory_entry* dest = NULL;
@@ -1584,6 +1611,7 @@ char* convert_absolute(char* filepath){
   int old_parent_index = parent_node->inode_index;
   int count = 0;
   int size = parent_node->size;
+  f_rewind(parent_fd);
   for(; cur->inode_index > 0;){
     for(int i = 0; i < size; i += sizeof(directory_entry)){
       printf("parent_fd: %d\n", parent_fd);
