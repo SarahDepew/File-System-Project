@@ -1370,7 +1370,19 @@ int cat_builtin(char **args) {
     print_args(args);
 
    if (args_length == 1) {
-       printf("I am sorry this is an error. cat cannot be used in this way.\n");
+//       printf("I am sorry this is an error. cat cannot be used in this way.\n");
+       char c;
+       while (read(STDIN_FILENO, &c, 1) > 0) {
+           if (c != '\n') {
+               if (write(1, &c, 1) < 0) {
+                   errorMessage();
+               }
+           } else {
+               if (write(STDOUT_FILENO, "\n", 1) < 0) {
+                   errorMessage();
+               }
+           }
+       }
    }
 
    int location = -1;
