@@ -299,10 +299,7 @@ void login() {
         } else {
             current_user = valid_users[1];
         }
-<<<<<<< HEAD
-
-=======
->>>>>>> ab2325dfc4bd8dd64eda2503bb2efe3d90c210e1
+        
         free(buffer);
         login_valid = TRUE;
     }
@@ -1461,7 +1458,7 @@ int cat_builtin(char **args) {
                        perror("Malloc\n");
                        return -1;
                      }
-                     printf("gets to the read section\n"); 
+                     printf("gets to the read section\n");
                      f_read(file, file_size, 1, fd);
                      if (write(STDOUT_FILENO, file, file_size) < 0) {
                          errorMessage();
