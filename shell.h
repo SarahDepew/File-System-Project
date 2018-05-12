@@ -169,11 +169,13 @@ int mkdir_builtin(char **args);
 int rmdir_builtin(char **args);
 int cd_builtin(char **args);
 int pwd_builtin(char **args);
-int cat_builitn(char **args);
+int cat_builtin(char **args);
 int more_builtin(char **args);
 int rm_builtin(char **args);
 int mount_builtin(char **args);
 int unmount_builtin(char **args);
+void errorMessage();
+void print_args(char **args);
 
 directory_entry* goto_root();
 directory_entry* goto_destination(char* filepath);
