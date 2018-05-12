@@ -241,7 +241,7 @@ void buildBuiltIns() {
         } else if (i == 10) {
             allBuiltIns[i].function = pwd_builtin;
         } else if (i == 11) {
-            allBuiltIns[i].function = cat_builitn;
+            allBuiltIns[i].function = cat_builtin;
         } else if (i == 12) {
             allBuiltIns[i].function = more_builtin;
         } else if (i == 13) {
@@ -431,10 +431,10 @@ void removeNode(pid_t pidToRemove) {
 int isBuiltInCommand(process cmd) {
     for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         if (process_equals(cmd, allBuiltIns[i])) {
-//            //TODO: comment out when not needed
-//            if (i == 11) {
-//                return NOT_FOUND;
-//            }
+           //TODO: comment out when not needed
+           if (i == 11) {
+               return NOT_FOUND;
+           }
             return i; //return index of command
         }
     }
@@ -537,6 +537,10 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
         pgid = pid;
     }
 
+    if(strcmp(p->args[ZERO], "cat") == 0) {
+        foreground = TRUE;
+    }
+
     if (setpgid(pid, pgid) < ZERO) {
         perror("Couldn't put the shell in its own process group.\n");
         exit(EXIT_FAILURE);
@@ -575,8 +579,12 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
         exit(EXIT_FAILURE);
     }
 
+    if(strcmp(p->args[ZERO], "cat") == 0) {
+      cat_builtin(p->args);
+    }
+
     /* Exec the new process.  Make sure we exit.  */
-    if (execvp(p->args[ZERO], p->args) == ERROR) {
+    else if (execvp(p->args[ZERO], p->args) == ERROR) {
         fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
         free_all_jobs();
     }
@@ -1314,44 +1322,98 @@ directory_entry *in_directory(char *file_name) {
     return found;
 }
 
-int cat_builitn(char **args) {
+char *which_is_contained(char *token) {
+    for (int i = 0; i < strlen(token); i++) {
+        char c = token[i];
+        if (c == '<') {
+            return "<";
+        } else if (c == '>') {
+            if (i + 1 < strlen(token)) {
+                    return ">>";
+                } else {
+                    return ">";
+                }
+            } else {
+                return ">";
+            }
+        }
+
+    return NULL;
+}
+
+int contains_delimiter(char **args) {
+  int args_length = arrayLength(args);
+  for(int i=0; i<args_length; i++) {
+    if((strcmp(args[i], ">") ==0) || (strcmp(args[i], ">>") ==0) || (strcmp(args[i], "<") ==0)) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+boolean all_strings(char **args, int start, int stop) {
+  for(int i=start; i<=stop; i++) {
+    if(in_directory(args[i]) != NULL) {
+      return FALSE;
+    } else {
+      return TRUE;
+    }
+  }
+}
+
+int cat_builtin(char **args) {
     //get args length
     int args_length = arrayLength(args);
 
+    printf("Printing cat args result:\n");
     print_args(args);
 
-//    if (args_length == 1) {
-//        printf("I am sorry this is an error. cat cannot be used in this way.\n");
-////    } else if(args[1]) {
-//
-//    }
-//
-//        //TODO: check for extra parsing values in cat...
-//
-//    else {
-//        inode *inode1;
-//        directory_entry *entry;
-//        for (int i = 1; i < args_length; i++) {
-//            if ((entry = in_directory(args[i])) != NULL) {
-//                //print the file to the screen
-//                inode1 = get_inode(entry->inode_index);
-//                if (inode1->type == DIR) {
-//                    printf("You are trying to print out a directory entry. Error!\n");
-//                    free(inode1);
-//                } else {
-//                    //TODO: ask rose about reading in chunks??
-//                    free(inode1);
-//                    int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
-//                    int file_size = inode1->size;
-//                    char *file = malloc(sizeof(file_size));
-//                    f_read(file, file_size, 1, fd);
-//                    f_close(fd);
-//                }
-//            } else {
-//                printf("%s\n", args[i]);
-//            }
-//        }
-//    }
+   if (args_length == 1) {
+       printf("I am sorry this is an error. cat cannot be used in this way.\n");
+   }
+
+   int location = -1;
+   char *delim = NULL;
+
+   if((location = contains_delimiter(args)) != -1) {
+      delim = which_is_contained(args[location]);
+      //append
+      if(delim == ">>") {
+        if(all_strings(args, 1, location-1) == TRUE) {
+
+        } else {
+          //TODO: finish this
+        }
+      } else if(delim = ">") { //overwrite
+
+      } else { //accept input with "<"
+
+      }
+   } else {
+       inode *inode1;
+       directory_entry *entry;
+       for (int i = 1; i < args_length; i++) {
+           if ((entry = in_directory(args[i])) != NULL) {
+               //print the file to the screen
+               inode1 = get_inode(entry->inode_index);
+               if (inode1->type == DIR) {
+                   printf("cat: %s: Is a directory\n", args[i]);
+                   free(inode1);
+               } else {
+                   //TODO: ask rose about reading in chunks??
+                   free(inode1);
+                   int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
+                   int file_size = inode1->size;
+                   char *file = malloc(sizeof(file_size));
+                   f_read(file, file_size, 1, fd);
+                   f_close(fd);
+               }
+           } else {
+               printf("cat: %s: No such file or directory\n", args[i]);
+           }
+       }
+   }
 
     return 0;
 }
