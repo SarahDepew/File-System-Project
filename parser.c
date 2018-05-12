@@ -21,13 +21,29 @@ tokenizer *pt;
 extern job *all_jobs;
 extern background_job *all_background_jobs;
 
-//TODO: Fix parsing here...
-int split_white_space(char **user_input, char ***tokenized_input)
-{
-//    printf("user input: %s\n", *user_input);
+// char *which_is_contained(char *token, int *location) {
+//     for (int i = 0; i < strlen(token); i++) {
+//         char c = token[i];
+//         if (c == '<') {
+//             return "<";
+//         } else if (c == '>') {
+//             if (i + 1 < strlen(token)) {
+//                     return ">>";
+//                 } else {
+//                     return ">";
+//                 }
+//             } else {
+//                 return ">";
+//             }
+//         }
+//
+//     return NULL;
+// }
+
+int split_white_space(char **user_input, char ***tokenized_input) {
     int buffer_mark = BUFFER_SIZE;
 
-    (*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);
+    (*tokenized_input) = malloc(sizeof(char *) * BUFFER_SIZE);
 
     if (*tokenized_input == NULL) {
         perror("Malloc");
@@ -35,6 +51,9 @@ int split_white_space(char **user_input, char ***tokenized_input)
     }
 
     int i = 0;
+    char *delim = NULL;
+    char *current_token;
+
     (*tokenized_input)[i] = strtok(*user_input, " ");
     while ((*tokenized_input)[i] != NULL) {
         i++;
@@ -42,7 +61,7 @@ int split_white_space(char **user_input, char ***tokenized_input)
             buffer_mark += BUFFER_SIZE;
             /* must protect against realloc failure memory leak */
             char **new_tokenized_input;
-            if ((new_tokenized_input = realloc((*tokenized_input), sizeof(char*)*buffer_mark)) == NULL) {
+            if ((new_tokenized_input = realloc((*tokenized_input), sizeof(char *) * buffer_mark)) == NULL) {
                 perror("Malloc: ");
                 return EXIT;
             }
@@ -63,26 +82,24 @@ int is_a_deliminator(char *s) {
     return FALSE;
 }
 
-char *get_next_token()
-{
+char *get_next_token() {
     int count = 0;
     char *token = NULL;
     if (strncmp(t->pos, "\0", 1) == 0) {
         return NULL;
-    }
-    else {
+    } else {
         while (!(is_a_deliminator(t->pos))) {
             count++;
             t->pos++;
         }
         if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
-        token = malloc(sizeof(char*) * (count + 1));
+        token = malloc(sizeof(char *) * (count + 1));
         t->pos -= count;
         for (int i = 0; i <= count; i++) {
             token[i] = *(t->pos);
             t->pos++;
         }
-        token[count+1] = '\0';
+        token[count + 1] = '\0';
         return token;
     }
 }
@@ -125,8 +142,7 @@ int isWhiteSpaceJob(char *t)
 /*
  * Transforms all jobs global into first job in job LL and returns the number of jobs to run
  */
-int perform_parse()
-{
+int perform_parse() {
     char *line = NULL;
 
     /* readline causes leak */
@@ -223,7 +239,6 @@ int perform_parse()
             break;
         }
 
-        //TODO: add parsing functionality here
         if (split_white_space(&(temp_job->job_string), &(tokenized_process)) == EXIT) {
             break;
         }

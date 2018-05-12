@@ -27,11 +27,11 @@ tests: tests.c
 	gcc -g -ggdb -Wall -o tests tests.c -L. -lfile -lm
 
 shell: parser.o boolean.h builtins.h
-	gcc -c -ggdb -Wall -c shell.c -lreadline
+	gcc -ggdb -c -Wall -c shell.c -lreadline
 	gcc -g -ggdb -Wall -o shell shell.o parser.o -L. -lfile -lm -lreadline
 
 parser: parser.c parser.h boolean.h builtins.h
-	gcc -c -Wall -c parser.c -lreadline
+	gcc -ggdb -c -Wall -c parser.c -lreadline
 
 clean:
 	rm *.o format libfile.so test open_dir formatdir test_mount_read_write f_readdir_test tests shell parser
