@@ -169,7 +169,7 @@ int mkdir_builtin(char **args);
 int rmdir_builtin(char **args);
 int cd_builtin(char **args);
 int pwd_builtin(char **args);
-int cat_builitn(char **args);
+int cat_builtin(char **args);
 int more_builtin(char **args);
 int rm_builtin(char **args);
 int mount_builtin(char **args);
