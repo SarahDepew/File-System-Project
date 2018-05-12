@@ -1381,9 +1381,6 @@ directory_entry* goto_destination(char* filepath){
             curnode = get_inode(current_working_dir->inode_index);
             inode* parent_node = get_inode(curnode->parent_inode_index);
             int parent_fd = addto_file_table(parent_node, APPEND);
-            // if (parent_fd == -1){
-            //   free(parent_node);
-            // }
             addto_file_table(curnode, APPEND);
             free(entry);
             break;
@@ -1418,11 +1415,14 @@ directory_entry* goto_destination(char* filepath){
 
 /*only take in a dir path*/
 char* convert_absolute(char* filepath){
-  directory_entry* destination = NULL;
-  if((destination = goto_destination(filepath)) == NULL){
+  directory_entry* dest = NULL;
+  if((dest = goto_destination(filepath)) == NULL){
     printf("%s does not exists\n", filepath);
     return NULL;
   }
+  directory_entry* destination = malloc(sizeof(directory_entry));
+  destination->inode_index = dest->inode_index;
+  strcpy(destination->filename,dest->filename);
   printf("in convert_absolute\n");
   char* absolute_path_collection[FILENAMEMAX];
   directory_entry* cur = destination;
@@ -1438,12 +1438,15 @@ char* convert_absolute(char* filepath){
   int old_parent_index = parent_node->inode_index;
   int count = 0;
   printf("%s\n", "-----");
+  printf("%d", parent_node->size);
+  printf("%s\n", "need to check this, valgrind not sure why");
   for(; cur->inode_index > 0;){
     for(int i = 0; i < parent_node->size; i += sizeof(directory_entry)){
       directory_entry* entry = f_readdir(parent_fd);
       if(entry == NULL){
         printf("something wrong in conver_absolute\n");
         printf("%s not found\n", filepath);
+        free(destination);
         return NULL;
       }
       printf("entry->filename: %s\n", entry->filename);
@@ -1474,6 +1477,7 @@ char* convert_absolute(char* filepath){
     count ++;
     free(parent_node);
   }
+  free(destination);
   char* absolute_path = NULL;
   if(count == 0){
     absolute_path = malloc(2);
