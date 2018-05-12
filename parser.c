@@ -21,59 +21,26 @@ tokenizer *pt;
 extern job *all_jobs;
 extern background_job *all_background_jobs;
 
-char *which_is_contained(char *token, int *location) {
-    for (int i = 0; i < strlen(token); i++) {
-        char c = token[i];
-        if (c == '<') {
-            if(i==0) {
-              *location = START;
-            } else if(i==strlen(token)-1) {
-              *location = END;
-            } else {
-              *location = MIDDLE;
-            }
-            return "<";
-        } else if (c == '>') {
-            if (i + 1 < strlen(token)) {
-                if (token[i + 1] == '>') {
-                    if(i==0) {
-                      *location = START;
-                    } else if(i==strlen(token)-2) {
-                      *location = END;
-                    } else {
-                      *location = MIDDLE;
-                    }
-                    return ">>";
-                } else {
-                    if(i==0) {
-                      *location = START;
-                    } else if(i==strlen(token)-1) {
-                      *location = END;
-                    } else {
-                      *location = MIDDLE;
-                    }
-                    return ">";
-                }
-            } else {
-                if(i==0) {
-                  *location = START;
-                } else if(i==strlen(token)-1) {
-                  *location = END;
-                } else {
-                  *location = MIDDLE;
-                }
-
-                return ">";
-            }
-        }
-    }
-
-    return NULL;
-}
+// char *which_is_contained(char *token, int *location) {
+//     for (int i = 0; i < strlen(token); i++) {
+//         char c = token[i];
+//         if (c == '<') {
+//             return "<";
+//         } else if (c == '>') {
+//             if (i + 1 < strlen(token)) {
+//                     return ">>";
+//                 } else {
+//                     return ">";
+//                 }
+//             } else {
+//                 return ">";
+//             }
+//         }
+//
+//     return NULL;
+// }
 
 int split_white_space(char **user_input, char ***tokenized_input) {
-    printf("user input: %s\n", *user_input); //TODO: remove this value!
-
     int buffer_mark = BUFFER_SIZE;
 
     (*tokenized_input) = malloc(sizeof(char *) * BUFFER_SIZE);
@@ -87,63 +54,10 @@ int split_white_space(char **user_input, char ***tokenized_input) {
     char *delim = NULL;
     char *current_token;
 
-    current_token = strtok(*user_input, " ");
-    while (current_token != NULL) {
-      printf("current token: %s\n", current_token);
-        int location = -1;
-        if ((delim = which_is_contained(current_token, &location)) != NULL) {
-          printf("delim returned: %s\n", delim);
-          char *token_to_parse = current_token;
-          if(location == START) {
-            //delimiter then value
-
-            //put delimiter
-            (*tokenized_input)[i] = delim;
-            i++;
-
-            char *next_token = strtok(token_to_parse, delim);
-            if(next_token != NULL) {
-              (*tokenized_input)[i] = next_token;
-              i++;
-            }
-
-          } else if(location == END) {
-            //value then delimiter
-            char *next_token = strtok(token_to_parse, delim);
-            if(next_token != NULL) {
-              (*tokenized_input)[i] = next_token;
-              i++;
-            }
-
-            //put delimiter
-            (*tokenized_input)[i] = delim;
-            i++;
-
-            current_token = NULL;
-          } else {
-            char *next_token = strtok(token_to_parse, delim);
-            if(next_token != NULL) {
-              (*tokenized_input)[i] = next_token;
-              i++;
-            }
-
-            //put delimiter
-            (*tokenized_input)[i] = delim;
-            i++;
-
-            next_token = strtok(NULL, delim);
-            if(next_token != NULL) {
-              (*tokenized_input)[i] = next_token;
-              i++;
-            }
-          }
-        } else {
-            printf("got to else\n");
-            (*tokenized_input)[i] = current_token;
-            i++;
-        }
-
-        if (i == buffer_mark - 3) {
+    (*tokenized_input)[i] = strtok(*user_input, " ");
+    while ((*tokenized_input)[i] != NULL) {
+        i++;
+        if (i == buffer_mark - 1) {
             buffer_mark += BUFFER_SIZE;
             /* must protect against realloc failure memory leak */
             char **new_tokenized_input;
@@ -153,7 +67,7 @@ int split_white_space(char **user_input, char ***tokenized_input) {
             }
             (*tokenized_input) = new_tokenized_input;
         }
-        current_token = strtok(NULL, " ");
+        (*tokenized_input)[i] = strtok(NULL, " ");
     }
     (*tokenized_input)[i] = NULL;
     return CONTINUE;
