@@ -241,7 +241,7 @@ void buildBuiltIns() {
         } else if (i == 10) {
             allBuiltIns[i].function = pwd_builtin;
         } else if (i == 11) {
-            allBuiltIns[i].function = cat_builitn;
+            allBuiltIns[i].function = cat_builtin;
         } else if (i == 12) {
             allBuiltIns[i].function = more_builtin;
         } else if (i == 13) {
@@ -1314,10 +1314,11 @@ directory_entry *in_directory(char *file_name) {
     return found;
 }
 
-int cat_builitn(char **args) {
+int cat_builtin(char **args) {
     //get args length
     int args_length = arrayLength(args);
 
+    printf("Printing cat args result:\n"); 
     print_args(args);
 
 //    if (args_length == 1) {
