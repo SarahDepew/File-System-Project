@@ -896,7 +896,7 @@ directory_entry* f_mkdir(char* filepath) {
             node->last_block_index = new_block_index;
             if (total_block <= N_DBLOCKS) {
               node->dblocks[total_block-1] = new_block_index;
-              print_dir_block(node, node->dblocks[total_block-1]);
+              // print_dir_block(node, node->dblocks[total_block-1]);
             }else{
               printf("%s\n", "using iblocks of cur dir. TODO.");
               return NULL;
@@ -930,7 +930,7 @@ directory_entry* f_mkdir(char* filepath) {
             //update parent dir inode
             printf("%s\n", "-------1");
             node->size += sizeof(directory_entry);
-            print_dir_block(node, node->last_block_index);
+            // print_dir_block(node, node->last_block_index);
             update_single_inode_ondisk(node, node->inode_index);
             printf("%s\n", "------2");
             //update new folder inode
