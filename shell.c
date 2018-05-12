@@ -1625,5 +1625,18 @@ char* convert_absolute(char* filepath){
   if(count == 0){
     absolute_path = malloc(2);
     memset(absolute_path, 0, 2);
-    absolute_path = strcat(absolute_path, "/");  return absolute_path;
+    absolute_path = strcat(absolute_path, "/");
+    // print_file_table();
+    printf("%s\n", "count == 0");
+    return absolute_path;
+  }
+  absolute_path = malloc(count*FILENAMEMAX );
+  memset(absolute_path, 0 , count*FILENAMEMAX);
+  while(count > 0){
+    count --;
+    absolute_path = strcat(absolute_path, "/");
+    absolute_path = strcat(absolute_path, absolute_path_collection[count]);
+  }
+  // print_file_table();
+  return absolute_path;
 }
