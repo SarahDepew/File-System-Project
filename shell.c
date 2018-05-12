@@ -299,6 +299,7 @@ void login() {
             current_user = valid_users[1];
         }
 
+        free(buffer);
         login_valid = TRUE;
     }
 }
@@ -1305,22 +1306,22 @@ int pwd_builtin(char **args) {
     return 0;
 }
 
-directory_entry *in_directory(char *file_name) {
-    directory_entry *found = NULL;
-    int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
-    f_rewind(file_table_index);
-    directory_entry *entry = f_readdir(file_table_index);
-    while (entry != NULL) {
-        if (strcmp(entry->filename, file_name) == 0) {
-            found = entry;
-            break;
-        } else {
-            entry = f_readdir(file_table_index);
-        }
-    }
-
-    return found;
-}
+// directory_entry *in_valid_path(char *file_name) {
+//     directory_entry *directory_to_search = f_opendir(convert_absolute(file_name));
+//     int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+//     f_rewind(file_table_index);
+//     directory_entry *entry = f_readdir(file_table_index);
+//     while (entry != NULL) {
+//         if (strcmp(entry->filename, file_name) == 0) {
+//             found = entry;
+//             break;
+//         } else {
+//             entry = f_readdir(file_table_index);
+//         }
+//     }
+//
+//     return found;
+// }
 
 char *which_is_contained(char *token) {
     for (int i = 0; i < strlen(token); i++) {
@@ -1341,9 +1342,8 @@ char *which_is_contained(char *token) {
     return NULL;
 }
 
-int contains_delimiter(char **args) {
-  int args_length = arrayLength(args);
-  for(int i=0; i<args_length; i++) {
+int contains_delimiter(char **args, int start, int end) {
+  for(int i=start; i<end; i++) {
     if((strcmp(args[i], ">") ==0) || (strcmp(args[i], ">>") ==0) || (strcmp(args[i], "<") ==0)) {
       return i;
     }
@@ -1352,15 +1352,15 @@ int contains_delimiter(char **args) {
   return -1;
 }
 
-boolean all_strings(char **args, int start, int stop) {
-  for(int i=start; i<=stop; i++) {
-    if(in_directory(args[i]) != NULL) {
-      return FALSE;
-    } else {
-      return TRUE;
-    }
-  }
-}
+// boolean all_strings(char **args, int start, int stop) {
+//   for(int i=start; i<=stop; i++) {
+//     if(in_directory(args[i]) != NULL) {
+//       return FALSE;
+//     } else {
+//       return TRUE;
+//     }
+//   }
+// }
 
 int cat_builtin(char **args) {
     //get args length
@@ -1370,7 +1370,6 @@ int cat_builtin(char **args) {
     print_args(args);
 
    if (args_length == 1) {
-//       printf("I am sorry this is an error. cat cannot be used in this way.\n");
        char c;
        while (read(STDIN_FILENO, &c, 1) > 0) {
            if (c != '\n') {
@@ -1383,49 +1382,88 @@ int cat_builtin(char **args) {
                }
            }
        }
-   }
-
-   int location = -1;
-   char *delim = NULL;
-
-   if((location = contains_delimiter(args)) != -1) {
-      delim = which_is_contained(args[location]);
-      //append
-      if(delim == ">>") {
-        if(all_strings(args, 1, location-1) == TRUE) {
-
-        } else {
-          //TODO: finish this
-        }
-      } else if(delim = ">") { //overwrite
-
-      } else { //accept input with "<"
-
-      }
    } else {
-       inode *inode1;
-       directory_entry *entry;
-       for (int i = 1; i < args_length; i++) {
-           if ((entry = in_directory(args[i])) != NULL) {
-               //print the file to the screen
-               inode1 = get_inode(entry->inode_index);
-               if (inode1->type == DIR) {
-                   printf("cat: %s: Is a directory\n", args[i]);
-                   free(inode1);
-               } else {
-                   //TODO: ask rose about reading in chunks??
-                   free(inode1);
-                   int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
-                   int file_size = inode1->size;
-                   char *file = malloc(sizeof(file_size));
-                   f_read(file, file_size, 1, fd);
-                   f_close(fd);
-               }
-           } else {
-               printf("cat: %s: No such file or directory\n", args[i]);
-           }
-       }
-   }
+
+     int location = -1;
+     char *delim = NULL;
+
+     if((location = contains_delimiter(args, 0, args_length)) != -1) {
+        delim = which_is_contained(args[location]);
+        //append
+        if(delim == ">>") {
+          // if(all_strings(args, 1, location-1) == TRUE) {
+
+        //   } else {
+        //     //TODO: finish this
+        //   }
+        // } else if(delim = ">") { //overwrite
+        //
+        // } else { //accept input with "<"
+        //
+        }
+     } else {
+         inode *inode1;
+         directory_entry *entry;
+         for (int i = 1; i < args_length; i++) {
+             //first open the directory sought and then check in that directory for the value
+             char *newfolder = NULL;
+             char *path = malloc(strlen(args[i]));
+             memset(path, 0, strlen(args[i]));
+             char path_copy[strlen(args[i]) + 1];
+             char copy[strlen(args[i]) + 1];
+             strcpy(path_copy, args[i]);
+             strcpy(copy, args[i]);
+             char *s = "/";
+             //calculate the level of depth of dir
+             char *token = strtok(copy, s);
+             int count = 0;
+             while (token != NULL) {
+                 count++;
+                 token = strtok(NULL, s);
+             }
+             printf("count: %d\n", count);
+             newfolder = strtok(path_copy, s);
+             while (count > 1) {
+                 count--;
+                 printf("new_folder: %s\n", newfolder);
+                 path = strcat(path, newfolder);
+                 path = strcat(path, "/");
+                 newfolder = strtok(NULL, s);
+             }
+             printf("path: %s\n", path);
+             char *absolute_path = convert_absolute(path);
+             printf("converted: %s\n", absolute_path);
+             free(path);
+             printf("newfolder: %s\n", newfolder);
+             char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+             memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+             result = strncat(result, absolute_path, strlen(absolute_path));
+             result = strncat(result, "/", 1);
+             result = strcat(result, newfolder);
+             free(absolute_path);
+             printf("resuting string: %s\n", result);
+
+             // if ((entry = in_valid_path(args[i])) != NULL) {
+             //     //print the file to the screen
+             //     inode1 = get_inode(entry->inode_index);
+             //     if (inode1->type == DIR) {
+             //         printf("cat: %s: Is a directory\n", args[i]);
+             //         free(inode1);
+             //     } else {
+             //         //TODO: ask rose about reading in chunks??
+             //         free(inode1);
+             //         int fd = f_open(convert_absolute(args[i]), READ, NULL); //TODO: permissions!
+             //         int file_size = inode1->size;
+             //         char *file = malloc(sizeof(file_size));
+             //         f_read(file, file_size, 1, fd);
+             //         f_close(fd);
+             //     }
+             // } else {
+             //     printf("cat: %s: No such file or directory\n", args[i]);
+             // }
+         }
+     }
+ }
 
     return 0;
 }
