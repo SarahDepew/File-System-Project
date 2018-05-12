@@ -179,5 +179,6 @@ void print_args(char **args);
 
 directory_entry* goto_root();
 directory_entry* goto_destination(char* filepath);
+char* get_parentdir_name(directory_entry* entry);
 char* convert_absolute(char* filepath);
 #endif //HW7_SHELL_H
