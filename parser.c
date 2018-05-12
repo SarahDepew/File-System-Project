@@ -294,7 +294,6 @@ int perform_parse() {
             break;
         }
 
-        //TODO: add parsing functionality here
         if (split_white_space(&(temp_job->job_string), &(tokenized_process)) == EXIT) {
             break;
         }
