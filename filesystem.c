@@ -10,6 +10,7 @@ mount_table_entry *current_mounted_disk;
 inode *root_inode;
 int table_freehead = 0;
 directory_entry* root_dir_entry = NULL;
+
 //the shell must call this method to set up the global variables and structures
 boolean setup() {
   for (int i = 0; i < MOUNTTABLESIZE; i++) {
@@ -91,13 +92,22 @@ int first_free_inode() {
 int get_fd_from_inode_value(int inode_index) {
     int val = -1;
     for (int i = 0; i < FILETABLESIZE; i++) {
-        if (file_table[i]->free_file == FALSE && file_table[i]->file_inode->inode_index == inode_index) {
-            val = i;
-            break;
+      if (file_table[i]->free_file == FALSE){
+	if( file_table[i]->file_inode->inode_index == inode_index) {
+	  val = i;
+	  break;
         }
+      }
     }
 
     return val;
+}
+
+boolean if_is_file(int inode_index){
+  inode* node = get_inode(inode_index);
+  int type = node->type;
+  free(node);
+  return (type==REG);
 }
 
 directory_entry get_last_directory_entry(int fd) {
@@ -231,24 +241,26 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                 break;
             }
             printf("entry name: %s\n", entry->filename);
-            if (strcmp(entry->filename, filename) == 0) {
+            if (strcmp(entry->filename, filename) == 0 ) {
                 printf("%s found\n", entry->filename);
-                file_table_entry *file_entry = file_table[table_freehead];
-                file_entry->free_file = FALSE;
-                free(file_entry->file_inode);
-                inode *file_inode = get_inode(entry->inode_index);
-                // set_permissions(file_inode->permission, permissions);
-                update_single_inode_ondisk(file_inode, file_inode->inode_index);
-                file_entry->file_inode = file_inode;
-                file_entry->byte_offset = 0;
-                file_entry->access = access;
-                free(path);
-                int fd = table_freehead;
-                table_freehead = find_next_freehead();
-                free(entry);
-                free(dir_node);
-                free(dir);
-                return fd;
+                if(if_is_file(entry->inode_index) == TRUE){
+                  file_table_entry *file_entry = file_table[table_freehead];
+                  file_entry->free_file = FALSE;
+                  free(file_entry->file_inode);
+                  inode *file_inode = get_inode(entry->inode_index);
+                  // set_permissions(file_inode->permission, permissions);
+                  update_single_inode_ondisk(file_inode, file_inode->inode_index);
+                  file_entry->file_inode = file_inode;
+                  file_entry->byte_offset = 0;
+                  file_entry->access = access;
+                  free(path);
+                  int fd = table_freehead;
+                  table_freehead = find_next_freehead();
+                  free(entry);
+                  free(dir_node);
+                  free(dir);
+                  return fd;
+                }
             }
             free(entry);
         }
@@ -715,14 +727,12 @@ directory_entry* f_opendir(char* filepath) {
     if (file_table[0]->free_file == TRUE) {
         file_table_entry *root_table_entry = file_table[0];
         root_table_entry->free_file = FALSE;
-        // free(root_table_entry->file_inode);
+        free(root_table_entry->file_inode);
         root_table_entry->file_inode = root_node;
         root_table_entry->byte_offset = 0;
         root_table_entry->access = READANDWRITE; //TODO: tell Rose about this...
         // memset(root_dir_entry, 0, sizeof(directory_entry));
         root_dir_entry->inode_index = 0;
-        // strcpy(root_dir_entry->filename, "/");
-        // strncpy(root_dir_entry->filename, "/",1);
         root_dir_entry->filename[0] = '/';
         root_dir_entry->filename[1] = 0;
         dir_entry = root_dir_entry;
@@ -752,24 +762,27 @@ directory_entry* f_opendir(char* filepath) {
                 break;
             }
             char *name = dir_entry->filename;
+            printf("%s\n", name);
             if (strcmp(name, token) == 0) {
-                printf("%s\n", "found");
+                printf("%s is %s\n", token, "found" );
                 file_table[i]->byte_offset = 0;
                 found = TRUE;
+                break;
             }
             if (found == FALSE) {
                 free(dir_entry);
             }
         }
         if (i != 0) {
-            printf("%s\n", "here-----------------TODO");
+            printf("what should be removed: %d\n", i);
+            print_file_table();
             //remove the ith index from the table. NEED CHECK. ROSE //TODO: ask her about this...
             file_table[i]->free_file = TRUE;
             table_freehead = i;
         } else {
             //root is always in the table. won't be removed.
             table_freehead = find_next_freehead();
-            i = table_freehead;
+            // i = table_freehead;
         }
         if (found == FALSE) {
             printf("%s is not found\n", token);
@@ -779,13 +792,16 @@ directory_entry* f_opendir(char* filepath) {
         //add dir_entry to the table
         //need to check if the dir_entry already exists
         inode *node = get_inode(dir_entry->inode_index);
-        if (already_in_table(node) == -1) {
-            file_table_entry *table_ent = file_table[i];
+        int fd = already_in_table(node);
+        if ( fd == -1) {
+            file_table_entry *table_ent = file_table[table_freehead];
             table_ent->free_file = FALSE;
             table_ent->file_inode = node;
             table_ent->byte_offset = 0;
             table_ent->access = READANDWRITE; //TODO: tell Rose about this...
+            i = table_freehead;
         } else {
+            i = fd;
             free(node);
         }
         token = strtok(NULL, s);
@@ -1466,7 +1482,7 @@ directory_entry* f_readdir(int index_into_file_table) {
 
     //increment offset into the file
     file_table[index_into_file_table]->byte_offset += sizeof(directory_entry);
-//    printf("%s\n", next_directory->filename);
+    printf("in readdir: %s\n", next_directory->filename);
     return next_directory;
 }
 
