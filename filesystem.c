@@ -46,7 +46,7 @@ boolean shutdown() {
     free(file_table[j]->file_inode);
     free(file_table[j]);
   }
-  free(root_dir_entry);
+  // free(root_dir_entry);
   return TRUE;
 }
 
@@ -448,7 +448,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 //copy the data from the last block to data
                 memcpy(data, last_data_block, offset_into_last_block);
                 if (sizeof(datatowrite) < free_space) {
-                    memcpy(data + offset_into_last_block, datatowrite, size * ntimes);
+                    memcpy(data + offset_into_last_block, datatowrite, size*ntimes);
                 } else {
                     memcpy(data + offset_into_last_block, datatowrite, free_space);
                 }
@@ -674,6 +674,30 @@ void print_dir_block(inode* node, int block_index){
     free(data);
 }
 
+char* get_filename_from_inode(inode* node, char* name){
+  inode* parent_node =  get_inode(node->parent_inode_index);
+  printf("%s\n", "after getting parentnode" );
+  printf("%d\n", node->parent_inode_index);
+  int count = 0;
+  for(int i =0 ;i <node->size; i+= sizeof(directory_entry)){
+    int index = i/BLOCKSIZE;
+    void* data = get_data_block(parent_node->dblocks[index]);
+    int dirindex = *(int*)(data + count*sizeof(directory_entry));
+    char* dirname = (char*)(data+count*sizeof(directory_entry)+sizeof(int));
+    printf("name: %s\n", dirname);
+    if(dirindex == node->inode_index){
+      strcpy(name, dirname);
+      free(data);
+      free(parent_node);
+      return name;
+    }
+    free(data);
+    count ++;
+  }
+  free(parent_node);
+  return NULL;
+}
+
 void print_file_table() {
     printf("%s\n", "------------start printing file_table------");
     for (int i = 0; i < FILETABLESIZE; i++) {
@@ -682,7 +706,12 @@ void print_file_table() {
                 printf("%d: %s\n", i, "empty");
             } else {
                 inode *node = file_table[i]->file_inode;
-                printf("%d: inode->index: %d \t byte_offset: %d\n", i, node->inode_index, file_table[i]->byte_offset);
+                // char name[FILENAMEMAX];
+                // memset(name, 0, FILENAMEMAX);
+                // strcpy(name, get_filename_from_inode(node, name));
+                // printf("%d: inode->index: %d \t byte_offset: %d\t name: %s\n", i, node->inode_index, file_table[i]->byte_offset, name);
+                printf("%d: inode->index: %d \t byte_offset: %d\n ", i, node->inode_index, file_table[i]->byte_offset);
+
             }
         }
     }
@@ -775,7 +804,7 @@ directory_entry* f_opendir(char* filepath) {
                 free(dir_entry);
             }
         }
-        if (i != 0) {
+        if (i != 0 && i != 1) {
             // printf("what should be removed: %d\n", i);
             // print_file_table();
             //remove the ith index from the table. NEED CHECK. ROSE //TODO: ask her about this...
@@ -807,6 +836,7 @@ directory_entry* f_opendir(char* filepath) {
             free(node);
         }
         token = strtok(NULL, s);
+        free(dir_entry);
     }
     table_freehead = find_next_freehead();
     // printf("%s\n", "end of open_dir-----");
@@ -845,18 +875,16 @@ directory_entry* f_mkdir(char* filepath) {
     // printf("path: %s\n", path);
     // printf("newfolder: %s\n", newfolder);
     directory_entry *dir = f_opendir(path);
+    print_file_table();
+    printf("%s\n", "in the middle of mkdir");
     free(path);
     if (dir == NULL) {
         printf("cannot create directory. parent does not exists\n");
         free(dir);
         return NULL;
     } else {
-        // printf("dir->filename: %s\n", dir->filename);
-        // printf("dir->inode: %d\n", dir->inode_index);
-        // printf("%s\n", "parent dir exists so here");
         directory_entry *newf = (directory_entry *) malloc(sizeof(directory_entry));
         memset(newf, 0, sizeof(directory_entry));
-        // printf("%s\n", "+++++2");
         strcpy(newf->filename, newfolder);
         int new_inode_index = current_mounted_disk->superblock1->free_inode;
         if (new_inode_index == -1) {
@@ -872,8 +900,8 @@ directory_entry* f_mkdir(char* filepath) {
         memset(currentD, 0, sizeof(directory_entry));
         strcpy(currentD->filename, ".");
         strcpy(parent->filename, "..");
-        //this node is the inode of parent dir
         int dir_fd = get_fd_from_inode_value(dir->inode_index);
+        //this node is the inode of parent dir
         inode *node = file_table[dir_fd]->file_inode;
         inode *new_inode = get_inode(new_inode_index);
         currentD->inode_index = new_inode_index;
@@ -885,7 +913,7 @@ directory_entry* f_mkdir(char* filepath) {
         if (node->size == BLOCKSIZE * (node->size / BLOCKSIZE)) {
             //request new blocks to add the newfolder directory_entry
             // int new_block_index = request_new_block();
-            // printf("%s\n", "need to request_new_block in mkdir");
+            printf("%s\n", "need to request_new_block in mkdir");
             int total_block = node->size / BLOCKSIZE + 1;
             int new_block_index = find_next_datablock(node, total_block, node->size, node->size);
             void *content = malloc(BLOCKSIZE);
@@ -900,7 +928,7 @@ directory_entry* f_mkdir(char* filepath) {
               node->dblocks[total_block-1] = new_block_index;
               // print_dir_block(node, node->dblocks[total_block-1]);
             }else{
-              // printf("%s\n", "using iblocks of cur dir. TODO.");
+              printf("%s\n", "using iblocks of cur dir. TODO.");
               return NULL;
             }
             update_single_inode_ondisk(node, node->inode_index);
@@ -930,11 +958,9 @@ directory_entry* f_mkdir(char* filepath) {
             // printf("added to this data block: %d\n", node->last_block_index);
             write_data_to_block(node->last_block_index, dir_data, BLOCKSIZE);
             //update parent dir inode
-            // printf("%s\n", "-------1");
             node->size += sizeof(directory_entry);
             // print_dir_block(node, node->last_block_index);
             update_single_inode_ondisk(node, node->inode_index);
-            // printf("%s\n", "------2");
             //update new folder inode
             new_inode->size = 2 * sizeof(directory_entry);
             new_inode->type = DIR;
@@ -947,15 +973,12 @@ directory_entry* f_mkdir(char* filepath) {
             new_inode->last_block_index = new_inode->dblocks[0];
             void *data = get_data_block(current_mounted_disk->superblock1->free_block);
             current_mounted_disk->superblock1->free_block = *(int *) data;
-            // printf("%s\n", "------3");
             memcpy(data, currentD, sizeof(directory_entry));
             memcpy(data + sizeof(directory_entry), parent, sizeof(directory_entry));
             write_data_to_block(new_inode->dblocks[0], data, BLOCKSIZE);
             // print_dir_block(new_inode, new_inode->dblocks[0]);
-            // printf("%s\n", "-----4");
             //update superblock
             current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
-            // printf("%s\n", "-----5");
             update_superblock_ondisk(current_mounted_disk->superblock1);
             update_single_inode_ondisk(new_inode, new_inode_index);
             // print_superblock(current_mounted_disk->superblock1);
@@ -963,10 +986,8 @@ directory_entry* f_mkdir(char* filepath) {
         }
         free(currentD);
         free(parent);
-        //free(node);
         free(new_inode);
         free(dir_data);
-        // free(dir);
         return newf;
     }
 }
@@ -1224,20 +1245,52 @@ directory_entry* f_rmdir(char* filepath){
     printf("%s does not exit so cannot remove in rmdir\n", filepath);
     return NULL;
   }
-  int fd = get_fd_from_inode_value(start_ent->inode_index);
-  inode* start_node = file_table[fd]->file_inode;
+  inode* start_node = get_inode(start_ent->inode_index);
+  f_rmdir_helper(filepath, start_node);
+  return start_ent;
+}
+
+int get_size_directory_entry_block(directory_entry* entry){
+  int index = entry->inode_index;
+  inode* dirnode = get_inode(index);
+  int size = dirnode->size;
+  free(dirnode);
+  return size;
+}
+
+directory_entry* get_first_direntry(inode* node){
+  directory_entry* result = malloc(sizeof(directory_entry));
+  memset(result, 0, sizeof(directory_entry));
+  void* data = get_data_block(node->dblocks[0]);
+  int index = *(int*)(data+2*sizeof(directory_entry));
+  char* name = (char*)(data+2*sizeof(directory_entry)+sizeof(int));
+  result->inode_index = index;
+  strcpy(result->filename, name);
+  free(data);
+  return result;
 }
 
 void f_rmdir_helper(char* filepath, inode* node){
   if(node->type == REG){
     f_remove(filepath);
+    free(filepath);
+    free(node);
   }else{
     if(node->size == sizeof(directory_entry)*2){
       //the directroy is empty
       //remove the directory
+      f_remove(filepath);
+      free(filepath);
+      free(node);
     }else{
-      int size = node->size;
-
+      directory_entry* entry = get_first_direntry(node);
+      free(node);
+      inode* new_node = get_inode(entry->inode_index);
+      int new_length = strlen(filepath)+strlen(entry->filename)+2;
+      char* new_path = malloc(new_length);
+      memset(new_path, 0 , new_length);
+      free(entry);
+      f_rmdir_helper(new_path, new_node);
     }
   }
 }
@@ -1554,6 +1607,7 @@ void direct_copy(directory_entry *entry, inode *current_directory, long block_to
 //TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
 void *get_data_block(int index) {
   // printf("INDEX VALUE %d\n", index);
+    // printf("SIZE: %d\n", current_mounted_disk->superblock1->size);
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     memset(data_block, 0, current_mounted_disk->superblock1->size);
     // FILE *current_disk = current_mounted_disk->disk_image_ptr;
@@ -1597,6 +1651,7 @@ int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
     // print_inode(new_inode);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
     superblock *sp = current_mounted_disk->superblock1;
+    print_superblock(sp);
     int total_inode_num = (sp->data_offset - sp->inode_offset) * sp->size / sizeof(inode);
     if (new_inode_index > total_inode_num) {
         printf("%s\n", "NOT ENOUGH SPACE FOR INODES");
@@ -1606,7 +1661,7 @@ int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
     // (new_inode->inode_index) * sizeof(inode), SEEK_SET);
     fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * BLOCKSIZE +
                         new_inode_index * sizeof(inode), SEEK_SET);
-    fwrite(new_inode, sizeof(inode), 1, current_disk);
+    fwrite(new_inode, sizeof(inode), 1, current_mounted_disk->disk_image_ptr);
     return sizeof(new_inode);
 }
 

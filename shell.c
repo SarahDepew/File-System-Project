@@ -70,6 +70,7 @@ if(EXIT != TRUE) {
     create_users();
     login();
 
+    free(pwd_directory);
     pwd_directory = f_opendir(current_user->absolute_path_home_directory);
   }
 
@@ -124,6 +125,7 @@ if(EXIT != TRUE) {
 }
 
 /* Make sure that the filesystem is set up */
+
 void initializeFilesystem(char *disk_to_mount, int *mid) {
     setup();
     if(f_mount(disk_to_mount, "N/A", mid) == FALSE) {
@@ -1353,6 +1355,8 @@ int mkdir_builtin(char **args) {
     free(absolute_path);
     // printf("resuting string: %s\n", result);
     directory_entry *entry = f_mkdir(result);
+    print_file_table();
+    printf("%s\n", "-------------after mkdir------------");
     free(entry);
     free(result);
     return 0;
@@ -1360,7 +1364,6 @@ int mkdir_builtin(char **args) {
 
 int rmdir_builtin(char **args) {
     char* filename = args[1];
-    print_file_table();
     char* filepath = convert_absolute(pwd_directory->filename);
     char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
     memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
@@ -1369,6 +1372,8 @@ int rmdir_builtin(char **args) {
     wholepath = strcat(wholepath,filename);
     // printf("wholepath: %s\n", wholepath);
     f_remove(wholepath);
+    print_file_table();
+    printf("%s\n", "end of rmdir builin");
     return 0;
 }
 
@@ -1379,11 +1384,15 @@ int cd_builtin(char **args) {
     } else {
         pwd_directory = goto_destination(args[1]);
     }
+    print_file_table();
+    printf("%s\n", "end of cd");
     return 0;
 }
 
 int pwd_builtin(char **args) {
     char *absolute_path = convert_absolute(pwd_directory->filename);
+    print_file_table();
+    printf("%s\n", "end of pwd");
     printf("%s\n", absolute_path);
     free(absolute_path);
     return 0;
@@ -1796,7 +1805,9 @@ directory_entry* goto_destination(char* filepath) {
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
                         int parent_fd = addto_file_table(parent_node, APPEND);
-                        addto_file_table(curnode, APPEND);
+                        if(parent_fd == -1) free(parent_node);
+                        int some_fd = addto_file_table(curnode, APPEND);
+                        if(some_fd == -1) free(curnode);
                         free(entry);
                         break;
                     }
@@ -1826,7 +1837,7 @@ directory_entry* goto_destination(char* filepath) {
         }
     }
     // printf("distination exists: %s\n", filepath );
-    // free(pwd_directory);
+    free(pwd_directory);
     pwd_directory = current_working_dir;
     // print_file_table();
     // printf("pwd_dir: %s\n", pwd_directory->filename);
@@ -1846,6 +1857,10 @@ char* get_parentdir_name(directory_entry* entry){
     }
     for(int i=0; i<size; i+=sizeof(directory_entry)){
       directory_entry* ent = f_readdir(grand_fd);
+      if(ent == NULL){
+        printf("%s\n", "something wrong in get_parentdir_name");
+        return NULL;
+      }
       if(ent->inode_index == parent->inode_index){
         free(parent);
         free(grand_parent);
@@ -1910,6 +1925,8 @@ char* convert_absolute(char* filepath){
         // printf("%s\n", "FOUND" );
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
+        printf("parent_index changed to: %d\n", parent_node->inode_index);
+        printf("parent_fd changed to: %d\n", parent_fd);
         cur_fd = get_fd_from_inode_value(old_parent_index);
         // printf("cur_fd: %d\n", cur_fd);
         cur_node = get_table_entry(cur_fd)->file_inode;
@@ -1917,6 +1934,7 @@ char* convert_absolute(char* filepath){
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
         memset(absolute_path_collection[count], 0, strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
+        free(entry);
         break;
       }
       free(entry);
@@ -1932,6 +1950,7 @@ char* convert_absolute(char* filepath){
   }
   free(destination);
   char* absolute_path = NULL;
+  printf("%s\n", "converting to absolute path");
   if(count == 0){
     absolute_path = malloc(2);
     memset(absolute_path, 0, 2);
