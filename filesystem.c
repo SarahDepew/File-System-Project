@@ -223,7 +223,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
     } else {
         //directory exits, need to check if the file exits
         printf("%s\n", "directory exits. GOOD news.");
-        int dir_node_index = dir->inode_index;
+        // int dir_node_index = dir->inode_index;
         // printf("dir_index: %d\n", dir_node_index);
         // printf("dir_name: %s\n", dir->filename);
         int dir_fd = get_fd_from_inode_value(dir->inode_index);
@@ -295,7 +295,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             void *dir_data = get_data_block(dir_node->last_block_index);
             if (dir_node->size == BLOCKSIZE * (dir_node->size / BLOCKSIZE) ) {
                 //request new blocks
-                int total_block = dir_node->size / (float) BLOCKSIZE)+1;
+                int total_block = dir_node->size / BLOCKSIZE +1;
                 int new_block_index = find_next_datablock(dir_node, total_block, dir_node->size, dir_node->size);
                 void *content = malloc(BLOCKSIZE);
                 memcpy(content, newfile, sizeof(directory_entry));
@@ -312,7 +312,7 @@ int f_open(char* filepath, int access, permission_value *permissions) {
                   // print_dir_block(node, node->dblocks[total_block-1]);
                 }else{
                   printf("%s\n", "using iblocks of cur dir. TODO.");
-                  return NULL;
+                  return EXITFAILURE;
                 }
                 update_single_inode_ondisk(dir_node, dir_node->inode_index);
                 //update inode for the new dir
@@ -992,7 +992,7 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
     }
 
     int buffer_index = 0;
-    char *buffer_to_return = malloc(sizeof(size * n_times));
+    // char *buffer_to_return = malloc(sizeof(size * n_times));
     int bytes_read = size * n_times;
 
     for (int i = 0; i < n_times; i++) {
