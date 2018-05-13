@@ -41,7 +41,6 @@ char *unmount_string = "unmount\0";
 char *F = "-F\0";
 char *l = "-l\0";
 
-
 //strings and variables for jobs printout
 char *running = "Running\0";
 char *suspended = "Suspended\0";
@@ -61,23 +60,19 @@ user *valid_users[NUMBER_OF_VALID_USERS];
 int main (int argc, char **argv) {
     EXIT = FALSE;
 
-    initializeFilesystem();
+    int mid = -1;
+    initializeFilesystem("DISK", &mid);
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
-    //mount filesystem and open root
-    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
-        EXIT = TRUE;
-    }
-
-    pwd_directory = f_opendir("/");
-
+if(EXIT != TRUE) {
     //ask the user to log into the shell
     create_users();
     login();
 
     free(pwd_directory);
     pwd_directory = f_opendir(current_user->absolute_path_home_directory);
+  }
 
     while (!EXIT) {
 
@@ -119,8 +114,10 @@ int main (int argc, char **argv) {
 
     }
 
-    f_unmount(root_index_into_mount_table);
-    shutdownFilesystem();
+    // fclose(mount_table_entry[root_index_into_mount_table])
+    // f_unmount(root_index_into_mount_table);
+    shutdownFilesystem(mid);
+    free_users();
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
@@ -128,10 +125,12 @@ int main (int argc, char **argv) {
 }
 
 /* Make sure that the filesystem is set up */
-void initializeFilesystem() {
-    setup();
-    // f_mount("DISK", "N/A", &mid);
 
+void initializeFilesystem(char *disk_to_mount, int *mid) {
+    setup();
+    if(f_mount(disk_to_mount, "N/A", mid) == FALSE) {
+      EXIT = TRUE;
+    }
 }
 
 /* Make sure that the file system's memory is freed */
@@ -262,15 +261,27 @@ void create_users() {
     user *super_user = malloc(sizeof(user));
     user *basic_user = malloc(sizeof(user));
 
+    memset(super_user, 0, sizeof(user));
+    memset(basic_user, 0, sizeof(user));
+
     super_user->uid = 0;
     basic_user->uid = 1;
-    char* startsuper[2] ={"mkdir", "/super"};
-    mkdir_builtin(startsuper);
-    char* startbasic[2] ={"mkdir", "/basic"};
-    mkdir_builtin(startbasic);
-    //TODO: add home directories for users to the disk created in format...
-    super_user->absolute_path_home_directory = "/super";
-    basic_user->absolute_path_home_directory = "/basic";
+
+    //TODO: mount users at their own directories
+    // f_mkdir("/super");
+    // f_mkdir("/basic");
+    //
+    // super_user->absolute_path_home_directory = malloc(10);
+    // memset(super_user->absolute_path_home_directory, 0, 10);
+    // strcpy(super_user->absolute_path_home_directory, "/super");
+    //
+    // basic_user->absolute_path_home_directory = malloc(10);
+    // memset(basic_user->absolute_path_home_directory, 0, 10);
+    // strcpy(basic_user->absolute_path_home_directory, "/basic");
+
+    super_user->absolute_path_home_directory = "/";
+    basic_user->absolute_path_home_directory = "/";
+
     super_user->name = "super\n";
     basic_user->name = "basic\n";
     super_user->password = "suser\n";
@@ -280,9 +291,18 @@ void create_users() {
     valid_users[1] = basic_user;
 }
 
+void free_users() {
+  //TODO: uncomment if string comes back
+    // free(valid_users[0]->absolute_path_home_directory);
+    // free(valid_users[1]->absolute_path_home_directory);
+    free(valid_users[0]);
+    free(valid_users[1]);
+}
+
 void login() {
     boolean login_valid = FALSE;
     char *buffer = malloc(BUFFERSIZE);
+    memset(buffer, 0, BUFFERSIZE);
 
     while (!login_valid) {
         printf("Please enter a username less than 80 characters(super or basic): ");
@@ -347,6 +367,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
 
 job *package_job(background_job *cur_job) {
     job *to_return = malloc(sizeof(job));
+    memset(to_return, 0, sizeof(job));
     if (to_return == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         return NULL;
@@ -354,6 +375,7 @@ job *package_job(background_job *cur_job) {
     to_return->pgid = cur_job->pgid;
     to_return->status = cur_job->status;
     to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + 1);
+    memset(to_return->full_job_string, 0, lengthOf(cur_job->job_string) + 1);
     if (to_return->full_job_string == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         return NULL;
@@ -641,6 +663,7 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
     char *js = malloc(sizeof(char) * lengthOf(org->full_job_string) + 1);
+    memset(js, 0, sizeof(char) * lengthOf(org->full_job_string) + 1);
     if(js == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         exit(EXIT_FAILURE);
@@ -657,6 +680,7 @@ void put_job_in_background(job *j, int cont, int status) { //TODO: check on merg
     /* Add job to the background list with status of running */
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
+        memset(copyOfJ, 0, sizeof(background_job));
         if(copyOfJ == NULL) {
             perror("I am sorry, but there was an error with malloc.\n");
             exit(EXIT_FAILURE);
@@ -1203,7 +1227,9 @@ int ls_builtin(char **args) {
         inode* node = get_table_entry(file_table_index)->file_inode;
         printf("node size: %d\n",node->size );
         directory_entry *entry = f_readdir(file_table_index);
+        free(entry);
         entry = f_readdir(file_table_index);
+        free(entry);
         entry = f_readdir(file_table_index);
         while (entry != NULL) {
             printf("%s\n", entry->filename);
@@ -1283,7 +1309,7 @@ int mkdir_builtin(char **args) {
     }
     printf("path: %s\n", path);
     char *absolute_path = convert_absolute(path);
-    printf("converted: %s\n", absolute_path);
+    printf("converted: %s\n", absolute_path);  //parent dir
     free(path);
     printf("newfolder: %s\n", newfolder);
     char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
@@ -1292,8 +1318,11 @@ int mkdir_builtin(char **args) {
     result = strncat(result, "/", 1);
     result = strcat(result, newfolder);
     free(absolute_path);
-    printf("resuting string: %s\n", result);
+    printf("resuting string: %s\n", result);  //new_dir
+    print_file_table();
     directory_entry *entry = f_mkdir(result);
+    print_file_table();
+    printf("%s\n", "-------------after mkdir------------");
     free(entry);
     free(result);
     return 0;
@@ -1328,10 +1357,10 @@ int cd_builtin(char **args) {
 
 int pwd_builtin(char **args) {
     char *absolute_path = convert_absolute(pwd_directory->filename);
-    printf("%s\n", absolute_path);
-    free(absolute_path);
     print_file_table();
     printf("%s\n", "end of pwd");
+    printf("%s\n", absolute_path);
+    free(absolute_path);
     return 0;
 }
 
@@ -1383,13 +1412,13 @@ int contains_delimiter(char **args, int start, int end) {
 
 int location_last_delimiter(char **args) {
   int length_args = arrayLength(args);
-  char *delim;
+  // char *delim;
   boolean last_found = FALSE;
   int return_value;
   int last_found_location = -1;
   while(!last_found) {
     for(int i=0; i<length_args-1; i++) {
-      if((return_value = contains_delimiter(args, i, length_args)) != NULL) {
+      if((return_value = contains_delimiter(args, i, length_args)) != -1) {
         last_found_location = return_value;
       } else {
         last_found = TRUE;
@@ -1579,7 +1608,7 @@ int cat_builtin(char **args) {
      } else {
        printf("got here\n");
          inode *inode1;
-         directory_entry *entry;
+         directory_entry *entry = NULL;
          for (int i = 1; i < args_length; i++) {
              //first open the directory sought and then check in that directory for the value
              char *newfolder = NULL;
@@ -1627,7 +1656,8 @@ int cat_builtin(char **args) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
                      int file_size = inode1->size;
-                     void *file = malloc(sizeof(file_size));
+                     void *file = malloc(file_size);
+                     memset(file, 0, file_size);
                      if(file == NULL) {
                        perror("Malloc\n");
                        return -1;
@@ -1702,6 +1732,7 @@ directory_entry* goto_destination(char* filepath) {
     char *s = "/";
     char *token = strtok(copy, s);
     directory_entry *current_working_dir = malloc(sizeof(directory_entry));
+    memset(current_working_dir, 0, sizeof(directory_entry));
     current_working_dir->inode_index = pwd_directory->inode_index;
     strcpy(current_working_dir->filename, pwd_directory->filename);
     inode *curnode = NULL;
@@ -1745,7 +1776,9 @@ directory_entry* goto_destination(char* filepath) {
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
                         int parent_fd = addto_file_table(parent_node, APPEND);
-                        addto_file_table(curnode, APPEND);
+                        if(parent_fd == -1) free(parent_node);
+                        int some_fd = addto_file_table(curnode, APPEND);
+                        if(some_fd == -1) free(curnode);
                         free(entry);
                         break;
                     }
@@ -1775,7 +1808,7 @@ directory_entry* goto_destination(char* filepath) {
         }
     }
     // printf("distination exists: %s\n", filepath );
-    // free(pwd_directory);
+    free(pwd_directory);
     pwd_directory = current_working_dir;
     // print_file_table();
     printf("pwd_dir: %s\n", pwd_directory->filename);
@@ -1820,9 +1853,11 @@ char* convert_absolute(char* filepath){
     return NULL;
   }
   directory_entry* destination = malloc(sizeof(directory_entry));
+  memset(destination, 0, sizeof(directory_entry));
   destination->inode_index = dest->inode_index;
   strcpy(destination->filename,dest->filename);
   printf("in convert_absolute\n");
+  free(dest);
   char* absolute_path_collection[FILENAMEMAX];
   directory_entry* cur = destination;
   printf("destination_filename: %s\n", destination->filename);
@@ -1857,6 +1892,7 @@ char* convert_absolute(char* filepath){
       }
       if(entry->inode_index == cur->inode_index){
         printf("%s\n", "FOUND" );
+        addto_file_table(parent_node, APPEND);
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
         printf("parent_index changed to: %d\n", parent_node->inode_index);
@@ -1866,7 +1902,9 @@ char* convert_absolute(char* filepath){
         cur_node = get_table_entry(cur_fd)->file_inode;
         printf("%s\n", entry->filename);
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
+        memset(absolute_path_collection[count], 0, strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
+        free(entry);
         break;
       }
       free(entry);
@@ -1882,6 +1920,7 @@ char* convert_absolute(char* filepath){
   }
   free(destination);
   char* absolute_path = NULL;
+  printf("%s\n", "converting to absolute path");
   if(count == 0){
     absolute_path = malloc(2);
     memset(absolute_path, 0, 2);
