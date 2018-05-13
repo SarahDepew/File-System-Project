@@ -437,7 +437,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 //copy the data from the last block to data
                 memcpy(data, last_data_block, offset_into_last_block);
                 if (sizeof(datatowrite) < free_space) {
-                    memcpy(data + offset_into_last_block, datatowrite, sizeof(datatowrite));
+                    memcpy(data + offset_into_last_block, datatowrite, size*ntimes);
                 } else {
                     memcpy(data + offset_into_last_block, datatowrite, free_space);
                 }
@@ -1210,7 +1210,7 @@ directory_entry* f_rmdir(char* filepath){
   inode* start_node = file_table[fd]->file_inode;
 }
 
-int get_size_directory_entry(directory_entry* entry){
+int get_size_directory_entry_block(directory_entry* entry){
   int index = entry->inode_index;
   inode* dirnode = get_inode(index);
   int size = dirnode->size;
@@ -1225,6 +1225,7 @@ void f_rmdir_helper(char* filepath, inode* node){
     if(node->size == sizeof(directory_entry)*2){
       //the directroy is empty
       //remove the directory
+      f_remove(filepath);
     }else{
       int size = node->size;
 
@@ -1580,8 +1581,9 @@ int update_superblock_ondisk(superblock* new_superblock) {
 }
 
 int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
-    FILE *current_disk = current_mounted_disk->disk_image_ptr;
+    // FILE *current_disk = current_mounted_disk->disk_image_ptr;
     superblock *sp = current_mounted_disk->superblock1;
+    print_superblock(sp);
     int total_inode_num = (sp->data_offset - sp->inode_offset) * sp->size / sizeof(inode);
     if (new_inode_index > total_inode_num) {
         printf("%s\n", "NOT ENOUGH SPACE FOR INODES");
@@ -1589,9 +1591,9 @@ int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
     }
     // fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * sp->size +
     // (new_inode->inode_index) * sizeof(inode), SEEK_SET);
-    fseek(current_disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * sp->size +
+    fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + sp->inode_offset * BLOCKSIZE +
                         new_inode_index * sizeof(inode), SEEK_SET);
-    fwrite(new_inode, sizeof(inode), 1, current_disk);
+    fwrite(new_inode, sizeof(inode), 1, current_mounted_disk->disk_image_ptr);
     return sizeof(new_inode);
 }
 

@@ -261,9 +261,13 @@ void create_users() {
 
     super_user->uid = 0;
     basic_user->uid = 1;
+    char* startsuper[2] ={"mkdir", "/super"};
+    mkdir_builtin(startsuper);
+    char* startbasic[2] ={"mkdir", "/basic"};
+    mkdir_builtin(startbasic);
     //TODO: add home directories for users to the disk created in format...
-    super_user->absolute_path_home_directory = "/";
-    basic_user->absolute_path_home_directory = "/";
+    super_user->absolute_path_home_directory = "/super";
+    basic_user->absolute_path_home_directory = "/basic";
     super_user->name = "super\n";
     basic_user->name = "basic\n";
     super_user->password = "suser\n";
@@ -1294,7 +1298,6 @@ int mkdir_builtin(char **args) {
 
 int rmdir_builtin(char **args) {
     char* filename = args[1];
-    print_file_table();
     char* filepath = convert_absolute(pwd_directory->filename);
     char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
     memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
@@ -1303,6 +1306,7 @@ int rmdir_builtin(char **args) {
     wholepath = strcat(wholepath,filename);
     printf("wholepath: %s\n", wholepath);
     f_remove(wholepath);
+    print_file_table();
     return 0;
 }
 
