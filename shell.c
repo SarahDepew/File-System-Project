@@ -41,7 +41,6 @@ char *unmount_string = "unmount\0";
 char *F = "-F\0";
 char *l = "-l\0";
 
-
 //strings and variables for jobs printout
 char *running = "Running\0";
 char *suspended = "Suspended\0";
@@ -61,14 +60,10 @@ user *valid_users[NUMBER_OF_VALID_USERS];
 int main (int argc, char **argv) {
     EXIT = FALSE;
 
-    initializeFilesystem(-1);
+    int mid = -1;
+    initializeFilesystem("DISK", &mid);
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
-
-    //mount filesystem and open root
-    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) { //TODO: change back to DISK!
-        EXIT = TRUE;
-    }
 
     //ask the user to log into the shell
     create_users();
@@ -116,9 +111,10 @@ int main (int argc, char **argv) {
 
     }
 
-    free(pwd_directory);
-    f_unmount(root_index_into_mount_table);
-    shutdownFilesystem();
+    // fclose(mount_table_entry[root_index_into_mount_table])
+    // f_unmount(root_index_into_mount_table);
+    shutdownFilesystem(mid);
+    free_users();
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
@@ -126,9 +122,9 @@ int main (int argc, char **argv) {
 }
 
 /* Make sure that the filesystem is set up */
-void initializeFilesystem(mid) {
+void initializeFilesystem(char *disk_to_mount, int *mid) {
     setup();
-    f_mount("DISKDIR", "N/A", &mid);
+    f_mount(disk_to_mount, "N/A", mid);
 }
 
 /* Make sure that the file system's memory is freed */
@@ -259,11 +255,27 @@ void create_users() {
     user *super_user = malloc(sizeof(user));
     user *basic_user = malloc(sizeof(user));
 
+    memset(super_user, 0, sizeof(user));
+    memset(basic_user, 0, sizeof(user));
+
     super_user->uid = 0;
     basic_user->uid = 1;
-    //TODO: add home directories for users to the disk created in format...
+
+    //TODO: mount users at their own directories
+    // f_mkdir("/super");
+    // f_mkdir("/basic");
+    //
+    // super_user->absolute_path_home_directory = malloc(10);
+    // memset(super_user->absolute_path_home_directory, 0, 10);
+    // strcpy(super_user->absolute_path_home_directory, "/super");
+    //
+    // basic_user->absolute_path_home_directory = malloc(10);
+    // memset(basic_user->absolute_path_home_directory, 0, 10);
+    // strcpy(basic_user->absolute_path_home_directory, "/basic");
+
     super_user->absolute_path_home_directory = "/";
     basic_user->absolute_path_home_directory = "/";
+
     super_user->name = "super\n";
     basic_user->name = "basic\n";
     super_user->password = "suser\n";
@@ -273,9 +285,18 @@ void create_users() {
     valid_users[1] = basic_user;
 }
 
+void free_users() {
+  //TODO: uncomment if string comes back
+    // free(valid_users[0]->absolute_path_home_directory);
+    // free(valid_users[1]->absolute_path_home_directory);
+    free(valid_users[0]);
+    free(valid_users[1]);
+}
+
 void login() {
     boolean login_valid = FALSE;
     char *buffer = malloc(BUFFERSIZE);
+    memset(buffer, 0, BUFFERSIZE);
 
     while (!login_valid) {
         printf("Please enter a username less than 80 characters(super or basic): ");
@@ -340,6 +361,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
 
 job *package_job(background_job *cur_job) {
     job *to_return = malloc(sizeof(job));
+    memset(to_return, 0, sizeof(job));
     if (to_return == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         return NULL;
@@ -347,6 +369,7 @@ job *package_job(background_job *cur_job) {
     to_return->pgid = cur_job->pgid;
     to_return->status = cur_job->status;
     to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + 1);
+    memset(to_return->full_job_string, 0, lengthOf(cur_job->job_string) + 1);
     if (to_return->full_job_string == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         return NULL;
@@ -634,6 +657,7 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
     char *js = malloc(sizeof(char) * lengthOf(org->full_job_string) + 1);
+    memset(js, 0, sizeof(char) * lengthOf(org->full_job_string) + 1);
     if(js == NULL) {
         perror("I am sorry, but there was an error with malloc.\n");
         exit(EXIT_FAILURE);
@@ -650,6 +674,7 @@ void put_job_in_background(job *j, int cont, int status) { //TODO: check on merg
     /* Add job to the background list with status of running */
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
+        memset(copyOfJ, 0, sizeof(background_job));
         if(copyOfJ == NULL) {
             perror("I am sorry, but there was an error with malloc.\n");
             exit(EXIT_FAILURE);
@@ -1358,13 +1383,13 @@ int contains_delimiter(char **args, int start, int end) {
 
 int location_last_delimiter(char **args) {
   int length_args = arrayLength(args);
-  char *delim;
+  // char *delim;
   boolean last_found = FALSE;
   int return_value;
   int last_found_location = -1;
   while(!last_found) {
     for(int i=0; i<length_args-1; i++) {
-      if((return_value = contains_delimiter(args, i, length_args)) != NULL) {
+      if((return_value = contains_delimiter(args, i, length_args)) != -1) {
         last_found_location = return_value;
       } else {
         last_found = TRUE;
@@ -1554,7 +1579,7 @@ int cat_builtin(char **args) {
      } else {
        printf("got here\n");
          inode *inode1;
-         directory_entry *entry;
+         directory_entry *entry = NULL;
          for (int i = 1; i < args_length; i++) {
              //first open the directory sought and then check in that directory for the value
              char *newfolder = NULL;
@@ -1602,7 +1627,8 @@ int cat_builtin(char **args) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
                      int file_size = inode1->size;
-                     void *file = malloc(sizeof(file_size));
+                     void *file = malloc(file_size);
+                     memset(file, 0, file_size);
                      if(file == NULL) {
                        perror("Malloc\n");
                        return -1;
@@ -1675,6 +1701,7 @@ directory_entry* goto_destination(char* filepath) {
     char *s = "/";
     char *token = strtok(copy, s);
     directory_entry *current_working_dir = malloc(sizeof(directory_entry));
+    memset(current_working_dir, 0, sizeof(directory_entry));
     current_working_dir->inode_index = pwd_directory->inode_index;
     strcpy(current_working_dir->filename, pwd_directory->filename);
     inode *curnode = NULL;
@@ -1792,6 +1819,7 @@ char* convert_absolute(char* filepath){
     return NULL;
   }
   directory_entry* destination = malloc(sizeof(directory_entry));
+  memset(destination, 0, sizeof(directory_entry));
   destination->inode_index = dest->inode_index;
   strcpy(destination->filename,dest->filename);
   printf("in convert_absolute\n");
@@ -1835,6 +1863,7 @@ char* convert_absolute(char* filepath){
         cur_node = get_table_entry(cur_fd)->file_inode;
         printf("%s\n", entry->filename);
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
+        memset(absolute_path_collection[count], 0, strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
         break;
       }

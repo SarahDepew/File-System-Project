@@ -438,6 +438,8 @@ void test_freaddir_past_end(char *disk_to_mount, char *filepath) {
         entry = f_readdir(expected_fd);
     }
 
+    assert(entry == NULL); 
+
     f_closedir(return_from_opendir);
     f_unmount(mid);
 }

@@ -44,6 +44,7 @@ int split_white_space(char **user_input, char ***tokenized_input) {
     int buffer_mark = BUFFER_SIZE;
 
     (*tokenized_input) = malloc(sizeof(char *) * BUFFER_SIZE);
+    memset(*tokenized_input, 0, sizeof(char *) * BUFFER_SIZE);
 
     if (*tokenized_input == NULL) {
         perror("Malloc");
@@ -51,8 +52,8 @@ int split_white_space(char **user_input, char ***tokenized_input) {
     }
 
     int i = 0;
-    char *delim = NULL;
-    char *current_token;
+    // char *delim = NULL;
+    // char *current_token;
 
     (*tokenized_input)[i] = strtok(*user_input, " ");
     while ((*tokenized_input)[i] != NULL) {
@@ -94,6 +95,7 @@ char *get_next_token() {
         }
         if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
         token = malloc(sizeof(char *) * (count + 1));
+        memset(token, 0, sizeof(char *) * (count + 1));
         t->pos -= count;
         for (int i = 0; i <= count; i++) {
             token[i] = *(t->pos);
@@ -161,6 +163,7 @@ int perform_parse() {
     }
 
     t = malloc(sizeof(tokenizer));
+    memset(t, 0, sizeof(tokenizer));
     t->str = line;
     t->pos = &((t->str)[0]);
 
@@ -175,16 +178,19 @@ int perform_parse() {
     free(t);
 
     t = malloc(sizeof(tokenizer));
+    memset(t, 0, sizeof(tokenizer));
     t->str = line;
     t->pos = &((t->str)[0]);
 
     job *cur_job;
     cur_job = malloc(sizeof(job));
+    memset(cur_job, 0, sizeof(job));
     all_jobs = cur_job;
 
     while ((token = get_next_token()) != NULL) {
         job *new_job;
         new_job = malloc(sizeof(job));
+        memset(new_job, 0, sizeof(job));
         if (new_job == NULL) {
             perror("Malloc");
             break;
@@ -192,6 +198,7 @@ int perform_parse() {
         new_job->next_job = NULL;
 
         char *fjs = malloc(lengthOf(token) + 1);
+        memset(fjs, 0, lengthOf(token) + 1);
         if (fjs == NULL) {
             perror("Malloc");
             break;
@@ -234,6 +241,7 @@ int perform_parse() {
         process *cur_process;
         char **tokenized_process;
         cur_process = malloc(sizeof(process));
+        memset(cur_process, 0, sizeof(process));
         if (cur_process == NULL) {
             perror("Malloc");
             break;
