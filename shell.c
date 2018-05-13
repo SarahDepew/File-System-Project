@@ -280,10 +280,10 @@ void create_users() {
     super_user->absolute_path_home_directory = "/";
     basic_user->absolute_path_home_directory = "/";
 
-    super_user->name = "super\n";
-    basic_user->name = "basic\n";
-    super_user->password = "suser\n";
-    basic_user->password = "buser\n";
+    super_user->name = "super";
+    basic_user->name = "basic";
+    super_user->password = "suser";
+    basic_user->password = "buser";
 
     valid_users[0] = super_user;
     valid_users[1] = basic_user;
@@ -306,16 +306,18 @@ void login() {
         printf("Please enter a username less than 80 characters(super or basic): ");
         memset(buffer, 0, BUFFERSIZE);
         fgets(buffer, sizeof(buffer), stdin);
+        buffer[strlen(buffer)-1] = 0;
         if (strcmp(valid_users[0]->name, buffer) != 0 && strcmp(valid_users[1]->name, buffer) != 0) {
-            printf("Invalid username: %s. Please try again.\n", buffer);
+            printf("Invalid username. Please try again.\n");
             continue;
         }
         //password: suser buser
         printf("Please enter a password: ");
         memset(buffer, 0, BUFFERSIZE);
         fgets(buffer, sizeof(buffer), stdin);
+        buffer[strlen(buffer)-1] = 0;
         if (strcmp(valid_users[0]->password, buffer) != 0 && strcmp(valid_users[1]->password, buffer) != 0) {
-            printf("Invalid password: %s. Please try again.\n", buffer);
+            printf("Invalid password. Please try again.\n");
             continue;
         }
 
@@ -1025,7 +1027,7 @@ int background_builtin(char **args) {
         int base = 10;                                  /* numeric base (default 10)    */
         long long int number = 0;                       /* variable holding return      */
 
-        printf("Number to parse: %s\n", nptr);
+        // printf("Number to parse: %s\n", nptr);
         /* reset errno to 0 before call */
         errno = 0;
 
@@ -1127,7 +1129,7 @@ int foreground_builtin(char** args) {
             /* reset errno to 0 before call */
             errno = 0;
 
-            printf("job number %s\n", nptr);
+            // printf("job number %s\n", nptr);
 
             /* call to strtol assigning return to number */
             number = strtoll(nptr, &endptr, base);
@@ -1220,12 +1222,14 @@ int ls_builtin(char **args) {
 
     if (args_length == 1) {
         int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
-        printf("file_table_index: %d\n", file_table_index);
+        // printf("file_table_index: %d\n", file_table_index);
         f_rewind(file_table_index);
         inode* node = get_table_entry(file_table_index)->file_inode;
-        printf("node size: %d\n",node->size );
+        // printf("node size: %d\n",node->size );
         directory_entry *entry = f_readdir(file_table_index);
+        free(entry);
         entry = f_readdir(file_table_index);
+        free(entry);
         entry = f_readdir(file_table_index);
         while (entry != NULL) {
             printf("%s\n", entry->filename);
@@ -1239,7 +1243,9 @@ int ls_builtin(char **args) {
             f_rewind(file_table_index);
             if (strcmp(F, args[1]) == 0) {
                 directory_entry *entry = f_readdir(file_table_index);
+                free(entry);
                 entry = f_readdir(file_table_index);
+                free(entry);
                 entry = f_readdir(file_table_index);
                 while (entry != NULL) {
                     inode *inode1 = get_inode(entry->inode_index);
@@ -1248,14 +1254,30 @@ int ls_builtin(char **args) {
                     } else {
                         printf("%s\n", entry->filename);
                     }
+                    free(entry);
                     entry = f_readdir(file_table_index);
                     free(inode1);
                 }
                 return TRUE;
             } else {
                 //-l flag
-                //TODO: fill this in here...
-
+                directory_entry *entry = f_readdir(file_table_index);
+                free(entry);
+                entry = f_readdir(file_table_index);
+                free(entry);
+                entry = f_readdir(file_table_index);
+                while (entry != NULL) {
+                    inode *inode1 = get_inode(entry->inode_index);
+                    stat *st = malloc(sizeof(stat));
+                    memset(st, 0, sizeof(stat));
+                    f_stat(inode1, st);
+                    print_stat(st);
+                    free(st);
+                    free(entry);
+                    entry = f_readdir(file_table_index);
+                    free(inode1);
+                }
+                return TRUE;
             }
         } else {
             perror("An error occurred in ls. Please try again.\n");
@@ -1267,6 +1289,21 @@ int ls_builtin(char **args) {
     }
 
     return FALSE;
+}
+
+void print_stat (stat *entry) {
+    printf("file size - uid - gid - ctime - mtime - atime - type (0 = DIR, 1 = REGULAR) - permissions - inode index\n");
+    printf("%d - ", entry->size);
+    printf("%d - ", entry->uid);
+    printf("%d - ", entry->gid);
+    printf("%d - ", entry->ctime);
+    printf("%d - ", entry->mtime);
+    printf("%d - ", entry->atime);
+    printf("%d - ", entry->type);
+    printf("%d - ", entry->permission.owner);
+    printf("%d - ", entry->permission.group);
+    printf("%d - ", entry->permission.others);
+    printf("%d\n", entry->inode_index);  //TODO: add printing out all file blocks as needed
 }
 
 int chmod_builtin(char **args) {
@@ -1294,27 +1331,27 @@ int mkdir_builtin(char **args) {
         count++;
         token = strtok(NULL, s);
     }
-    printf("count: %d\n", count);
+    // printf("count: %d\n", count);
     newfolder = strtok(path_copy, s);
     while (count > 1) {
         count--;
-        printf("new_folder: %s\n", newfolder);
+        // printf("new_folder: %s\n", newfolder);
         path = strcat(path, newfolder);
         path = strcat(path, "/");
         newfolder = strtok(NULL, s);
     }
-    printf("path: %s\n", path);
+    // printf("path: %s\n", path);
     char *absolute_path = convert_absolute(path);
-    printf("converted: %s\n", absolute_path);
+    // printf("converted: %s\n", absolute_path);
     free(path);
-    printf("newfolder: %s\n", newfolder);
+    // printf("newfolder: %s\n", newfolder);
     char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
     memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
     result = strncat(result, absolute_path, strlen(absolute_path));
     result = strncat(result, "/", 1);
     result = strcat(result, newfolder);
     free(absolute_path);
-    printf("resuting string: %s\n", result);
+    // printf("resuting string: %s\n", result);
     directory_entry *entry = f_mkdir(result);
     free(entry);
     free(result);
@@ -1330,7 +1367,7 @@ int rmdir_builtin(char **args) {
     wholepath = strncat(wholepath, filepath, strlen(filepath));
     wholepath = strncat(wholepath, "/", 1);
     wholepath = strcat(wholepath,filename);
-    printf("wholepath: %s\n", wholepath);
+    // printf("wholepath: %s\n", wholepath);
     f_remove(wholepath);
     return 0;
 }
@@ -1444,8 +1481,8 @@ int cat_builtin(char **args) {
     //get args length
     int args_length = arrayLength(args);
 
-    printf("Printing cat args result:\n");
-    print_args(args);
+    // printf("Printing cat args result:\n");
+    // print_args(args);
 
    if (args_length == 1) {
        char c;
@@ -1461,15 +1498,12 @@ int cat_builtin(char **args) {
            }
        }
    } else {
-     printf("args len %d\n", args_length);
+     // printf("args len %d\n", args_length);
      int location = -1;
-     int last_found_location = -1;
-     char *delim = NULL;
+     // int last_found_location = -1;
      int flag = READ;
 
-     printf("got here \n");
      location = contains_delimiter(args, 0, args_length);
-     printf("location %d \n", location);
 
      if(location != -1) {
        if(is_all_delimeters(args)) {
@@ -1477,11 +1511,12 @@ int cat_builtin(char **args) {
          return -1;
        }
 
+        char *delim = NULL;
         delim = which_is_contained(args[location]);
         // last_found_location = location_last_delimiter(args);
-        printf("got here\n");
+        // printf("got here\n");
         if(location == 1) {
-          printf("got here\n");
+          // printf("got here\n");
           // if(args[last_found_location] == ">>") {
           if(strcmp(args[location], ">>") == 0) {
             flag = APPEND;
@@ -1509,32 +1544,32 @@ int cat_builtin(char **args) {
               count++;
               token = strtok(NULL, s);
           }
-          printf("count: %d\n", count);
+          // printf("count: %d\n", count);
           newfolder = strtok(path_copy, s);
           while (count > 1) {
               count--;
-              printf("new_folder: %s\n", newfolder);
+              // printf("new_folder: %s\n", newfolder);
               path = strcat(path, newfolder);
               path = strcat(path, "/");
               newfolder = strtok(NULL, s);
           }
-          printf("path: %s\n", path);
+          // printf("path: %s\n", path);
           char *absolute_path = convert_absolute(path);
-          printf("converted: %s\n", absolute_path);
+          // printf("converted: %s\n", absolute_path);
           free(path);
-          printf("newfolder: %s\n", newfolder);
+          // printf("newfolder: %s\n", newfolder);
           char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
           memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
           result = strncat(result, absolute_path, strlen(absolute_path));
           result = strncat(result, "/", 1);
           result = strcat(result, newfolder);
           free(absolute_path);
-          printf("resuting string for file path: %s\n", result);
+          // printf("resuting string for file path: %s\n", result);
 
         int fd = f_open(result, flag, NULL);
 
-        printf("opened new file in cat...\n");
-        printf("file descriptor %d\n", fd);
+        // printf("opened new file in cat...\n");
+        // printf("file descriptor %d\n", fd);
         // while (read(STDIN_FILENO, c, 1) > 0) {
         //   if (f_write(c, 1, 1, fd) < 0) {
         //       errorMessage();
@@ -1594,9 +1629,8 @@ int cat_builtin(char **args) {
         // //
         // }
      } else {
-       printf("got here\n");
-         inode *inode1;
-         directory_entry *entry = NULL;
+         inode *inode1 = NULL;
+         // directory_entry *entry = NULL;
          for (int i = 1; i < args_length; i++) {
              //first open the directory sought and then check in that directory for the value
              char *newfolder = NULL;
@@ -1614,27 +1648,27 @@ int cat_builtin(char **args) {
                  count++;
                  token = strtok(NULL, s);
              }
-             printf("count: %d\n", count);
+             // printf("count: %d\n", count);
              newfolder = strtok(path_copy, s);
              while (count > 1) {
                  count--;
-                 printf("new_folder: %s\n", newfolder);
+                 // printf("new_folder: %s\n", newfolder);
                  path = strcat(path, newfolder);
                  path = strcat(path, "/");
                  newfolder = strtok(NULL, s);
              }
-             printf("path: %s\n", path);
+             // printf("path: %s\n", path);
              char *absolute_path = convert_absolute(path);
-             printf("converted: %s\n", absolute_path);
+             // printf("converted: %s\n", absolute_path);
              free(path);
-             printf("newfolder: %s\n", newfolder);
+             // printf("newfolder: %s\n", newfolder);
              char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
              memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
              result = strncat(result, absolute_path, strlen(absolute_path));
              result = strncat(result, "/", 1);
              result = strcat(result, newfolder);
              free(absolute_path);
-             printf("resuting string: %s\n", result);
+             // printf("resuting string: %s\n", result);
 
              int fd;
              if ((fd = f_open(result, READ, NULL)) != EXITFAILURE) {
@@ -1665,10 +1699,8 @@ int cat_builtin(char **args) {
          }
      }
  }
-
     return 0;
 }
-
 
 /*
  * Error method to handle any error in program
@@ -1725,20 +1757,20 @@ directory_entry* goto_destination(char* filepath) {
     strcpy(current_working_dir->filename, pwd_directory->filename);
     inode *curnode = NULL;
     if (filepath[0] != '/') {
-        printf("%s\n", "relative path");
+        // printf("%s\n", "relative path");
         //relative path
         for (; token != NULL; token = strtok(NULL, s)) {
             if (strcmp(token, ".") != 0) {
-                printf("token :%s\n", token);
-                printf("cur inode index: %d\n", current_working_dir->inode_index);
+                // printf("token :%s\n", token);
+                // printf("cur inode index: %d\n", current_working_dir->inode_index);
                 int cur_fd = get_fd_from_inode_value(current_working_dir->inode_index);
-                printf("cur_fd: %d\n", cur_fd);
+                // printf("cur_fd: %d\n", cur_fd);
                 curnode = get_table_entry(cur_fd)->file_inode;
                 inode *prev_node = curnode;
                 //print_inode(curnode);
                 int current_fd = get_fd_from_inode_value(curnode->inode_index);
                 f_rewind(current_fd);
-                printf("current_fd: %d\n", current_fd);
+                // printf("current_fd: %d\n", current_fd);
                 directory_entry *entry = NULL;
                 int size = curnode->size;
                 for (int i = 0; i < size; i += sizeof(directory_entry)) {
@@ -1749,16 +1781,16 @@ directory_entry* goto_destination(char* filepath) {
                         free(current_working_dir);
                         return NULL;
                     }
-                    printf("entry_name: %s\n", entry->filename);
+                    // printf("entry_name: %s\n", entry->filename);
                     if (strcmp(entry->filename, token) == 0) {
                         if (prev_node != NULL && prev_node->inode_index != 0) {
-                            printf("curnode index: %d\n", curnode->inode_index);
+                            // printf("curnode index: %d\n", curnode->inode_index);
                             remove_from_file_table(curnode);
                         }
-                        printf("found: %s\n", token);
+                        // printf("found: %s\n", token);
                         current_working_dir->inode_index = entry->inode_index;
                         char* name = get_parentdir_name(entry);
-                        printf("tesing: %s\n", name);
+                        // printf("tesing: %s\n", name);
                         strcpy(current_working_dir->filename, name);
                         // strcpy(current_working_dir->filename, entry->filename);
                         curnode = get_inode(current_working_dir->inode_index);
@@ -1775,11 +1807,11 @@ directory_entry* goto_destination(char* filepath) {
             }
         }
     } else {
-        printf("%s\n", "absolute path");
+        // printf("%s\n", "absolute path");
         //absolute path
         directory_entry *entry = f_opendir(filepath);
         if (entry == NULL) {
-            printf("cannot go to :%s \n", filepath);
+            // printf("cannot go to :%s \n", filepath);
             free(entry);
             free(current_working_dir);
             return NULL;
@@ -1797,12 +1829,12 @@ directory_entry* goto_destination(char* filepath) {
     // free(pwd_directory);
     pwd_directory = current_working_dir;
     // print_file_table();
-    printf("pwd_dir: %s\n", pwd_directory->filename);
+    // printf("pwd_dir: %s\n", pwd_directory->filename);
     return pwd_directory;
 }
 
 char* get_parentdir_name(directory_entry* entry){
-  printf("%s\n","in get_parentdir_name" );
+  // printf("%s\n","in get_parentdir_name" );
   if(strcmp(entry->filename, "..") == 0){
     inode* parent = get_inode(entry->inode_index);
     inode* grand_parent = get_inode(parent->parent_inode_index);
@@ -1810,7 +1842,7 @@ char* get_parentdir_name(directory_entry* entry){
     int grand_fd = get_fd_from_inode_value(grand_parent->inode_index);
     f_rewind(grand_fd);
     if(grand_fd == -1){
-      printf("%s\n", "grand_fd not in the file table");
+      // printf("%s\n", "grand_fd not in the file table");
     }
     for(int i=0; i<size; i+=sizeof(directory_entry)){
       directory_entry* ent = f_readdir(grand_fd);
@@ -1820,7 +1852,7 @@ char* get_parentdir_name(directory_entry* entry){
         return ent->filename;
       }
       if(ent == NULL){
-        printf("%s\n", "something wrong in get_parentdir_name");
+        // printf("%s\n", "something wrong in get_parentdir_name");
       }
       free(ent);
     }
@@ -1841,14 +1873,14 @@ char* convert_absolute(char* filepath){
   memset(destination, 0, sizeof(directory_entry));
   destination->inode_index = dest->inode_index;
   strcpy(destination->filename,dest->filename);
-  printf("in convert_absolute\n");
+  // printf("in convert_absolute\n");
   char* absolute_path_collection[FILENAMEMAX];
   directory_entry* cur = destination;
-  printf("destination_filename: %s\n", destination->filename);
-  printf("destination_inode: %d\n", destination->inode_index);
+  // printf("destination_filename: %s\n", destination->filename);
+  // printf("destination_inode: %d\n", destination->inode_index);
   // print_file_table();
   int cur_fd = get_fd_from_inode_value(cur->inode_index);
-  printf("cur_fd: %d\n", cur_fd);
+  // printf("cur_fd: %d\n", cur_fd);
   inode* cur_node = get_table_entry(cur_fd)->file_inode;
   int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
   inode* parent_node = get_table_entry(parent_fd)->file_inode;
@@ -1858,30 +1890,30 @@ char* convert_absolute(char* filepath){
   f_rewind(parent_fd);
   for(; cur->inode_index > 0;){
     for(int i = 0; i < size; i += sizeof(directory_entry)){
-      printf("parent_fd: %d\n", parent_fd);
+      // printf("parent_fd: %d\n", parent_fd);
       directory_entry* entry = f_readdir(parent_fd);
       if(entry == NULL){
-        printf("something wrong in conver_absolute\n");
+        // printf("something wrong in conver_absolute\n");
         printf("%s not found\n", filepath);
         free(destination);
         return NULL;
       }
-      printf("entry->filename: %s\n", entry->filename);
-      printf("cur->inode_index: %d\n", cur->inode_index);
-      printf("entry->inode_index: %d\n", entry->inode_index);
+      // printf("entry->filename: %s\n", entry->filename);
+      // printf("cur->inode_index: %d\n", cur->inode_index);
+      // printf("entry->inode_index: %d\n", entry->inode_index);
       if(strcmp(entry->filename, "..")==0){
-        printf("%s\n", "find parent in conver_absolute");
+        // printf("%s\n", "find parent in conver_absolute");
         parent_node= get_inode(entry->inode_index);
         // addto_file_table(parent_node, APPEND);
       }
       if(entry->inode_index == cur->inode_index){
-        printf("%s\n", "FOUND" );
+        // printf("%s\n", "FOUND" );
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
         cur_fd = get_fd_from_inode_value(old_parent_index);
-        printf("cur_fd: %d\n", cur_fd);
+        // printf("cur_fd: %d\n", cur_fd);
         cur_node = get_table_entry(cur_fd)->file_inode;
-        printf("%s\n", entry->filename);
+        // printf("%s\n", entry->filename);
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
         memset(absolute_path_collection[count], 0, strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
@@ -1890,9 +1922,9 @@ char* convert_absolute(char* filepath){
       free(entry);
     }
     size = parent_node->size;
-    printf("%s\n", "is it here?");
+    // printf("%s\n", "is it here?");
     cur->inode_index =  old_parent_index;
-    printf("reset to :%d\n", old_parent_index);
+    // printf("reset to :%d\n", old_parent_index);
     old_parent_index = parent_node->inode_index;
     count ++;
     f_rewind(parent_fd);
@@ -1905,7 +1937,7 @@ char* convert_absolute(char* filepath){
     memset(absolute_path, 0, 2);
     absolute_path = strcat(absolute_path, "/");
     // print_file_table();
-    printf("%s\n", "count == 0");
+    // printf("%s\n", "count == 0");
     return absolute_path;
   }
   absolute_path = malloc(count*FILENAMEMAX );
@@ -1917,6 +1949,6 @@ char* convert_absolute(char* filepath){
     free(absolute_path_collection[count]);
   }
   // print_file_table();
-  printf("pwd: %s\n", pwd_directory->filename);
+  // printf("pwd: %s\n", pwd_directory->filename);
   return absolute_path;
 }
