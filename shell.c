@@ -1187,13 +1187,14 @@ void print_args(char **args) {
 //TODO: fill in the following methods :)
 int ls_builtin(char **args) {
 //    print_args(args);
-
     int args_length = arrayLength(args);
 
     if (args_length == 1) {
         int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
         f_rewind(file_table_index);
         directory_entry *entry = f_readdir(file_table_index);
+        entry = f_readdir(file_table_index);
+        entry = f_readdir(file_table_index);
         while (entry != NULL) {
             printf("%s\n", entry->filename);
             free(entry);
@@ -1206,7 +1207,8 @@ int ls_builtin(char **args) {
             f_rewind(file_table_index);
             if (strcmp(F, args[1]) == 0) {
                 directory_entry *entry = f_readdir(file_table_index);
-
+                entry = f_readdir(file_table_index);
+                entry = f_readdir(file_table_index);
                 while (entry != NULL) {
                     inode *inode1 = get_inode(entry->inode_index);
                     if (inode1->type == DIR) {
@@ -1417,28 +1419,38 @@ int cat_builtin(char **args) {
            }
        }
    } else {
+     printf("args len %d\n", args_length);
      int location = -1;
      int last_found_location = -1;
      char *delim = NULL;
      int flag = READ;
 
-     if((location = contains_delimiter(args, 0, args_length)) != -1) {
+     printf("got here \n");
+     location = contains_delimiter(args, 0, args_length);
+     printf("location %d \n", location);
+
+     if(location != -1) {
        if(is_all_delimeters(args)) {
          printf("syntax error in cat\n");
          return -1;
        }
 
         delim = which_is_contained(args[location]);
-        last_found_location = location_last_delimiter(args);
-
+        // last_found_location = location_last_delimiter(args);
+        printf("got here\n");
         if(location == 1) {
-          if(args[last_found_location] == ">>") {
+          printf("got here\n");
+          // if(args[last_found_location] == ">>") {
+          if(strcmp(args[location], ">>") == 0) {
             flag = APPEND;
-          } else if(args[last_found_location] == ">") {
+          }
+          // } else if(args[last_found_location] == ">") {
+          else if(strcmp(args[location], ">") == 0) {
             flag = WRITE;
           }
 
-          int i = last_found_location + 1;
+          // int i = last_found_location + 1; //TODO: fix once last known is current_working_dir
+          int i = location + 1;
 
           char *newfolder = NULL;
           char *path = malloc(strlen(args[i]));
@@ -1475,17 +1487,49 @@ int cat_builtin(char **args) {
           result = strncat(result, "/", 1);
           result = strcat(result, newfolder);
           free(absolute_path);
-          printf("resuting string: %s\n", result);
+          printf("resuting string for file path: %s\n", result);
 
         int fd = f_open(result, flag, NULL);
 
-        char *c;
-        while (read(STDIN_FILENO, c, 1) > 0) {
-          if (f_write(c, 1, 1, fd) < 0) {
-              errorMessage();
+        printf("opened new file in cat...\n");
+        printf("file descriptor %d\n", fd);
+        // while (read(STDIN_FILENO, c, 1) > 0) {
+        //   if (f_write(c, 1, 1, fd) < 0) {
+        //       errorMessage();
+        //   }
+        // }
+
+        char c;
+        while (read(STDIN_FILENO, &c, 1) > 0) {
+            // if (c != '\n') {
+              if (f_write(&c, 1, 1, fd) < 0) {
+                    errorMessage();
+                }
           }
-        }
+
+        f_close(fd);
+
+            // } else {
+            //
+            //     if (write(STDOUT_FILENO, "\n", 1) < 0) {
+            //         errorMessage();
+            //     }
+            // }
+        // }
+
       }
+
+      // while (read(STDIN_FILENO, &c, 1) > 0) {
+      //     if (c != '\n') {
+      //         if (write(1, &c, 1) < 0) {
+      //             errorMessage();
+      //         }
+      //     } else {
+      //         if (write(STDOUT_FILENO, "\n", 1) < 0) {
+      //             errorMessage();
+      //         }
+      //     }
+      // }
 
           /*   char c;
             while (read(STDIN_FILENO, &c, 1) > 0) {
@@ -1508,6 +1552,7 @@ int cat_builtin(char **args) {
         // //
         // }
      } else {
+       printf("got here\n");
          inode *inode1;
          directory_entry *entry;
          for (int i = 1; i < args_length; i++) {
@@ -1557,16 +1602,18 @@ int cat_builtin(char **args) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
                      int file_size = inode1->size;
-                     char *file = malloc(sizeof(file_size));
+                     void *file = malloc(sizeof(file_size));
                      if(file == NULL) {
                        perror("Malloc\n");
                        return -1;
                      }
-                     printf("gets to the read section\n");
+
                      f_read(file, file_size, 1, fd);
                      if (write(STDOUT_FILENO, file, file_size) < 0) {
                          errorMessage();
                      }
+                     printf("\n");
+                     free(file);
                      f_close(fd);
                  }
              } else {
