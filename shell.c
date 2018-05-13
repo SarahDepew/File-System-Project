@@ -1216,7 +1216,10 @@ int ls_builtin(char **args) {
 
     if (args_length == 1) {
         int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
+        printf("file_table_index: %d\n", file_table_index);
         f_rewind(file_table_index);
+        inode* node = get_table_entry(file_table_index)->file_inode;
+        printf("node size: %d\n",node->size );
         directory_entry *entry = f_readdir(file_table_index);
         entry = f_readdir(file_table_index);
         entry = f_readdir(file_table_index);
@@ -1315,6 +1318,16 @@ int mkdir_builtin(char **args) {
 }
 
 int rmdir_builtin(char **args) {
+    char* filename = args[1];
+    print_file_table();
+    char* filepath = convert_absolute(pwd_directory->filename);
+    char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
+    memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
+    wholepath = strncat(wholepath, filepath, strlen(filepath));
+    wholepath = strncat(wholepath, "/", 1);
+    wholepath = strcat(wholepath,filename);
+    printf("wholepath: %s\n", wholepath);
+    f_remove(wholepath);
     return 0;
 }
 
@@ -1667,6 +1680,8 @@ int more_builtin(char **args) {
 }
 
 int rm_builtin(char **args) {
+    rmdir_builtin(args);
+
     return 0;
 }
 
@@ -1860,6 +1875,7 @@ char* convert_absolute(char* filepath){
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
         cur_fd = get_fd_from_inode_value(old_parent_index);
+        printf("cur_fd: %d\n", cur_fd);
         cur_node = get_table_entry(cur_fd)->file_inode;
         printf("%s\n", entry->filename);
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
@@ -1897,5 +1913,6 @@ char* convert_absolute(char* filepath){
     free(absolute_path_collection[count]);
   }
   // print_file_table();
+  printf("pwd: %s\n", pwd_directory->filename);
   return absolute_path;
 }
