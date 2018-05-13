@@ -102,7 +102,7 @@ void buildBuiltIns();
 /* Create the array of valid users */
 void create_users();
 
-void free_users(); 
+void free_users();
 
 /* Login process for shell */
 void login();

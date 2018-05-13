@@ -65,11 +65,13 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
+if(EXIT != TRUE) {
     //ask the user to log into the shell
     create_users();
     login();
 
     pwd_directory = f_opendir(current_user->absolute_path_home_directory);
+  }
 
     while (!EXIT) {
 
@@ -124,7 +126,9 @@ int main (int argc, char **argv) {
 /* Make sure that the filesystem is set up */
 void initializeFilesystem(char *disk_to_mount, int *mid) {
     setup();
-    f_mount(disk_to_mount, "N/A", mid);
+    if(f_mount(disk_to_mount, "N/A", mid) == FALSE) {
+      EXIT = TRUE;
+    }
 }
 
 /* Make sure that the file system's memory is freed */

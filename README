@@ -3,3 +3,6 @@ Names: Sarah Depew and Rose Lin
 System Structure:
 
 How to use format to format a disk:
+
+Known issues:
+  There are memory still reachable errors caused by readline. Dylan and I had this in our original shell, and we were not docked the points. Please recall the existence of this memory leak. 
