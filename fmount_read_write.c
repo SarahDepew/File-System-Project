@@ -5,6 +5,6 @@
 int main(){
   setup();
   int b = f_mount("DISKROOT","",0);
-  printf("%d\n", b);
+  // printf("%d\n", b);
   shutdown();
 }
