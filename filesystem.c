@@ -670,6 +670,28 @@ void print_dir_block(inode* node, int block_index){
     free(data);
 }
 
+char* get_filename_from_inode(inode* node, char* name){
+  inode* parent_node =  get_inode(node->parent_inode_index);
+  printf("%s\n", "after getting parentnode" );
+  int count = 0;
+  for(int i =0 ;i <node->size; i+= sizeof(directory_entry)){
+    int index = i/BLOCKSIZE;
+    void* data = get_data_block(parent_node->dblocks[index]);
+    int dirindex = *(int*)(data + count*sizeof(directory_entry));
+    char* dirname = (char*)(data+count*sizeof(directory_entry)+sizeof(int));
+    if(dirindex == node->inode_index){
+      strcpy(name, dirname);
+      free(data);
+      free(parent_node);
+      return name;
+    }
+    free(data);
+    count ++;
+  }
+  free(parent_node);
+  return NULL;
+}
+
 void print_file_table() {
     printf("%s\n", "------------start printing file_table------");
     for (int i = 0; i < FILETABLESIZE; i++) {
@@ -678,7 +700,10 @@ void print_file_table() {
                 printf("%d: %s\n", i, "empty");
             } else {
                 inode *node = file_table[i]->file_inode;
-                printf("%d: inode->index: %d \t byte_offset: %d\n", i, node->inode_index, file_table[i]->byte_offset);
+                char name[FILENAMEMAX];
+                memset(name, 0, FILENAMEMAX);
+                strcpy(name, get_filename_from_inode(node, name));
+                printf("%d: inode->index: %d \t byte_offset: %d\t name: %s\n", i, node->inode_index, file_table[i]->byte_offset, name);
             }
         }
     }
@@ -1206,8 +1231,9 @@ directory_entry* f_rmdir(char* filepath){
     printf("%s does not exit so cannot remove in rmdir\n", filepath);
     return NULL;
   }
-  int fd = get_fd_from_inode_value(start_ent->inode_index);
-  inode* start_node = file_table[fd]->file_inode;
+  inode* start_node = get_inode(start_ent->inode_index);
+  f_rmdir_helper(filepath, start_node);
+  return start_ent;
 }
 
 int get_size_directory_entry_block(directory_entry* entry){
@@ -1218,17 +1244,39 @@ int get_size_directory_entry_block(directory_entry* entry){
   return size;
 }
 
+directory_entry* get_first_direntry(inode* node){
+  directory_entry* result = malloc(sizeof(directory_entry));
+  memset(result, 0, sizeof(directory_entry));
+  void* data = get_data_block(node->dblocks[0]);
+  int index = *(int*)(data+2*sizeof(directory_entry));
+  char* name = (char*)(data+2*sizeof(directory_entry)+sizeof(int));
+  result->inode_index = index;
+  strcpy(result->filename, name);
+  free(data);
+  return result;
+}
+
 void f_rmdir_helper(char* filepath, inode* node){
   if(node->type == REG){
     f_remove(filepath);
+    free(filepath);
+    free(node);
   }else{
     if(node->size == sizeof(directory_entry)*2){
       //the directroy is empty
       //remove the directory
       f_remove(filepath);
+      free(filepath);
+      free(node);
     }else{
-      int size = node->size;
-
+      directory_entry* entry = get_first_direntry(node);
+      free(node);
+      inode* new_node = get_inode(entry->inode_index);
+      int new_length = strlen(filepath)+strlen(entry->filename)+2;
+      char* new_path = malloc(new_length);
+      memset(new_path, 0 , new_length);
+      free(entry);
+      f_rmdir_helper(new_path, new_node);
     }
   }
 }

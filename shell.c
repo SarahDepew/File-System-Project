@@ -61,19 +61,22 @@ user *valid_users[NUMBER_OF_VALID_USERS];
 int main (int argc, char **argv) {
     EXIT = FALSE;
 
-    initializeFilesystem(-1);
+    initializeFilesystem();
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
     //mount filesystem and open root
-    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) { //TODO: change back to DISK!
+    if (f_mount("DISK", "N/A", &root_index_into_mount_table) == FALSE) {
         EXIT = TRUE;
     }
+
+    pwd_directory = f_opendir("/");
 
     //ask the user to log into the shell
     create_users();
     login();
 
+    free(pwd_directory);
     pwd_directory = f_opendir(current_user->absolute_path_home_directory);
 
     while (!EXIT) {
@@ -116,7 +119,6 @@ int main (int argc, char **argv) {
 
     }
 
-    free(pwd_directory);
     f_unmount(root_index_into_mount_table);
     shutdownFilesystem();
 
@@ -126,9 +128,10 @@ int main (int argc, char **argv) {
 }
 
 /* Make sure that the filesystem is set up */
-void initializeFilesystem(mid) {
+void initializeFilesystem() {
     setup();
-    f_mount("DISKDIR", "N/A", &mid);
+    // f_mount("DISK", "N/A", &mid);
+
 }
 
 /* Make sure that the file system's memory is freed */
@@ -1307,6 +1310,7 @@ int rmdir_builtin(char **args) {
     printf("wholepath: %s\n", wholepath);
     f_remove(wholepath);
     print_file_table();
+    printf("%s\n", "end of rmdir builin");
     return 0;
 }
 
@@ -1317,6 +1321,8 @@ int cd_builtin(char **args) {
     } else {
         pwd_directory = goto_destination(args[1]);
     }
+    print_file_table();
+    printf("%s\n", "end of cd");
     return 0;
 }
 
@@ -1324,6 +1330,8 @@ int pwd_builtin(char **args) {
     char *absolute_path = convert_absolute(pwd_directory->filename);
     printf("%s\n", absolute_path);
     free(absolute_path);
+    print_file_table();
+    printf("%s\n", "end of pwd");
     return 0;
 }
 
@@ -1787,13 +1795,14 @@ char* get_parentdir_name(directory_entry* entry){
     }
     for(int i=0; i<size; i+=sizeof(directory_entry)){
       directory_entry* ent = f_readdir(grand_fd);
+      if(ent == NULL){
+        printf("%s\n", "something wrong in get_parentdir_name");
+        return NULL;
+      }
       if(ent->inode_index == parent->inode_index){
         free(parent);
         free(grand_parent);
         return ent->filename;
-      }
-      if(ent == NULL){
-        printf("%s\n", "something wrong in get_parentdir_name");
       }
       free(ent);
     }
@@ -1818,7 +1827,7 @@ char* convert_absolute(char* filepath){
   directory_entry* cur = destination;
   printf("destination_filename: %s\n", destination->filename);
   printf("destination_inode: %d\n", destination->inode_index);
-  // print_file_table();
+  print_file_table();
   int cur_fd = get_fd_from_inode_value(cur->inode_index);
   printf("cur_fd: %d\n", cur_fd);
   inode* cur_node = get_table_entry(cur_fd)->file_inode;
@@ -1839,8 +1848,8 @@ char* convert_absolute(char* filepath){
         return NULL;
       }
       printf("entry->filename: %s\n", entry->filename);
-      printf("cur->inode_index: %d\n", cur->inode_index);
       printf("entry->inode_index: %d\n", entry->inode_index);
+      printf("cur->inode_index: %d\n", cur->inode_index);
       if(strcmp(entry->filename, "..")==0){
         printf("%s\n", "find parent in conver_absolute");
         parent_node= get_inode(entry->inode_index);
@@ -1850,6 +1859,8 @@ char* convert_absolute(char* filepath){
         printf("%s\n", "FOUND" );
         parent_fd = get_fd_from_inode_value(parent_node->inode_index);
         // remove_from_file_table(cur_node);
+        printf("parent_index changed to: %d\n", parent_node->inode_index);
+        printf("parent_fd changed to: %d\n", parent_fd);
         cur_fd = get_fd_from_inode_value(old_parent_index);
         printf("cur_fd: %d\n", cur_fd);
         cur_node = get_table_entry(cur_fd)->file_inode;
