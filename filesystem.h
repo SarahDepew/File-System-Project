@@ -174,6 +174,9 @@ int already_in_table(inode* node);
 int find_next_freehead();
 void set_permissions(permission_value old_value, permission_value *new_value);
 
+void f_rmdir_helper(char* filepath, inode* node);
+directory_entry* get_first_direntry(inode* node);
+
 inode* get_inode(int index);
 int addto_file_table(inode* node, int access);
 int remove_from_file_table(inode* node);

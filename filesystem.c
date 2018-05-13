@@ -713,9 +713,7 @@ void print_file_table() {
     printf("%s\n", "------------start printing file_table------");
     for (int i = 0; i < FILETABLESIZE; i++) {
         if (file_table[i] != NULL) {
-            if (file_table[i]->free_file == TRUE) {
-                printf("%d: %s\n", i, "empty");
-            } else {
+            if (file_table[i]->free_file != TRUE) {
                 inode *node = file_table[i]->file_inode;
                 // char name[FILENAMEMAX];
                 // memset(name, 0, FILENAMEMAX);
@@ -797,7 +795,6 @@ directory_entry* f_opendir(char* filepath) {
         int found = FALSE;
         file_table[i]->byte_offset = 0;
         while (found == FALSE) {
-            // printf("%s , %d\n", token, i);
             dir_entry = f_readdir(i);
             if (dir_entry == NULL) {
                 //reach the last byte in the file
@@ -847,7 +844,6 @@ directory_entry* f_opendir(char* filepath) {
             free(node);
         }
         token = strtok(NULL, s);
-        free(dir_entry);
     }
     table_freehead = find_next_freehead();
     // printf("%s\n", "end of open_dir-----");

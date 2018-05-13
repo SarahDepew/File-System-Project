@@ -1747,7 +1747,6 @@ directory_entry* goto_destination(char* filepath) {
                 printf("cur_fd: %d\n", cur_fd);
                 curnode = get_table_entry(cur_fd)->file_inode;
                 inode *prev_node = curnode;
-                //print_inode(curnode);
                 int current_fd = get_fd_from_inode_value(curnode->inode_index);
                 f_rewind(current_fd);
                 printf("current_fd: %d\n", current_fd);
@@ -1773,12 +1772,13 @@ directory_entry* goto_destination(char* filepath) {
                         printf("tesing: %s\n", name);
                         strcpy(current_working_dir->filename, name);
                         // strcpy(current_working_dir->filename, entry->filename);
+                        free(curnode);
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
                         int parent_fd = addto_file_table(parent_node, APPEND);
-                        if(parent_fd == -1) free(parent_node);
+                        // if(parent_fd == -1) free(parent_node);
                         int some_fd = addto_file_table(curnode, APPEND);
-                        if(some_fd == -1) free(curnode);
+                        // if(some_fd == -1) free(curnode);
                         free(entry);
                         break;
                     }
@@ -1857,7 +1857,7 @@ char* convert_absolute(char* filepath){
   destination->inode_index = dest->inode_index;
   strcpy(destination->filename,dest->filename);
   printf("in convert_absolute\n");
-  free(dest);
+  // free(dest);
   char* absolute_path_collection[FILENAMEMAX];
   directory_entry* cur = destination;
   printf("destination_filename: %s\n", destination->filename);
@@ -1867,6 +1867,7 @@ char* convert_absolute(char* filepath){
   printf("cur_fd: %d\n", cur_fd);
   inode* cur_node = get_table_entry(cur_fd)->file_inode;
   int parent_fd = get_fd_from_inode_value(cur_node->parent_inode_index);
+  printf("parent_fd: %d\n", parent_fd );
   inode* parent_node = get_table_entry(parent_fd)->file_inode;
   int old_parent_index = parent_node->inode_index;
   int count = 0;
