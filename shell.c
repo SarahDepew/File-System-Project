@@ -1482,9 +1482,6 @@ int cat_builtin(char **args) {
     //get args length
     int args_length = arrayLength(args);
 
-    // printf("Printing cat args result:\n");
-    // print_args(args);
-
    if (args_length == 1) {
        char c;
        while (read(STDIN_FILENO, &c, 1) > 0) {
@@ -1499,118 +1496,6 @@ int cat_builtin(char **args) {
            }
        }
    } else {
-     // printf("args len %d\n", args_length);
-     int location = -1;
-     // int last_found_location = -1;
-     int flag = READ;
-
-     location = contains_delimiter(args, 0, args_length);
-
-     if(location != -1) {
-       if(is_all_delimeters(args)) {
-         printf("syntax error in cat\n");
-         return -1;
-       }
-
-        if(location == 1) {
-          if(strcmp(args[location], ">>") == 0) {
-            flag = APPEND;
-          }
-
-          else if(strcmp(args[location], ">") == 0) {
-            flag = WRITE;
-          }
-
-          // int i = last_found_location + 1; //TODO: fix once last known is current_working_dir
-          int i = location + 1;
-
-          char *newfolder = NULL;
-          char *path = malloc(strlen(args[i]));
-          memset(path, 0, strlen(args[i]));
-          char path_copy[strlen(args[i]) + 1];
-          char copy[strlen(args[i]) + 1];
-          strcpy(path_copy, args[i]);
-          strcpy(copy, args[i]);
-          char *s = "/";
-          //calculate the level of depth of dir
-          char *token = strtok(copy, s);
-          int count = 0;
-          while (token != NULL) {
-              count++;
-              token = strtok(NULL, s);
-          }
-          // printf("count: %d\n", count);
-          newfolder = strtok(path_copy, s);
-          while (count > 1) {
-              count--;
-              // printf("new_folder: %s\n", newfolder);
-              path = strcat(path, newfolder);
-              path = strcat(path, "/");
-              newfolder = strtok(NULL, s);
-          }
-          // printf("path: %s\n", path);
-          char *absolute_path = convert_absolute(path);
-          // printf("converted: %s\n", absolute_path);
-          free(path);
-          // printf("newfolder: %s\n", newfolder);
-          char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
-          memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
-          result = strncat(result, absolute_path, strlen(absolute_path));
-          result = strncat(result, "/", 1);
-          result = strcat(result, newfolder);
-          free(absolute_path);
-          // printf("resuting string for file path: %s\n", result);
-
-        int fd = f_open(result, flag, NULL);
-
-        printf("opened new file in cat...\n");
-        printf("file descriptor %d\n", fd);
-
-        char c;
-        while (read(STDIN_FILENO, &c, 1) > 0) {
-            // if (c != '\n') {
-              if (f_write(&c, 1, 1, fd) < 0) {
-                    errorMessage();
-                }
-              // }
-          }
-
-        f_close(fd);
-      }
-
-      // while (read(STDIN_FILENO, &c, 1) > 0) {
-      //     if (c != '\n') {
-      //         if (write(1, &c, 1) < 0) {
-      //             errorMessage();
-      //         }
-      //     } else {
-      //         if (write(STDOUT_FILENO, "\n", 1) < 0) {
-      //             errorMessage();
-      //         }
-      //     }
-      // }
-
-          /*   char c;
-            while (read(STDIN_FILENO, &c, 1) > 0) {
-                  (write(1, &c, 1) < 0) {
-                      errorMessage();
-                  }
-                }
-                */
-        // }
-        //append
-        // if(delim == ">>") {
-        //   // if(all_strings(args, 1, location-1) == TRUE) {
-        //
-        // //   } else {
-        // //     //TODO: finish this
-        // //   }
-        // // } else if(delim = ">") { //overwrite
-        // //
-        // // } else { //accept input with "<"
-        // //
-        // }
-     } else {
          inode *inode1 = NULL;
          // directory_entry *entry = NULL;
          for (int i = 1; i < args_length; i++) {
@@ -1683,7 +1568,6 @@ int cat_builtin(char **args) {
              }
          }
      }
- }
     return 0;
 }
 
