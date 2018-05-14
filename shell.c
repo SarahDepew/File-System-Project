@@ -66,13 +66,13 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
-if(EXIT != TRUE) {
-    //ask the user to log into the shell
-    create_users();
-    login();
+    if (EXIT != TRUE) {
+        //ask the user to log into the shell
+        create_users();
+        login();
 
-    pwd_directory = f_opendir(current_user->absolute_path_home_directory);
-  }
+        pwd_directory = f_opendir(current_user->absolute_path_home_directory);
+    }
 
     while (!EXIT) {
 
