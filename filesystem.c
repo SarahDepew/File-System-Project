@@ -298,9 +298,9 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             inode *new_inode = get_inode(new_inode_index); //this is inode for the file
             current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
 
-            printf("PRINTING SUPERBLOCK STATE AND NEW FILE INODE STATE HERE\n");
-            print_superblock(current_mounted_disk->superblock1);
-            print_inode(new_inode);
+            // printf("PRINTING SUPERBLOCK STATE AND NEW FILE INODE STATE HERE\n");
+            // print_superblock(current_mounted_disk->superblock1);
+            // print_inode(new_inode);
 
             //get the datablock to write the newfile directory entry into
             void *dir_data = get_data_block(dir_node->last_block_index);
@@ -360,14 +360,14 @@ int f_open(char* filepath, int access, permission_value *permissions) {
             file_inode->dblocks[0] = current_mounted_disk->superblock1->free_block;
             // set_permissions(file_inode->permission, permissions);
             update_single_inode_ondisk(file_inode, file_inode->inode_index);
-            printf("NEW FILE INODE:\n");
-            print_inode(file_inode);
+            // printf("NEW FILE INODE:\n");
+            // print_inode(file_inode);
             free(file_entry->file_inode);
             file_entry->file_inode = file_inode;
             file_entry->byte_offset = 0;
             file_entry->access = access;
-            print_dir_block(dir_node, dir_node->last_block_index);
-            print_inode(dir_node);
+            // print_dir_block(dir_node, dir_node->last_block_index);
+            // print_inode(dir_node);
             void *data = get_data_block(current_mounted_disk->superblock1->free_block);
             current_mounted_disk->superblock1->free_block = *(int *) data;
             update_superblock_ondisk(current_mounted_disk->superblock1);
@@ -405,11 +405,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
     if (file_table[fd]->file_inode->type == REG) {
         printf("%s\n", "Writing to a regular file");
         superblock *sp = current_mounted_disk->superblock1;
-        printf("SUPERBLOCK VALUES\n");
-        print_superblock(sp);
+        // printf("SUPERBLOCK VALUES\n");
+        // print_superblock(sp);
 
-        printf("INODE VALUES:\n");
-        print_inode(file_table[fd]->file_inode);
+        // printf("INODE VALUES:\n");
+        // print_inode(file_table[fd]->file_inode);
 
         void *datatowrite = malloc(size * ntimes);
         memset(datatowrite, 0, size * ntimes);
@@ -429,12 +429,12 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             memset(last_data_block, 0, BLOCKSIZE);
 
             int index = -1;
-            printf("FILE SIZE: %d, BLOCK INDEX %d\n", file_table[fd]->file_inode->size,  file_table[fd]->file_inode->size / BLOCKSIZE);
+            // printf("FILE SIZE: %d, BLOCK INDEX %d\n", file_table[fd]->file_inode->size,  file_table[fd]->file_inode->size / BLOCKSIZE);
             void *copy = get_block_from_index(file_table[fd]->file_inode->size / BLOCKSIZE, file_table[fd]->file_inode,
                                               &index);
 
-            printf("Index of block IN FILEWRITE %d\n", index);
-            print_inode(file_table[fd]->file_inode);
+            // printf("Index of block IN FILEWRITE %d\n", index);
+            // print_inode(file_table[fd]->file_inode);
             memcpy(last_data_block, copy, BLOCKSIZE);
             free(copy);
             // file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
@@ -471,7 +471,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                         int block_written = file_table[fd]->byte_offset / BLOCKSIZE;
 
                         total_block = block_written + 1; // the block we are writing to in the future
-                        printf("HELLO BLOCKS WRITTEN %d\n", total_block);
+                        // printf("HELLO BLOCKS WRITTEN %d\n", total_block);
                     // }
                 }
                 // else {
@@ -515,7 +515,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 //TODO: comment out at some point...
                 inode *inode1 = get_inode(file_table[fd]->file_inode->inode_index);
                 printf("INODE ON DISK GOTTEN AFTER WRITING!\n");
-                print_inode(inode1);
+                // print_inode(inode1);
                 printf(" BYTE OFFSET %d & FILE SIZE %d\n", file_table[fd]->byte_offset, file_table[fd]->file_inode->size);
                 lefttowrite -= free_space;
                 printf("lefttowrite: %d\n", lefttowrite);
@@ -559,7 +559,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
 
             inode *inode1 = get_inode(file_table[fd]->file_inode->inode_index);
             printf("INODE ON DISK GOTTEN AFTER WRITING!\n");
-            print_inode(inode1);
+            // print_inode(inode1);
             return size * ntimes;
         }
     } else if (file_table[fd]->file_inode->type == DIR) {
@@ -1338,11 +1338,15 @@ boolean f_remove(char *filepath) {
             if (current_entry == NULL) {
                 return FALSE; //wasn't able to find the entry in the directory
             } else {
-                printf("entry->filename: %s\n", current_entry->filename);
+                // printf("entry->filename: %s\n", current_entry->filename);
+                // printf("entry->index: %d\n", current_entry->inode_index);
                 directory_to_replace = current_entry;
             }
-            print_file_table();
+            // print_file_table();
+            // printf("somehow changed? : %d\n", directory_to_replace->inode_index);
             inode *file_inode = get_inode(directory_to_replace->inode_index);
+            // print_inode(file_inode);
+            // printf("let's see : %d\n", file_inode->inode_index);
             if (already_in_table(file_inode) != -1) {
                 printf("I am sorry, you are attempting to remove a file that is open. Please close and try again!\n");
                 return FALSE;
@@ -1633,8 +1637,8 @@ int update_superblock_ondisk(superblock* new_superblock) {
 }
 
 int update_single_inode_ondisk(inode* new_inode, int new_inode_index) {
-    printf("new inode index %d\n", new_inode_index);
-    print_inode(new_inode);
+    // printf("new inode index %d\n", new_inode_index);
+    // print_inode(new_inode);
     FILE *current_disk = current_mounted_disk->disk_image_ptr;
     superblock *sp = current_mounted_disk->superblock1;
     int total_inode_num = (sp->data_offset - sp->inode_offset) * sp->size / sizeof(inode);
@@ -1725,9 +1729,10 @@ int addto_file_table(inode* node, int access) {
     } else {
         file_table[fd]->access = access;
     }
-    print_file_table();
+    // print_file_table();
     return fd;
 }
+
 
 int remove_from_file_table(inode* node) {
     // printf("%s\n", "in remove_from_file_table");
