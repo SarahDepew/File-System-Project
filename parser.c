@@ -142,13 +142,58 @@ int isWhiteSpaceJob(char *t)
 }
 
 /*
+* Get the command line input from the user
+*/
+int read_command_line(char** return_val) {
+    int bufsize = MAX_BUFFER;
+    int position = 0;
+    char *buffer = malloc(sizeof(char) * bufsize);
+    int c;
+
+    //Raise an error if the memory malloc did not go through (we know our size is >0, so NULL is invalid)
+    if (buffer == NULL) {
+        return FALSE;
+    }
+
+    while (TRUE) {
+        // Read a character from stdin
+        c = getchar();
+
+        // If we hit EOF, replace it with a null character and return as means of breaking the loop.
+        if (c == EOF || c == '\n') {
+            buffer[position] = '\0'; //Null terminate the string!
+            *return_val = buffer;
+            break;
+        } else {
+            buffer[position] = c;
+        }
+        position++;
+
+        // If we have exceeded the buffer, reallocate.
+        if (position >= bufsize) { //>=, since we also need room for the null terminator
+            bufsize += MAX_BUFFER;
+            buffer = realloc(buffer, bufsize);
+            if (buffer == NULL) {
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
+}
+
+/*
  * Transforms all jobs global into first job in job LL and returns the number of jobs to run
  */
 int perform_parse() {
     char *line = NULL;
 
-    /* readline causes leak */
-    line = readline(PROMPT);
+    printf("$ ");
+    boolean read_command_status = read_command_line(&line);
+    if (!read_command_status) {
+        //Free memory and exit on failure
+        free(line);
+        return EXIT;
+    }
 
     /* handle c-d */
     if (line == NULL) {

@@ -126,6 +126,7 @@ int main (int argc, char **argv) {
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
+    free(pwd_directory); 
     return EXIT_SUCCESS;
 }
 
