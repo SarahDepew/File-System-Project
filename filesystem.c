@@ -1333,11 +1333,15 @@ boolean f_remove(char *filepath) {
             if (current_entry == NULL) {
                 return FALSE; //wasn't able to find the entry in the directory
             } else {
-                printf("entry->filename: %s\n", current_entry->filename);
+                // printf("entry->filename: %s\n", current_entry->filename);
+                // printf("entry->index: %d\n", current_entry->inode_index);
                 directory_to_replace = current_entry;
             }
-            print_file_table();
+            // print_file_table();
+            // printf("somehow changed? : %d\n", directory_to_replace->inode_index);
             inode *file_inode = get_inode(directory_to_replace->inode_index);
+            print_inode(file_inode);
+            // printf("let's see : %d\n", file_inode->inode_index);
             if (already_in_table(file_inode) != -1) {
                 printf("I am sorry, you are attempting to remove a file that is open. Please close and try again!\n");
                 return FALSE;
@@ -1587,7 +1591,7 @@ void direct_copy(directory_entry *entry, inode *current_directory, long block_to
 
 //TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
 void *get_data_block(int index) {
-    printf("INDEX VALUE %d\n", index);
+    // printf("INDEX VALUE %d\n", index);
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     memset(data_block, 0, current_mounted_disk->superblock1->size);
     // FILE *current_disk = current_mounted_disk->disk_image_ptr;
@@ -1720,7 +1724,6 @@ int addto_file_table(inode* node, int access){
   }else{
     file_table[fd]->access = access;
   }
-  print_file_table();
   return fd;
 }
 
