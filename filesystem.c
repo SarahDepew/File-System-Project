@@ -385,17 +385,17 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         return (EXITFAILURE);
     }
     if (file_table[fd]->access == READ) {
-        printf("%s\n", "File is not readable.");
+        printf("%s\n", "File is not writable.");
         return EXITFAILURE;
     }
     if (file_table[fd]->file_inode->type == REG) {
-        // printf("%s\n", "writing to a regular file");
+        printf("%s\n", "writing to a regular file");
         superblock *sp = current_mounted_disk->superblock1;
         //need to double check this
         void *datatowrite = malloc(size * ntimes);
         memset(datatowrite, 0, size * ntimes);
         for (int j = 0; j < ntimes; j++) {
-            memcpy(datatowrite + j * size, buffer, size);
+            memcpy(datatowrite + (j * size), buffer, size);
         }
         int lefttowrite = size * ntimes;
         if (file_table[fd]->access == APPEND || file_table[fd]->access == WRITE ||
@@ -406,6 +406,8 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             // void *copy = get_data_block(file_table[fd]->file_inode->last_block_index); //TODO: ask rose about this line!
             int index = -1;
             void *copy = get_block_from_index(file_table[fd]->file_inode->size/BLOCKSIZE, file_table[fd]->file_inode, &index);
+            printf("Index of block IN FILEWRITE %d\n", index);
+            print_inode(file_table[fd]->file_inode); 
             memcpy(last_data_block, copy, BLOCKSIZE);
             free(copy);
             // file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
@@ -415,7 +417,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             if (file_table[fd]->access == APPEND) {
                 offset_into_last_block = file_table[fd]->file_inode->size % BLOCKSIZE;
                 old_offset = file_table[fd]->file_inode->size;
-                // printf("old file_size: %d\n", old_offset);
+                printf("old file_size: %d\n", old_offset);
                 old_filesize = old_offset;
             } else {
                 offset_into_last_block = file_table[fd]->byte_offset % BLOCKSIZE;
@@ -436,13 +438,13 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             int datatowrite_offset = 0;
             int total_block = 0;
             if (free_space == 0) {
-                // printf("%s\n", "dont need to fill the the last block");
+                printf("%s\n", "dont need to fill the the last block");
                 if (file_table[fd]->access != APPEND) {
                     int block_written = file_table[fd]->byte_offset / BLOCKSIZE;
                     total_block = block_written + 1; // the block we are writing to in the future
                 }
             } else {
-                // printf("%s\n", "do need to fill in the last block");
+                printf("%s\n", "do need to fill in the last block");
                 void *data = malloc(BLOCKSIZE);
                 memset(data, 0, BLOCKSIZE);
                 //copy the data from the last block to data
@@ -453,11 +455,11 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                     memcpy(data + offset_into_last_block, datatowrite, free_space);
                 }
                 if (file_table[fd]->access == APPEND) {
-                    // printf("%s\n", "appending to file");
+                    printf("%s\n", "appending to file");
                     // write_data_to_block(file_table[fd]->file_inode->last_block_index, data, sp->size);
                     write_data_to_block(index, data, sp->size);
                 } else {
-                    // printf("%s\n", "writing to file");
+                    printf("%s\n", "writing to file");
                     total_block = file_table[fd]->byte_offset / BLOCKSIZE + 1;
                     start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_filesize,
                                                                   file_table[fd]->byte_offset);
@@ -474,7 +476,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 }
                 update_single_inode_ondisk(file_table[fd]->file_inode, file_table[fd]->file_inode->inode_index);
                 lefttowrite -= free_space;
-                // printf("lefttowrite: %d\n", lefttowrite);
+                printf("lefttowrite: %d\n", lefttowrite);
                 free(data);
                 free(last_data_block);
                 // file_offset += free_space;
@@ -483,7 +485,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             while (lefttowrite > 0) {
                 start_of_block_to_write = find_next_datablock(file_table[fd]->file_inode, total_block, old_filesize,
                                                               file_table[fd]->byte_offset);
-                // printf("lefttowrite: %d\n", lefttowrite);
+                printf("lefttowrite: %d\n", lefttowrite);
                 int size_to_write = BLOCKSIZE;
                 void *data = malloc(BLOCKSIZE);
                 memset(data, 0, BLOCKSIZE);
@@ -508,9 +510,9 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 update_single_inode_ondisk(file_table[fd]->file_inode, file_table[fd]->file_inode->inode_index);
             }
             file_table[fd]->byte_offset = new_offset;
-            // printf("new_offset: %d\n", new_offset);
+            printf("new_offset: %d\n", new_offset);
             free(datatowrite);
-            // printf("total_blocks: %d\n", total_block);
+            printf("total_blocks: %d\n", total_block);
             return size * ntimes;
         }
         //else if(file_table[fd]->access == WRITE || file_table[fd]->access == READANDWRITE){
@@ -557,7 +559,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         //     }
         //   }
     } else if (file_table[fd]->file_inode->type == DIR) {
-        // printf("%s\n", "writing to a dir file");
+        printf("%s\n", "Error. Attempting to write to a directory file!\n");
         //make_dir should do the same thing
     }
     return EXITSUCCESS;

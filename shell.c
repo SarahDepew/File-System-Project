@@ -1771,7 +1771,7 @@ int more_builtin(char **args) {
           inode1 = get_table_entry(fd)->file_inode;
           if (inode1->type == DIR) {
               printf("*** %s: directory ***\n", args[i]);
-              endwin(); 
+              endwin();
               return -1;
           } else {
               if(header) {
@@ -1785,6 +1785,7 @@ int more_builtin(char **args) {
                 if(file_size <= read_size) {
                   read_size = file_size;
                 }
+                printf("file_size %d, read_size %d\n", file_size, read_size); 
                   void *file_block = malloc(read_size);
                   memset(file_block, 0, read_size);
                   if(file_block == NULL) {
@@ -1806,13 +1807,15 @@ int more_builtin(char **args) {
                   //wait for a space here...
                   char c = NULL;
                   if(file_size > 0) {
+                    printf("hi got here\n");
                   while(c != 32) {
                     // read(STDIN_FILENO, &c, 1);
                     c = getch();
+                    printf("C VALUE %s", c);
                   }
                 }
                 }
-
+              printf("\n");
               f_close(fd);
           }
       } else {
