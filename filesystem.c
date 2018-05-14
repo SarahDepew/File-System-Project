@@ -385,7 +385,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         return (EXITFAILURE);
     }
     if (file_table[fd]->access == READ) {
-        printf("%s\n", "File is not readable.");
+        printf("%s\n", "File is not writeable.");
         return EXITFAILURE;
     }
     if (file_table[fd]->file_inode->type == REG) {
@@ -423,7 +423,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
                 old_filesize = file_table[fd]->file_inode->size;
             }
             int free_space = BLOCKSIZE - offset_into_last_block;
-            if (free_space < size * ntimes && sp->free_block == -1) {
+            if (free_space < size * ntimes && sp->free_block == -1 && free_space > 0) {
                 printf("%s\n", "Not having enough space on the disk");
                 free(datatowrite);
                 free(last_data_block);
@@ -435,11 +435,15 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             // int file_offset = old_offset;
             int datatowrite_offset = 0;
             int total_block = 0;
-            if (free_space == 0) {
-                // printf("%s\n", "dont need to fill the the last block");
-                if (file_table[fd]->access != APPEND) {
+            if (free_space == BLOCKSIZE) {
+                if(file_table[fd]->byte_offset != 0){
+                  // printf("%s\n", "dont need to fill the the last block");
+                  if (file_table[fd]->access != APPEND) {
                     int block_written = file_table[fd]->byte_offset / BLOCKSIZE;
                     total_block = block_written + 1; // the block we are writing to in the future
+                  }
+                }else{
+                  total_block += 1;
                 }
             } else {
                 // printf("%s\n", "do need to fill in the last block");
@@ -1217,31 +1221,61 @@ int get_size_directory_entry(directory_entry* entry){
   return size;
 }
 
-/*
 directory_entry* f_rmdir(char* filepath){
   directory_entry* start_ent = f_opendir(filepath);
   if (start_ent == NULL){
     printf("%s does not exit so cannot remove in rmdir\n", filepath);
     return NULL;
   }
-  int fd = get_fd_from_inode_value(start_ent->inode_index);
-  inode* start_node = file_table[fd]->file_inode;
+  inode* start_node = get_inode(start_ent->inode_index);
+  f_rmdir_helper(filepath, start_node);
+  return start_ent;
+}
+
+int get_size_directory_entry_block(directory_entry* entry){
+  int index = entry->inode_index;
+  inode* dirnode = get_inode(index);
+  int size = dirnode->size;
+  free(dirnode);
+  return size;
+}
+
+directory_entry* get_first_direntry(inode* node){
+  directory_entry* result = malloc(sizeof(directory_entry));
+  memset(result, 0, sizeof(directory_entry));
+  void* data = get_data_block(node->dblocks[0]);
+  int index = *(int*)(data+2*sizeof(directory_entry));
+  char* name = (char*)(data+2*sizeof(directory_entry)+sizeof(int));
+  result->inode_index = index;
+  strcpy(result->filename, name);
+  free(data);
+  return result;
 }
 
 void f_rmdir_helper(char* filepath, inode* node){
   if(node->type == REG){
     f_remove(filepath);
+    free(filepath);
+    free(node);
   }else{
     if(node->size == sizeof(directory_entry)*2){
       //the directroy is empty
       //remove the directory
+      f_remove(filepath);
+      free(filepath);
+      free(node);
     }else{
-      int size = node->size;
-
+      directory_entry* entry = get_first_direntry(node);
+      free(node);
+      inode* new_node = get_inode(entry->inode_index);
+      int new_length = strlen(filepath)+strlen(entry->filename)+2;
+      char* new_path = malloc(new_length);
+      memset(new_path, 0 , new_length);
+      free(entry);
+      f_rmdir_helper(new_path, new_node);
     }
   }
 }
-*/
 
 boolean f_remove(char *filepath) {
     //TODO: make a method for the following (ask Rose)
@@ -1553,7 +1587,7 @@ void direct_copy(directory_entry *entry, inode *current_directory, long block_to
 
 //TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
 void *get_data_block(int index) {
-  // printf("INDEX VALUE %d\n", index);
+    printf("INDEX VALUE %d\n", index);
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     memset(data_block, 0, current_mounted_disk->superblock1->size);
     // FILE *current_disk = current_mounted_disk->disk_image_ptr;
@@ -1563,6 +1597,7 @@ void *get_data_block(int index) {
           SEEK_SET);
     fread(data_block, current_mounted_disk->superblock1->size, 1, current_mounted_disk->disk_image_ptr);
     // printf("Data block values: %s\n", (char *) data_block);
+    // printf("data block index: %d\n", *(int*)data_block);
     return data_block;
 }
 
@@ -1570,13 +1605,13 @@ int request_new_block() {
     superblock *sp = current_mounted_disk->superblock1;
     int free_block = sp->free_block;
     void *prevfree_block_on_disk = get_data_block(free_block);
-    // printf("%s\n", "request_new_block +++++");
+    printf("%s\n", "request_new_block +++++");
     int next_free = ((block *) prevfree_block_on_disk)->next_free_block;
     sp->free_block = next_free;
     update_superblock_ondisk(sp);
-    // printf("%s\n", "--------in req new block-----");
-    // print_superblock(sp);
-    // printf("%s\n", "----------end----------");
+    printf("%s\n", "--------in req new block-----");
+    print_superblock(sp);
+    printf("%s\n", "----------end----------");
     free(prevfree_block_on_disk);
     return free_block;
 }

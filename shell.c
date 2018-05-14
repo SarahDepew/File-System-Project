@@ -1356,6 +1356,8 @@ int mkdir_builtin(char **args) {
     directory_entry *entry = f_mkdir(result);
     free(entry);
     free(result);
+    print_file_table();
+    printf("%s\n", "end of mkdir -------------------");
     return 0;
 }
 
@@ -1368,7 +1370,7 @@ int rmdir_builtin(char **args) {
     wholepath = strncat(wholepath, filepath, strlen(filepath));
     wholepath = strncat(wholepath, "/", 1);
     wholepath = strcat(wholepath,filename);
-    // printf("wholepath: %s\n", wholepath);
+    printf("wholepath: %s\n", wholepath);
     f_remove(wholepath);
     return 0;
 }
@@ -1686,10 +1688,10 @@ int cat_builtin(char **args) {
                        return -1;
                      }
 
-                     f_read(file, file_size, 1, fd);
-                     if (write(STDOUT_FILENO, file, file_size) < 0) {
-                         errorMessage();
-                     }
+                     // f_read(file, file_size, 1, fd);
+                     // if (write(STDOUT_FILENO, file, file_size) < 0) {
+                     //     errorMessage();
+                     // }
                      printf("\n");
                      free(file);
                      f_close(fd);
@@ -1771,7 +1773,7 @@ int more_builtin(char **args) {
           inode1 = get_table_entry(fd)->file_inode;
           if (inode1->type == DIR) {
               printf("*** %s: directory ***\n", args[i]);
-              endwin(); 
+              endwin();
               return -1;
           } else {
               if(header) {
@@ -1905,7 +1907,7 @@ directory_entry* goto_destination(char* filepath) {
                         // strcpy(current_working_dir->filename, entry->filename);
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
-                        int parent_fd = addto_file_table(parent_node, APPEND);
+                        addto_file_table(parent_node, APPEND);
                         addto_file_table(curnode, APPEND);
                         free(entry);
                         break;
@@ -2027,6 +2029,7 @@ char* convert_absolute(char* filepath){
         absolute_path_collection[count] = malloc(strlen(entry->filename)+1);
         memset(absolute_path_collection[count], 0, strlen(entry->filename)+1);
         strcpy(absolute_path_collection[count], entry->filename);
+        free(entry);
         break;
       }
       free(entry);
