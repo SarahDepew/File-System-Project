@@ -875,8 +875,8 @@ directory_entry* f_mkdir(char* filepath) {
     // printf("path: %s\n", path);
     // printf("newfolder: %s\n", newfolder);
     directory_entry *dir = f_opendir(path);
-    print_file_table();
-    printf("%s\n", "in the middle of mkdir");
+    // print_file_table();
+    // printf("%s\n", "in the middle of mkdir");
     free(path);
     if (dir == NULL) {
         printf("cannot create directory. parent does not exists\n");
@@ -1355,7 +1355,7 @@ boolean f_remove(char *filepath) {
                 printf("entry->filename: %s\n", current_entry->filename);
                 directory_to_replace = current_entry;
             }
-            print_file_table();
+            // print_file_table();
             inode *file_inode = get_inode(directory_to_replace->inode_index);
             if (already_in_table(file_inode) != -1) {
                 printf("I am sorry, you are attempting to remove a file that is open. Please close and try again!\n");
@@ -1740,7 +1740,7 @@ int addto_file_table(inode* node, int access){
   }else{
     file_table[fd]->access = access;
   }
-  print_file_table();
+  // print_file_table();
   return fd;
 }
 

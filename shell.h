@@ -15,6 +15,7 @@
 #include "filesystem.h"
 #include <termios.h>
 
+
 #define BUFFERSIZE 4096
 #define RUNNING 0
 #define SUSPENDED 1
@@ -166,7 +167,7 @@ int background_builtin(char** args);
 int foreground_builtin(char** args);
 
 int ls_builtin(char **args);
-void print_stat (stat *entry); 
+void print_stat (stat *entry);
 int chmod_builtin(char **args);
 int mkdir_builtin(char **args);
 int rmdir_builtin(char **args);
