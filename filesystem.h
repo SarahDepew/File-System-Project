@@ -133,9 +133,10 @@ int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
 boolean f_seek(int file_descriptor, int offset, int whence);
 boolean f_rewind(int file_descriptor);
-boolean f_stat(inode *inode1, stat *st); 
+boolean f_stat(inode *inode1, stat *st);
 boolean f_remove(char *filepath);
 directory_entry* f_opendir(char* filepath);
+directory_entry* f_rmdir(char* filepath);
 directory_entry* f_mkdir(char* filepath);
 directory_entry* f_readdir(int index_into_file_table);
 boolean f_closedir(directory_entry *entry);
@@ -179,6 +180,10 @@ int addto_file_table(inode* node, int access);
 int remove_from_file_table(inode* node);
 //filepath must be absolute path
 // validity* checkvalidity(char *filepath);
+
+directory_entry* get_first_direntry(inode* node);
+void f_rmdir_helper(char* filepath, inode* node);
+int get_size_directory_entry_block(directory_entry* entry);
 
 //methods for testing
 int first_free_location_in_mount();
