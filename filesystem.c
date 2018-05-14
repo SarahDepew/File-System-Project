@@ -1712,6 +1712,7 @@ int addto_file_table(inode* node, int access) {
     int fd = already_in_table(node);
     if (fd != -1) {
         // printf("%s\n", "already_in_table. so not adding to file table");
+        free(node);
         return fd;
     }
     fd = find_next_freehead();

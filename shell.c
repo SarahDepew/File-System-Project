@@ -123,7 +123,7 @@ int main (int argc, char **argv) {
     // f_unmount(root_index_into_mount_table);
     shutdownFilesystem(mid);
     free_users();
-
+    free(pwd_directory);
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
@@ -1915,13 +1915,13 @@ directory_entry* goto_destination(char* filepath, boolean change_pwd) {
                         curnode = get_inode(current_working_dir->inode_index);
                         inode *parent_node = get_inode(curnode->parent_inode_index);
                         addto_file_table(parent_node, APPEND);
-                        addto_file_table(curnode, APPEND);
                         free(entry);
                         break;
                     }
                     free(entry);
                 }
                 size = curnode->size;
+                addto_file_table(curnode, APPEND);
                 f_rewind(current_fd);
             }
         }
@@ -1945,8 +1945,8 @@ directory_entry* goto_destination(char* filepath, boolean change_pwd) {
         }
     }
     // printf("distination exists: %s\n", filepath );
-    // free(pwd_directory);
     if(change_pwd == TRUE){
+      free(pwd_directory);
       pwd_directory = current_working_dir;
       // print_file_table();
       // printf("pwd_dir: %s\n", pwd_directory->filename);
