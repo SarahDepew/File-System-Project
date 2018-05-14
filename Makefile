@@ -28,7 +28,7 @@ tests: tests.c
 
 shell: parser.o boolean.h builtins.h
 	gcc -ggdb -c -Wall -c shell.c -lreadline
-	gcc -g -ggdb -Wall -o shell shell.o parser.o -L. -lfile -lm -lreadline
+	gcc -g -ggdb -Wall -o shell shell.o parser.o -L. -lfile -ltinfo -lncurses -lm -lreadline
 
 parser: parser.c parser.h boolean.h builtins.h
 	gcc -ggdb -c -Wall -c parser.c -lreadline

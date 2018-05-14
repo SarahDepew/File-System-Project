@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <limits.h>
+#include <curses.h>
 
 job *all_jobs;
 job *list_of_jobs = NULL;
@@ -1712,6 +1713,115 @@ void errorMessage() {
 }
 
 int more_builtin(char **args) {
+  WINDOW *mywindow = initscr();
+  int args_length = arrayLength(args);
+  boolean header = FALSE;
+  int read_size = -1;
+  int file_size = -1;
+
+  if(args_length == 1) {
+    printf("more: bad usage\n");
+    endwin();
+    return -1;
+  }
+
+  if(args_length > 2) {
+    header = TRUE;
+  }
+
+  inode *inode1 = NULL;
+  for (int i = 1; i < args_length; i++) {
+      read_size = BLOCKSIZE;
+      //first open the directory sought and then check in that directory for the value
+      char *newfolder = NULL;
+      char *path = malloc(strlen(args[i]));
+      memset(path, 0, strlen(args[i]));
+      char path_copy[strlen(args[i]) + 1];
+      char copy[strlen(args[i]) + 1];
+      strcpy(path_copy, args[i]);
+      strcpy(copy, args[i]);
+      char *s = "/";
+      //calculate the level of depth of dir
+      char *token = strtok(copy, s);
+      int count = 0;
+      while (token != NULL) {
+          count++;
+          token = strtok(NULL, s);
+      }
+
+      newfolder = strtok(path_copy, s);
+      while (count > 1) {
+          count--;
+          path = strcat(path, newfolder);
+          path = strcat(path, "/");
+          newfolder = strtok(NULL, s);
+      }
+      char *absolute_path = convert_absolute(path);
+      free(path);
+      char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+      memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+      result = strncat(result, absolute_path, strlen(absolute_path));
+      result = strncat(result, "/", 1);
+      result = strcat(result, newfolder);
+      free(absolute_path);
+
+      int fd;
+      if ((fd = f_open(result, READ, NULL)) != EXITFAILURE) {
+          //print the file to the screen
+          inode1 = get_table_entry(fd)->file_inode;
+          if (inode1->type == DIR) {
+              printf("*** %s: directory ***\n", args[i]);
+              endwin(); 
+              return -1;
+          } else {
+              if(header) {
+                  printf("::::::::::::::\n%s\n::::::::::::::\n", args[i]);
+              }
+
+              file_size = inode1->size;
+
+              //TODO: only run when space bar is pressed...
+              while(file_size > 0) {
+                if(file_size <= read_size) {
+                  read_size = file_size;
+                }
+                  void *file_block = malloc(read_size);
+                  memset(file_block, 0, read_size);
+                  if(file_block == NULL) {
+                    perror("Malloc\n");
+                    endwin();
+                    return -1;
+                  }
+
+                  f_read(file_block, read_size, 1, fd);
+
+                  if (write(STDOUT_FILENO, file_block, read_size) < 0) {
+                    errorMessage();
+                  }
+
+                  file_size -= read_size;
+
+                  free(file_block);
+
+                  //wait for a space here...
+                  char c = NULL;
+                  if(file_size > 0) {
+                  while(c != 32) {
+                    // read(STDIN_FILENO, &c, 1);
+                    c = getch();
+                  }
+                }
+                }
+
+              f_close(fd);
+          }
+      } else {
+          printf("more: stat of %s failed: No such file or directory\n", args[i]);
+          endwin();
+          return -1;
+      }
+  }
+    endwin();
     return 0;
 }
 
