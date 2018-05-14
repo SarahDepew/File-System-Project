@@ -801,7 +801,7 @@ directory_entry* f_opendir(char* filepath) {
                 free(dir_entry);
             }
         }
-        if (i != 0 && i != 1) {
+        if (i != 0 ) {
             // printf("what should be removed: %d\n", i);
             // print_file_table();
             //remove the ith index from the table. NEED CHECK. ROSE //TODO: ask her about this...
@@ -1234,7 +1234,6 @@ int get_size_directory_entry(directory_entry* entry){
   return size;
 }
 
-/*
 directory_entry* f_rmdir(char* filepath){
   directory_entry* start_ent = f_opendir(filepath);
   if (start_ent == NULL){
@@ -1290,7 +1289,6 @@ void f_rmdir_helper(char* filepath, inode* node){
     }
   }
 }
-*/
 
 boolean f_remove(char *filepath) {
     //TODO: make a method for the following (ask Rose)
@@ -1331,7 +1329,7 @@ boolean f_remove(char *filepath) {
         int index = -1;
         inode *directory_inode = get_inode_from_file_table_from_directory_entry(dir, &index);
         superblock *superblock1 = current_mounted_disk->superblock1;
-        print_dir_block(directory_inode, directory_inode->last_block_index);
+        // print_dir_block(directory_inode, directory_inode->last_block_index);
         if (directory_inode == NULL) {
             return FALSE;
         } else {
@@ -1464,7 +1462,7 @@ boolean f_remove(char *filepath) {
             fwrite(superblock1, SIZEOFSUPERBLOCK, 1, current_mounted_disk->disk_image_ptr);
 
             //TODO: close the directory
-            // f_closedir(dir);
+            f_closedir(dir);
             printf("%s\n", "endof f_remove");
             return TRUE;
         }
