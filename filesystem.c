@@ -385,11 +385,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
         return (EXITFAILURE);
     }
     if (file_table[fd]->access == READ) {
-<<<<<<< HEAD
-        printf("%s\n", "File is not writable.");
-=======
         printf("%s\n", "File is not writeable.");
->>>>>>> 1fbdf6c5275b3768de02de0e377ea323bcd5ae08
         return EXITFAILURE;
     }
     if (file_table[fd]->file_inode->type == REG) {
@@ -411,7 +407,7 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             int index = -1;
             void *copy = get_block_from_index(file_table[fd]->file_inode->size/BLOCKSIZE, file_table[fd]->file_inode, &index);
             printf("Index of block IN FILEWRITE %d\n", index);
-            print_inode(file_table[fd]->file_inode); 
+            print_inode(file_table[fd]->file_inode);
             memcpy(last_data_block, copy, BLOCKSIZE);
             free(copy);
             // file_table[fd]->byte_offset = file_table[fd]->file_inode->size;
@@ -441,16 +437,10 @@ int f_write(void* buffer, int size, int ntimes, int fd ) {
             // int file_offset = old_offset;
             int datatowrite_offset = 0;
             int total_block = 0;
-<<<<<<< HEAD
-            if (free_space == 0) {
-                printf("%s\n", "dont need to fill the the last block");
-                if (file_table[fd]->access != APPEND) {
-=======
             if (free_space == BLOCKSIZE) {
                 if(file_table[fd]->byte_offset != 0){
                   // printf("%s\n", "dont need to fill the the last block");
                   if (file_table[fd]->access != APPEND) {
->>>>>>> 1fbdf6c5275b3768de02de0e377ea323bcd5ae08
                     int block_written = file_table[fd]->byte_offset / BLOCKSIZE;
                     total_block = block_written + 1; // the block we are writing to in the future
                   }
