@@ -66,13 +66,13 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
-if(EXIT != TRUE) {
-    //ask the user to log into the shell
-    create_users();
-    login();
+    if (EXIT != TRUE) {
+        //ask the user to log into the shell
+        create_users();
+        login();
 
-    pwd_directory = f_opendir(current_user->absolute_path_home_directory);
-  }
+        pwd_directory = f_opendir(current_user->absolute_path_home_directory);
+    }
 
     while (!EXIT) {
 
@@ -1571,13 +1571,8 @@ int cat_builtin(char **args) {
 
         int fd = f_open(result, flag, NULL);
 
-        // printf("opened new file in cat...\n");
-        // printf("file descriptor %d\n", fd);
-        // while (read(STDIN_FILENO, c, 1) > 0) {
-        //   if (f_write(c, 1, 1, fd) < 0) {
-        //       errorMessage();
-        //   }
-        // }
+        printf("opened new file in cat...\n");
+        printf("file descriptor %d\n", fd);
 
         char c;
         while (read(STDIN_FILENO, &c, 1) > 0) {
@@ -1585,18 +1580,10 @@ int cat_builtin(char **args) {
               if (f_write(&c, 1, 1, fd) < 0) {
                     errorMessage();
                 }
+              // }
           }
 
         f_close(fd);
-
-            // } else {
-            //
-            //     if (write(STDOUT_FILENO, "\n", 1) < 0) {
-            //         errorMessage();
-            //     }
-            // }
-        // }
-
       }
 
       // while (read(STDIN_FILENO, &c, 1) > 0) {
@@ -1681,6 +1668,7 @@ int cat_builtin(char **args) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
                      int file_size = inode1->size;
+                     printf("FILESIZE %d\n", file_size);
                      void *file = malloc(file_size);
                      memset(file, 0, file_size);
                      if(file == NULL) {
@@ -1688,10 +1676,10 @@ int cat_builtin(char **args) {
                        return -1;
                      }
 
-                     // f_read(file, file_size, 1, fd);
-                     // if (write(STDOUT_FILENO, file, file_size) < 0) {
-                     //     errorMessage();
-                     // }
+                     f_read(file, file_size, 1, fd);
+                     if (write(STDOUT_FILENO, file, file_size) < 0) {
+                         errorMessage();
+                     }
                      printf("\n");
                      free(file);
                      f_close(fd);
@@ -1787,7 +1775,7 @@ int more_builtin(char **args) {
                 if(file_size <= read_size) {
                   read_size = file_size;
                 }
-                printf("file_size %d, read_size %d\n", file_size, read_size); 
+                printf("file_size %d, read_size %d\n", file_size, read_size);
                   void *file_block = malloc(read_size);
                   memset(file_block, 0, read_size);
                   if(file_block == NULL) {
