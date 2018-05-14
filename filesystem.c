@@ -226,48 +226,48 @@ int f_open(char* filepath, int access, permission_value *permissions) {
         printf("%s\n", "directory does not exist");
         free(path);
         return EXITFAILURE;
-    } else {
+      } else {
         //directory exits, need to check if the file exits
-        printf("%s\n", "directory exits. GOOD news.");
-        int dir_node_index = dir->inode_index;
-        printf("dir_index: %d\n", dir_node_index);
-        printf("dir_name: %s\n", dir->filename);
+        // printf("%s\n", "directory exits. GOOD news.");
+        // int dir_node_index = dir->inode_index;
+        // printf("dir_index: %d\n", dir_node_index);
+        // printf("dir_name: %s\n", dir->filename);
         int dir_fd = get_fd_from_inode_value(dir->inode_index);
         inode *dir_node = file_table[dir_fd]->file_inode;
         int parent_fd = dir_fd;
-
-        file_table[parent_fd]->byte_offset = 0;
-        directory_entry *entry = f_readdir(parent_fd);
+        // inode *dir_node = get_inode(dir_node_index);
+        directory_entry *entry = NULL;
         //go into the dir_entry to find the inode of the file
-
-       while(entry != NULL) {
-            printf("filenames: %s, %s\n", entry->filename, filename);
-            if (strcmp(entry->filename, filename) == 0) {
-                if (if_is_file(entry->inode_index) == TRUE) {
-                    printf("%s found, and is a REG file\n", entry->filename);
-                    file_table_entry *file_entry = file_table[table_freehead];
-                    file_entry->free_file = FALSE;
-                    free(file_entry->file_inode);
-                    // set_permissions(file_inode->permission, permissions);
-                    // update_single_inode_ondisk(file_inode, file_inode->inode_index);
-                    inode *file_inode = get_inode(entry->inode_index);
-                    file_entry->file_inode = file_inode;
-                    printf("PRINTING IN f_open %d\n", entry->inode_index);
-                    print_inode(file_inode);
-
-                    file_entry->byte_offset = 0;
-                    file_entry->access = access;
-                    free(path);
-                    int fd = table_freehead;
-                    table_freehead = find_next_freehead();
-                    free(entry);
-                    free(dir);
-                    return fd;
+        file_table[parent_fd]->byte_offset = 0;
+        for (int i = 0; i < dir_node->size; i += sizeof(directory_entry)) {
+            entry = f_readdir(parent_fd);
+            if (entry == NULL) {
+                free(entry);
+                break;
+            }
+            if (strcmp(entry->filename, filename) == 0 ) {
+                if(if_is_file(entry->inode_index) == TRUE){
+                  // printf("%s found, and is a REG file\n", entry->filename);
+                  file_table_entry *file_entry = file_table[table_freehead];
+                  file_entry->free_file = FALSE;
+                  free(file_entry->file_inode);
+                  inode *file_inode = get_inode(entry->inode_index);
+                  // set_permissions(file_inode->permission, permissions);
+                  // update_single_inode_ondisk(file_inode, file_inode->inode_index);
+                  file_entry->file_inode = file_inode;
+                  file_entry->byte_offset = 0;
+                  file_entry->access = access;
+                  free(path);
+                  int fd = table_freehead;
+                  table_freehead = find_next_freehead();
+                  free(entry);
+                  // free(dir_node);
+                  free(dir);
+                  return fd;
                 }
             }
             free(entry);
-            entry = f_readdir(parent_fd);
-        }
+          }
 
         //file was not found...
         if (access == READ) {
@@ -1011,8 +1011,11 @@ int f_read(void *buffer, int size, int n_times, int file_descriptor) {
 
     for (int i = 0; i < n_times; i++) {
         bytes_to_read = size;
+        // printf("bytes to read %d\n", bytes_to_read);
         block_offset = file_offset % 512;
-        while (size > 0) {
+        while (bytes_to_read > 0) {
+          //  printf("%d\n", size);
+            //printf("bytes to read %d\n", bytes_to_read);
             int block_index = -1;
             block_to_read_from = get_block_from_index(block_to_read, file_to_read, &block_index);
 
@@ -1589,7 +1592,7 @@ void direct_copy(directory_entry *entry, inode *current_directory, long block_to
 
 //TODO: add error when you're trying to read a data block that doesn't exist on the disk (a.k.a past the end of the disk...)
 void *get_data_block(int index) {
-    printf("INDEX VALUE %d\n", index);
+    // printf("INDEX VALUE %d\n", index);
     void *data_block = malloc(current_mounted_disk->superblock1->size);
     memset(data_block, 0, current_mounted_disk->superblock1->size);
     // FILE *current_disk = current_mounted_disk->disk_image_ptr;

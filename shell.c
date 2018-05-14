@@ -1225,8 +1225,6 @@ int ls_builtin(char **args) {
         int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
         // printf("file_table_index: %d\n", file_table_index);
         f_rewind(file_table_index);
-        inode* node = get_table_entry(file_table_index)->file_inode;
-        // printf("node size: %d\n",node->size );
         directory_entry *entry = f_readdir(file_table_index);
         free(entry);
         entry = f_readdir(file_table_index);
@@ -1514,17 +1512,11 @@ int cat_builtin(char **args) {
          return -1;
        }
 
-        char *delim = NULL;
-        delim = which_is_contained(args[location]);
-        // last_found_location = location_last_delimiter(args);
-        // printf("got here\n");
         if(location == 1) {
-          // printf("got here\n");
-          // if(args[last_found_location] == ">>") {
           if(strcmp(args[location], ">>") == 0) {
             flag = APPEND;
           }
-          // } else if(args[last_found_location] == ">") {
+
           else if(strcmp(args[location], ">") == 0) {
             flag = WRITE;
           }
@@ -1658,12 +1650,14 @@ int cat_builtin(char **args) {
              result = strncat(result, "/", 1);
              result = strcat(result, newfolder);
              free(absolute_path);
-             // printf("resuting string: %s\n", result);
+             printf("resuting string: %s\n", result);
 
              int fd;
              if ((fd = f_open(result, READ, NULL)) != EXITFAILURE) {
                  //print the file to the screen
                  inode1 = get_table_entry(fd)->file_inode;
+                 print_file_table();
+                 print_inode(get_inode(1));
                  if (inode1->type == DIR) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
@@ -1703,7 +1697,7 @@ void errorMessage() {
 }
 
 int more_builtin(char **args) {
-  WINDOW *mywindow = initscr();
+  initscr();
   int args_length = arrayLength(args);
   boolean header = FALSE;
   int read_size = -1;
@@ -1795,13 +1789,10 @@ int more_builtin(char **args) {
                   free(file_block);
 
                   //wait for a space here...
-                  char c = NULL;
+                  char c = 0;
                   if(file_size > 0) {
-                    printf("hi got here\n");
                   while(c != 32) {
-                    // read(STDIN_FILENO, &c, 1);
                     c = getch();
-                    printf("C VALUE %s", c);
                   }
                 }
                 }
@@ -1922,8 +1913,8 @@ directory_entry* goto_destination(char* filepath) {
             current_working_dir->inode_index = entry->inode_index;
             strcpy(current_working_dir->filename,entry->filename);
             curnode = get_inode(current_working_dir->inode_index);
-            inode* parent_node = get_inode(curnode->parent_inode_index);
-            int parent_fd = addto_file_table(parent_node, APPEND);
+            // inode* parent_node = get_inode(curnode->parent_inode_index);
+            // int parent_fd = addto_file_table(parent_node, APPEND);
             addto_file_table(curnode, APPEND);
             free(entry);
         }
@@ -1962,7 +1953,7 @@ char* get_parentdir_name(directory_entry* entry){
   }else{
     return entry->filename;
   }
-
+  return NULL;
 }
 
 /*only take in a dir path*/

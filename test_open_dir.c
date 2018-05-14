@@ -39,7 +39,14 @@ int main() {
   // free(node);
   // printf("%s\n", "----------done writing 1----------");
   // printf("large data size: %d\n", strlen(large));
-  f_write(large, strlen(large), 200, fd);
+  f_write(large, strlen(large), 30, fd);
+  f_close(fd);
+
+  fd = f_open("/user/test.txt", READ, NULL);
+  f_rewind(fd); 
+  char *large_file = malloc(strlen(large) * 30);
+  f_read(large_file, strlen(large), 30, fd);
+  printf("File contents: %s\n", large_file);
   // block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
   // block = get_data_block(3);
