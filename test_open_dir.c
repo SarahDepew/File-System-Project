@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int main() {
-  // FILE *disk = fopen("DISKDIR", "r");
+  // FILE *disk = fopen("DISKDIR", "rb+");
   // inode *block = malloc(BLOCKSIZE);
   // fseek(disk, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + 2 * sizeof(inode), SEEK_SET);
   // fread(block, sizeof(inode), 1, disk);
@@ -11,7 +11,7 @@ int main() {
   setup();
   printf("%s\n", "-------------end set up--------");
   int num = 0;
-  f_mount("TEST", "", &num);
+  f_mount("DISKDIR", "", &num);
   printf("%s\n", "----------end f_mount---------");
   f_opendir("");
   //f_open("/a/d/s/4.txt", READ, NULL);
@@ -19,10 +19,10 @@ int main() {
   //printf("%s\n", "-----------end f_open1---------");
   //f_open("/user/user.txt", READ, NULL);
   //printf("%s\n", "------------end f_open2----------");
-  //int fd = f_open("/user/test.txt", APPEND, NULL);
+  int fd = f_open("/user/test.txt", APPEND, NULL);
   //printf("%s\n", "------------end f_open3----------");
-  //int fd2 = f_open("/user/1.txt", WRITE, NULL);
-  //int fd3 = f_open("/user/2.txt", READ, NULL);
+  // int fd2 = f_open("/user/1.txt", WRITE, NULL);
+  // int fd3 = f_open("/user/2.txt", READ, NULL);
   //printf("fd: %d\n", fd);
   //printf("fd2: %d\n", fd2);
   //printf("fd3: %d\n", fd3);
@@ -39,7 +39,14 @@ int main() {
   // free(node);
   // printf("%s\n", "----------done writing 1----------");
   // printf("large data size: %d\n", strlen(large));
-  // f_write(large, strlen(large), 200, fd);
+  f_write(large, strlen(large), 30, fd);
+  f_close(fd);
+
+  fd = f_open("/user/test.txt", READ, NULL);
+  f_rewind(fd); 
+  char *large_file = malloc(strlen(large) * 30);
+  f_read(large_file, strlen(large), 30, fd);
+  printf("File contents: %s\n", large_file);
   // block = get_data_block(2);
   // printf("Contents of block2: %s\n", (char*) block);
   // block = get_data_block(3);
