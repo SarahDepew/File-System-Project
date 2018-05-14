@@ -166,7 +166,7 @@ int background_builtin(char** args);
 int foreground_builtin(char** args);
 
 int ls_builtin(char **args);
-void print_stat (stat *entry); 
+void print_stat (stat *entry);
 int chmod_builtin(char **args);
 int mkdir_builtin(char **args);
 int rmdir_builtin(char **args);
@@ -180,8 +180,8 @@ int unmount_builtin(char **args);
 void errorMessage();
 void print_args(char **args);
 
-directory_entry* goto_root();
-directory_entry* goto_destination(char* filepath);
+directory_entry* goto_root(boolean change_pwd);
+directory_entry* goto_destination(char* filepath, boolean change_pwd);
 char* get_parentdir_name(directory_entry* entry);
 char* convert_absolute(char* filepath);
 #endif //HW7_SHELL_H

@@ -692,7 +692,6 @@ void print_file_table() {
             }
         }
     }
-    printf("%s\n", "------done printing-----------");
 }
 
 void print_table_entry (file_table_entry *entry) {
@@ -763,7 +762,7 @@ directory_entry* f_opendir(char* filepath) {
         int found = FALSE;
         file_table[i]->byte_offset = 0;
         while (found == FALSE) {
-            // printf("%s , %d\n", token, i);
+            printf("%s , %d\n", token, i);
             dir_entry = f_readdir(i);
             if (dir_entry == NULL) {
                 //reach the last byte in the file
@@ -815,7 +814,7 @@ directory_entry* f_opendir(char* filepath) {
         token = strtok(NULL, s);
     }
     table_freehead = find_next_freehead();
-    // printf("%s\n", "end of open_dir-----");
+    printf("%s\n", "end of open_dir-----");
     return dir_entry;
 }
 
