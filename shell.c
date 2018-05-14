@@ -123,9 +123,9 @@ int main (int argc, char **argv) {
     // f_unmount(root_index_into_mount_table);
     shutdownFilesystem(mid);
     free_users();
-    free(pwd_directory);
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
+    free(pwd_directory);
     return EXIT_SUCCESS;
 }
 

@@ -46,7 +46,9 @@ boolean shutdown() {
         free(file_table[j]->file_inode);
         free(file_table[j]);
     }
-    free(root_dir_entry);
+    if(root_dir_entry != NULL){
+      free(root_dir_entry);
+    }
     return TRUE;
 }
 
