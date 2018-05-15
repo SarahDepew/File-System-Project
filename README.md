@@ -104,3 +104,4 @@
 - fseek() unitialized buffer error mentioned, above
 - We can only mount our disk at the root directory, and mounting multiple disks at different directory is not implemented.
 - Writing to i2 and i3 blocks of a file are not handled.
+- When you cat >> with redirection and then attempt an ls -l, it segfaults
