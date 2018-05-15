@@ -1559,10 +1559,12 @@ int ls_builtin(char **args) {
                 entry = f_readdir(file_table_index);
                 free(entry);
                 entry = f_readdir(file_table_index);
+                printf("file/directory name - file size - uid - gid - ctime - mtime - atime - type (0 = DIR, 1 = REGULAR) - permissions - inode index\n");
                 while (entry != NULL) {
                     inode *inode1 = get_inode(entry->inode_index);
                     file_stat *st = malloc(sizeof(stat));
                     memset(st, 0, sizeof(stat));
+                    printf("%s - ", entry->filename);
                     f_stat(inode1, st);
                     print_stat(st);
                     free(st);
@@ -1585,7 +1587,6 @@ int ls_builtin(char **args) {
 }
 
 void print_stat (file_stat *entry) {
-    printf("file size - uid - gid - ctime - mtime - atime - type (0 = DIR, 1 = REGULAR) - permissions - inode index\n");
     printf("%d - ", entry->size);
     printf("%d - ", entry->uid);
     printf("%d - ", entry->gid);
