@@ -200,7 +200,6 @@ int main (int argc, char **argv) {
 
                   void *total_file = malloc(file_size);
                   fread(total_file, file_size, 1, fd);
-                  printf("FILE: %s\n", total_file);
 
                   //first open the directory sought and then check in that directory for the value
                   char *newfolder = NULL;

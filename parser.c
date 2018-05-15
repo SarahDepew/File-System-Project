@@ -309,8 +309,9 @@ int perform_parse() {
         if(strcmp(delim, "<") == 0) {
           redirection_type = INPUT;
         }
-
-        free(delim);
+        if(delim != NULL) {
+          // free(delim);
+        }
         cur_job->run_with_redirection = redirection_type;
         printf("REDIRECTION TYPE %d\n", redirection_type);
         cur_job = new_job;
