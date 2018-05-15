@@ -161,33 +161,26 @@ int read_command_line(char** return_val) {
     return TRUE;
 }
 
-char *which_is_contained(char *token) {
-    char *return_val = malloc(sizeof(4));
-    memset(return_val, 0, 4);
+int which_is_contained(char *token) {
     for (int i = 0; i < strlen(token); i++) {
         char c = token[i];
 
         if (c == '<') {
-            strcpy(return_val, "<");
-            break;
+            return INPUT;
         } else if (c == '>') {
             if (i + 1 < strlen(token)) {
-              printf("hi\n");
               if((c = token[i+1]) == '>') {
-                    printf("got here...");
-                      strcpy(return_val, ">>");
-                      break;
+                    return APND;
                   } else {
-                    strcpy(return_val, ">");
-                    break;
+                    return OVERWRITE;
                   }
             } else {
-                strcpy(return_val, ">");
-                break;
+                return OVERWRITE;
             }
         }
       }
-    return return_val;
+
+    return NONE;
 }
 
 /*
@@ -294,26 +287,14 @@ int perform_parse() {
             (cur_job->job_string)[l-1] = '\0';
         }
 
-        char *delim = which_is_contained(line);
+        int delim = which_is_contained(line);
         if(strncmp(last_element_of(cur_job->job_string), ">", 1) == 0) {
           int l = strlen(cur_job->job_string);
           (cur_job->job_string)[l-1] = '\0';
+        }
 
-          if(strcmp(delim, ">") == 0) {
-            redirection_type = OVERWRITE;
-          } else {
-            redirection_type = APND;
-        }
-      }
-
-        if(strcmp(delim, "<") == 0) {
-          redirection_type = INPUT;
-        }
-        if(delim != NULL) {
-          // free(delim);
-        }
-        cur_job->run_with_redirection = redirection_type;
-        printf("REDIRECTION TYPE %d\n", redirection_type);
+        cur_job->run_with_redirection = delim;
+        // printf("REDIRECTION TYPE %d\n", delim);
         cur_job = new_job;
     }
 
@@ -351,7 +332,7 @@ int perform_parse() {
     free(t);
     free(line);
     free(cur_job);
-    printf("NUM JOBS:%d\n", num_jobs);
+    // printf("NUM JOBS:%d\n", num_jobs);
     return num_jobs;
 }
 

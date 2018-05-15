@@ -87,7 +87,6 @@ int main (int argc, char **argv) {
 
         if(currentJob != NULL) {
           if(currentJob->run_with_redirection != NONE) {
-          printf("got here currrentJob NOT NULL\n");
             if(currentJob->run_with_redirection == INPUT) {
             int num_jobs = 0;
             job *j = currentJob;
@@ -96,15 +95,12 @@ int main (int argc, char **argv) {
               j = j->next_job;
             }
 
-            printf("num jobs:%d\n", num_jobs);
-
               j = currentJob;
               process *p = j->first_process;
               print_args(p->args);
 
               for(int i=0; i<num_jobs; i++) {
                 p->args[i] = j->first_process->args[0];
-                printf("%s ARGS\n", p->args[i]);
                 j = j->next_job;
               }
 
@@ -114,7 +110,6 @@ int main (int argc, char **argv) {
               /* run list of jobs entered */
               while (currentJob != NULL) {
                   if (!(currentJob->pass)) {
-                    printf("got here\n");
                       launchJob(currentJob, !(currentJob->run_in_background));
                   }
                   currentJob = NULL;
@@ -183,7 +178,6 @@ int main (int argc, char **argv) {
 
                   dup2(saved_stdout, STDOUT_FILENO);
                   close(fw);
-                  printf("gets here...\n");
                   int num_jobs;
 
                   job *j = all_jobs;
@@ -290,7 +284,6 @@ int main (int argc, char **argv) {
 
                   dup2(saved_stdout, STDOUT_FILENO);
                   close(fw);
-                  printf("gets here...\n");
                   int num_jobs;
 
                   job *j = all_jobs;
@@ -336,7 +329,6 @@ int main (int argc, char **argv) {
                   }
                   // printf("path: %s\n", path);
                   char *absolute_path = convert_absolute(path);
-                  printf("converted: %s\n", absolute_path);
                   free(path);
                   // printf("newfolder: %s\n", newfolder);
                   char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
@@ -357,11 +349,6 @@ int main (int argc, char **argv) {
                   fclose(fd);
                   free(total_file);
             }
-
-
-            free_all_jobs();
-
-
         } else {
 
           /* run list of jobs entered */
@@ -395,13 +382,13 @@ int main (int argc, char **argv) {
 
           }
 
-          free_all_jobs();
+
       }
       }
+
+      free_all_jobs();
     }
 
-    // fclose(mount_table_entry[root_index_into_mount_table])
-    // f_unmount(root_index_into_mount_table);
     shutdownFilesystem(mid);
     free_users();
 
@@ -1499,7 +1486,7 @@ void print_args(char **args) {
     //get args length
     int argsLength = arrayLength(args);
     for (int i = 0; i < argsLength; i++) {
-        printf("%s\n", args[i]);
+        // printf("%s\n", args[i]);
     }
 }
 
@@ -1674,7 +1661,7 @@ int rmdir_builtin(char **args) {
   char* filename = args[1];
   // print_file_table();
   char* filepath = convert_absolute(filename);
-  printf("converted: %s\n", filepath);
+  // printf("converted: %s\n", filepath);
   // char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
   // memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
   // wholepath = strncat(wholepath, filepath, strlen(filepath));
@@ -1751,7 +1738,7 @@ int cat_builtin(char **args) {
              }
              // printf("path: %s\n", path);
              char *absolute_path = convert_absolute(path);
-             printf("converted: %s\n", absolute_path);
+             // printf("converted: %s\n", absolute_path);
              free(path);
              // printf("newfolder: %s\n", newfolder);
              char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
@@ -1771,7 +1758,7 @@ int cat_builtin(char **args) {
                      printf("cat: %s: Is a directory\n", args[i]);
                  } else {
                      int file_size = inode1->size;
-                     printf("FILESIZE %d\n", file_size);
+                     // printf("FILESIZE %d\n", file_size);
                      void *file = malloc(file_size);
                      memset(file, 0, file_size);
                      if(file == NULL) {
@@ -1960,7 +1947,7 @@ int rm_builtin(char **args) {
   }
   // printf("path: %s\n", path);
   char *absolute_path = convert_absolute(path);
-  printf("converted: %s\n", absolute_path);
+  // printf("converted: %s\n", absolute_path);
   // print_file_table();
   free(path);
   // printf("newfolder: %s\n", newfolder);
@@ -1970,7 +1957,7 @@ int rm_builtin(char **args) {
   result = strncat(result, "/", 1);
   result = strcat(result, newfolder);
   free(absolute_path);
-  printf("resuting string:  %s\n", result);
+  // printf("resuting string:  %s\n", result);
   f_remove(result);
   return 0;
 }
