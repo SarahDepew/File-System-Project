@@ -100,7 +100,7 @@
 - gid and uid are not implemented
 - ctime, mtime and atime are not implemented
 - permission is not implemented.
-- Memory leak
-- fseek() unitialized
+- Memory leaks are a problem on some of the methods. We were fixing these and they ended up breaking other parts of the shell. As a result, we left a few leaks there as to not break our code completely. However, we do know of their existence. 
+- fseek() unitialized buffer error mentioned, above
 - We can only mount our disk at the root directory, and mounting multiple disks at different directory is not implemented.
 - Writing to i2 and i3 blocks of a file are not handled.
