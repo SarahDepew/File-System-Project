@@ -19,14 +19,14 @@
   Run ./formatdir <diskname>
   - For example, "./formatdir DISK" is going to give a disk with directory "/user/test.txt" named DISK
 
-###ls:
+### ls:
   ls
   ls -F
   ls -l
   -- displaying the file information.
   -- file information content: filesize, uid, gid, ctime, mtime, atime, fileytpe(0 for directory files, and 1 for regular files), permission and inode_index
 
-###cd:
+### cd:
   cd .
   -- Stays at the current working directory.
   cd ..
@@ -38,10 +38,10 @@
   cd
   -- Jumps to the root directory and changes the current working directory at the same time.
 
-###pwd:
+### pwd:
   pwd
 
-###mkdir:
+### mkdir:
   mkdir <relative path>
   -- mkdir <filename>
   -- mkdir ./<filename>
@@ -49,26 +49,26 @@
   mkdir <absolute path>
   -- Creates the directory at the right place.
 
-###rm:
+### rm:
   rm <relative path>
   rm <absolute path>
   rm works on both empty directories and on empty files
 
-###rmdir:
+### rmdir:
   rmdir <relative path>
   rmdir <absolute path>
 
-###chmod:
+### chmod:
   not implemented
 
-###cat:
+### cat:
 
-###mount:
+### mount:
 
-###unmount:
+### unmount:
 
 ## How to test:
-####shell function:
+#### shell function:
 - test ls
 - test cd
 - test pwd
@@ -76,7 +76,7 @@
 - test rm
 - test rmdir
 - test cat
-####file system functions:
+#### file system functions:
 - test f_read
 - test f_write
 - test f_mount
