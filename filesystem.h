@@ -147,6 +147,7 @@ boolean f_unmount(int mid);
 /* Helper Methods */
 boolean setup();
 boolean shutdown();
+void free_root_dir();
 void print_inode (inode* entry);
 void print_table_entry (file_table_entry *entry);
 void print_superblock(superblock *superblock1);

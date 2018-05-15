@@ -43,13 +43,21 @@ boolean shutdown() {
     }
 
     for (int j = 0; j < FILETABLESIZE; j++) {
-        free(file_table[j]->file_inode);
+        if(file_table[j]->file_inode != NULL){
+          free(file_table[j]->file_inode);
+        }
         free(file_table[j]);
     }
-    if(root_dir_entry != NULL){
-      free(root_dir_entry);
-    }
+    // if(root_dir_entry != NULL){
+    //   free(root_dir_entry);
+    // }
     return TRUE;
+}
+
+//when free in shutdown() causes direct loss
+//This way it truns into indirect. So I guess it is better? TODO.
+void free_root_dir(){
+    free(root_dir_entry);
 }
 
 int first_free_location_in_mount() {
@@ -1242,6 +1250,7 @@ directory_entry* f_rmdir(char* filepath) {
         return NULL;
     }
     inode *start_node = get_inode(start_ent->inode_index);
+    printf("start ent name: %s\n", start_ent->filename);
     f_rmdir_helper(filepath, start_node);
     return start_ent;
 }
@@ -1255,12 +1264,14 @@ int get_size_directory_entry_block(directory_entry* entry) {
 }
 
 directory_entry* get_first_direntry(inode* node) {
+    printf("%s\n", "in get fiest dirent");
     directory_entry *result = malloc(sizeof(directory_entry));
     memset(result, 0, sizeof(directory_entry));
     void *data = get_data_block(node->dblocks[0]);
     int index = *(int *) (data + 2 * sizeof(directory_entry));
     char *name = (char *) (data + 2 * sizeof(directory_entry) + sizeof(int));
     result->inode_index = index;
+    printf("name: %s\n", name);
     strcpy(result->filename, name);
     free(data);
     return result;
@@ -1268,24 +1279,32 @@ directory_entry* get_first_direntry(inode* node) {
 
 void f_rmdir_helper(char* filepath, inode* node) {
     if (node->type == REG) {
+        printf("%s\n", "should not be here");
         f_remove(filepath);
         free(filepath);
         free(node);
     } else {
         if (node->size == sizeof(directory_entry) * 2) {
+            printf("%s\n", "empty dir ready to remove in helper");
             //the directroy is empty
             //remove the directory
             f_remove(filepath);
             free(filepath);
             free(node);
         } else {
+            printf("%s\n","not ready to remove in helper" );
             directory_entry *entry = get_first_direntry(node);
             free(node);
+            printf("should be same as name: %s\n",entry->filename );
             inode *new_node = get_inode(entry->inode_index);
             int new_length = strlen(filepath) + strlen(entry->filename) + 2;
             char *new_path = malloc(new_length);
             memset(new_path, 0, new_length);
+            new_path = strncat(new_path, filepath, strlen(filepath));
+            new_path = strncat(new_path, "/", 1);
+            new_path = strcat(new_path, entry->filename);
             free(entry);
+            printf("newpath in helper: %s\n", new_path);
             f_rmdir_helper(new_path, new_node);
         }
     }

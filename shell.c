@@ -1385,17 +1385,23 @@ int mkdir_builtin(char **args) {
 }
 
 int rmdir_builtin(char **args) {
-    char* filename = args[1];
-    // print_file_table();
-    char* filepath = convert_absolute(pwd_directory->filename);
-    char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
-    memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
-    wholepath = strncat(wholepath, filepath, strlen(filepath));
-    wholepath = strncat(wholepath, "/", 1);
-    wholepath = strcat(wholepath,filename);
-    // printf("wholepath: %s\n", wholepath);
-    f_remove(wholepath);
-    return 0;
+  if (args[1] == NULL) {
+      printf("%s\n", "incorrect format for rmdir");
+      return EXITFAILURE;
+  }
+  char* filename = args[1];
+  // print_file_table();
+  char* filepath = convert_absolute(filename);
+  printf("converted: %s\n", filepath);
+  // char* wholepath = malloc(strlen(filename)+strlen(filepath)+2);
+  // memset(wholepath, 0, strlen(filename)+strlen(filepath)+2);
+  // wholepath = strncat(wholepath, filepath, strlen(filepath));
+  // wholepath = strncat(wholepath, "/", 1);
+  // wholepath = strcat(wholepath,filename);
+  // printf("wholepath: %s\n", wholepath);
+  directory_entry* ent = f_rmdir(filepath);
+  free(ent);
+  return 0;
 }
 
 int cd_builtin(char **args) {
