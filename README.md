@@ -72,9 +72,10 @@
   not implemented, since permissions are not implemented 
 
 ### cat:
+  This is partially working. Cat and redirection are implemented. You can see redirection work with methods other than cat or the built ins. For example mail with redirection uses the linux builtin and works. Basic cat with no arguments and redirection works and so does cat on a file if you have one on the disk. You can make up to one file with like 10 characters and everything works. When you make a file, you have to exit the shell before you read it, otherwise you get double free errors and segfaults.
 
 ### more: 
-
+  This is implemented fully, but hard to test without the ability to get files on the disk. If you can get two files on the disk, then you can more them.  More doesn't do paging, but does print out files all in one stream, block by block.
 ### mount:
   This functionality is not implemented.
   
@@ -105,3 +106,4 @@
 - We can only mount our disk at the root directory, and mounting multiple disks at different directory is not implemented.
 - Writing to i2 and i3 blocks of a file are not handled.
 - When you cat >> with redirection and then attempt an ls -l, it segfaults
+- There are issues with creating files that are more than one block. It is also giving errors when you try to create more than one file. Sometimes you can create multiple files with a single block and then use more to show these files contents. This can be used to show more and cat do work on files, but there is some miscommunication between f_write and f_read which we were unable to figure out how to fix.
