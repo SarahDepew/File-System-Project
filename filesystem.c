@@ -629,7 +629,7 @@ boolean f_seek(int file_descriptor, int offset, int whence) {
     return FALSE;
 }
 
-boolean f_stat(inode *inode1, stat *st) {
+boolean f_stat(inode *inode1, file_stat *st) {
     st->size = inode1->size;
     st->uid = inode1->uid;
     st->gid = inode1->gid;

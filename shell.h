@@ -62,6 +62,7 @@ typedef struct job {
     char **args;
     int stderr;
     int run_in_background;
+    int run_with_redirection;
     int suspend_this_job;
     struct job *next_job;
 } job;
@@ -81,6 +82,8 @@ typedef struct user {
     int uid;
     char *absolute_path_home_directory;
 } user;
+
+enum {APND, OVERWRITE, INPUT, NONE};
 
 void printoutargs();
 
@@ -166,7 +169,7 @@ int background_builtin(char** args);
 int foreground_builtin(char** args);
 
 int ls_builtin(char **args);
-void print_stat (stat *entry); 
+void print_stat (file_stat *entry);
 int chmod_builtin(char **args);
 int mkdir_builtin(char **args);
 int rmdir_builtin(char **args);

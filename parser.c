@@ -10,9 +10,9 @@
 #define CONTINUE 1
 #define TRUE 1
 #define FALSE 0
-#define NUM_DELIMINATORS 3
+#define NUM_DELIMINATORS 5
 
-char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", "\0"};
+char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", ">", "<", "\0"};
 char *white_space_deliminator = " ";
 char *PROMPT = "$ ";
 
@@ -20,25 +20,6 @@ tokenizer *t = NULL;
 tokenizer *pt;
 extern job *all_jobs;
 extern background_job *all_background_jobs;
-
-// char *which_is_contained(char *token, int *location) {
-//     for (int i = 0; i < strlen(token); i++) {
-//         char c = token[i];
-//         if (c == '<') {
-//             return "<";
-//         } else if (c == '>') {
-//             if (i + 1 < strlen(token)) {
-//                     return ">>";
-//                 } else {
-//                     return ">";
-//                 }
-//             } else {
-//                 return ">";
-//             }
-//         }
-//
-//     return NULL;
-// }
 
 int split_white_space(char **user_input, char ***tokenized_input) {
     int buffer_mark = BUFFER_SIZE;
@@ -52,10 +33,8 @@ int split_white_space(char **user_input, char ***tokenized_input) {
     }
 
     int i = 0;
-    // char *delim = NULL;
-    // char *current_token;
 
-    (*tokenized_input)[i] = strtok(*user_input, " ");
+    (*tokenized_input)[i] = strtok(*user_input, " ,<");
     while ((*tokenized_input)[i] != NULL) {
         i++;
         if (i == buffer_mark - 1) {
@@ -68,7 +47,7 @@ int split_white_space(char **user_input, char ***tokenized_input) {
             }
             (*tokenized_input) = new_tokenized_input;
         }
-        (*tokenized_input)[i] = strtok(NULL, " ");
+        (*tokenized_input)[i] = strtok(NULL, " ,<");
     }
     (*tokenized_input)[i] = NULL;
     return CONTINUE;
@@ -93,6 +72,7 @@ char *get_next_token() {
             count++;
             t->pos++;
         }
+
         if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
         token = malloc(sizeof(char *) * (count + 1));
         memset(token, 0, sizeof(char *) * (count + 1));
@@ -181,11 +161,41 @@ int read_command_line(char** return_val) {
     return TRUE;
 }
 
+char *which_is_contained(char *token) {
+    char *return_val = malloc(sizeof(4));
+    memset(return_val, 0, 4);
+    for (int i = 0; i < strlen(token); i++) {
+        char c = token[i];
+
+        if (c == '<') {
+            strcpy(return_val, "<");
+            break; 
+        } else if (c == '>') {
+            if (i + 1 < strlen(token)) {
+              printf("hi\n");
+              if((c = token[i+1]) == '>') {
+                    printf("got here...");
+                      strcpy(return_val, ">>");
+                      break;
+                  } else {
+                    strcpy(return_val, ">");
+                    break;
+                  }
+            } else {
+                strcpy(return_val, ">");
+                break;
+            }
+        }
+      }
+    return return_val;
+}
+
 /*
  * Transforms all jobs global into first job in job LL and returns the number of jobs to run
  */
 int perform_parse() {
     char *line = NULL;
+    int redirection_type = NONE;
 
     printf("$ ");
     boolean read_command_status = read_command_line(&line);
@@ -216,6 +226,9 @@ int perform_parse() {
     int num_jobs = 0;
 
     while((token = get_next_token()) != NULL) {
+      if(strcmp(token, ">") ==0) {
+        continue;
+      }
         num_jobs++;
         free(token);
     }
@@ -233,6 +246,9 @@ int perform_parse() {
     all_jobs = cur_job;
 
     while ((token = get_next_token()) != NULL) {
+        if(strcmp(token, ">") == 0) {
+          continue;
+        }
         job *new_job;
         new_job = malloc(sizeof(job));
         memset(new_job, 0, sizeof(job));
@@ -278,6 +294,25 @@ int perform_parse() {
             (cur_job->job_string)[l-1] = '\0';
         }
 
+        char *delim = which_is_contained(line);
+        if(strncmp(last_element_of(cur_job->job_string), ">", 1) == 0) {
+          int l = strlen(cur_job->job_string);
+          (cur_job->job_string)[l-1] = '\0';
+
+          if(strcmp(delim, ">") == 0) {
+            redirection_type = OVERWRITE;
+          } else {
+            redirection_type = APND;
+        }
+      }
+
+        if(strcmp(delim, "<") == 0) {
+          redirection_type = INPUT;
+        }
+
+        free(delim);
+        cur_job->run_with_redirection = redirection_type;
+        printf("REDIRECTION TYPE %d\n", redirection_type);
         cur_job = new_job;
     }
 
@@ -315,6 +350,7 @@ int perform_parse() {
     free(t);
     free(line);
     free(cur_job);
+    printf("NUM JOBS:%d\n", num_jobs);
     return num_jobs;
 }
 

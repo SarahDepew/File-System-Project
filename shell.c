@@ -6,10 +6,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <errno.h>
 #include <limits.h>
 #include <curses.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 job *all_jobs;
 job *list_of_jobs = NULL;
@@ -84,39 +85,320 @@ int main (int argc, char **argv) {
         perform_parse();
         job *currentJob = all_jobs;
 
-        /* run list of jobs entered */
-        while (currentJob != NULL) {
-            if (!(currentJob->pass)) {
-                launchJob(currentJob, !(currentJob->run_in_background));
+        if(currentJob != NULL) {
+          if(currentJob->run_with_redirection != NONE) {
+          printf("got here currrentJob NOT NULL\n");
+            if(currentJob->run_with_redirection == INPUT) {
+            int num_jobs = 0;
+            job *j = currentJob;
+            while (j != NULL) {
+              num_jobs ++;
+              j = j->next_job;
             }
-            currentJob = currentJob->next_job;
-        }
 
-        /* add job to background if it is flagged */
-        job *to_suspend = all_jobs;
-        while (to_suspend != NULL) {
-            if (to_suspend->suspend_this_job) {
-                put_job_in_background(to_suspend, 0, SUSPENDED);
+            printf("num jobs:%d\n", num_jobs);
+
+              j = currentJob;
+              process *p = j->first_process;
+              print_args(p->args);
+
+              for(int i=0; i<num_jobs; i++) {
+                p->args[i] = j->first_process->args[0];
+                printf("%s ARGS\n", p->args[i]);
+                j = j->next_job;
+              }
+
+              print_args(p->args);
+
+              currentJob = all_jobs;
+              /* run list of jobs entered */
+              while (currentJob != NULL) {
+                  if (!(currentJob->pass)) {
+                    printf("got here\n");
+                      launchJob(currentJob, !(currentJob->run_in_background));
+                  }
+                  currentJob = NULL;
+              }
+
+              /* add job to background if it is flagged */
+              job *to_suspend = all_jobs;
+              while (to_suspend != NULL) {
+                  if (to_suspend->suspend_this_job) {
+                      put_job_in_background(to_suspend, 0, SUSPENDED);
+                  }
+                  to_suspend = to_suspend->next_job;
+              }
+
+              /*Print out job status updates */
+              background_job *bj = all_background_jobs;
+              int i = 0;
+              while (bj != NULL) {
+                  char *status[] = {running, suspended, killed};
+                  i++;
+                  if (bj->verbose) {
+                      printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
+                      bj->verbose = FALSE;
+                  }
+                  bj = bj->next_background_job;
+
+              }
+            } else if(currentJob->run_with_redirection == APND) {
+              //Now, have to get the stdout value and put it into a new file on our disk...
+              int saved_stdout = dup(STDOUT_FILENO);
+              int fw = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC);
+              dup2(fw, STDOUT_FILENO);
+
+                currentJob = all_jobs;
+                /* run list of jobs entered */
+
+                while (currentJob != NULL) {
+                    if (!(currentJob->pass)) {
+                        launchJob(currentJob, !(currentJob->run_in_background));
+                    }
+                    currentJob = NULL;
+                }
+
+                /* add job to background if it is flagged */
+                job *to_suspend = all_jobs;
+                while (to_suspend != NULL) {
+                    if (to_suspend->suspend_this_job) {
+                        put_job_in_background(to_suspend, 0, SUSPENDED);
+                    }
+                    to_suspend = to_suspend->next_job;
+                }
+
+                /*Print out job status updates */
+                background_job *bj = all_background_jobs;
+                int i = 0;
+                while (bj != NULL) {
+                    char *status[] = {running, suspended, killed};
+                    i++;
+                    if (bj->verbose) {
+                        printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
+                        bj->verbose = FALSE;
+                    }
+                    bj = bj->next_background_job;
+
+                }
+
+                  dup2(saved_stdout, STDOUT_FILENO);
+                  close(fw);
+                  printf("gets here...\n");
+                  int num_jobs;
+
+                  job *j = all_jobs;
+                  while (j != NULL && j->next_job != NULL) {
+                    j = j->next_job;
+                  }
+
+                    process *p = j->first_process;
+
+                  FILE *fd = fopen("output.txt", "rb");
+                  fseek(fd, 0L, SEEK_END);
+                  int file_size = ftell(fd);
+                  rewind(fd);
+
+                  void *total_file = malloc(file_size);
+                  fread(total_file, file_size, 1, fd);
+                  printf("FILE: %s\n", total_file);
+
+                  //first open the directory sought and then check in that directory for the value
+                  char *newfolder = NULL;
+                  char *path = malloc(strlen(p->args[0]));
+                  memset(path, 0, strlen(p->args[0]));
+                  char path_copy[strlen(p->args[0]) + 1];
+                  char copy[strlen(p->args[0]) + 1];
+                  strcpy(path_copy, p->args[0]);
+                  strcpy(copy, p->args[0]);
+                  char *s = "/";
+                  //calculate the level of depth of dir
+                  char *token = strtok(copy, s);
+                  int count = 0;
+                  while (token != NULL) {
+                      count++;
+                      token = strtok(NULL, s);
+                  }
+                  // printf("count: %d\n", count);
+                  newfolder = strtok(path_copy, s);
+                  while (count > 1) {
+                      count--;
+                      // printf("new_folder: %s\n", newfolder);
+                      path = strcat(path, newfolder);
+                      path = strcat(path, "/");
+                      newfolder = strtok(NULL, s);
+                  }
+                  // printf("path: %s\n", path);
+                  char *absolute_path = convert_absolute(path);
+                  printf("converted: %s\n", absolute_path);
+                  free(path);
+                  // printf("newfolder: %s\n", newfolder);
+                  char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+                  memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+                  result = strncat(result, absolute_path, strlen(absolute_path));
+                  result = strncat(result, "/", 1);
+                  result = strcat(result, newfolder);
+                  free(absolute_path);
+
+                  int file_descriptor;
+                  if ((file_descriptor = f_open(result, APPEND, NULL)) != EXITFAILURE) {
+                      f_write(total_file, file_size, 1, file_descriptor);
+                      f_close(file_descriptor);
+                  } else {
+                    printf("opening file error\n");
+                  }
+
+                  fclose(fd);
+                  free(total_file);
+
+            } else {
+              //Now, have to get the stdout value and put it into a new file on our disk...
+              int saved_stdout = dup(STDOUT_FILENO);
+              int fw = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC);
+              dup2(fw, STDOUT_FILENO);
+
+                currentJob = all_jobs;
+                /* run list of jobs entered */
+
+                while (currentJob != NULL) {
+                    if (!(currentJob->pass)) {
+                        launchJob(currentJob, !(currentJob->run_in_background));
+                    }
+                    currentJob = NULL;
+                }
+
+                /* add job to background if it is flagged */
+                job *to_suspend = all_jobs;
+                while (to_suspend != NULL) {
+                    if (to_suspend->suspend_this_job) {
+                        put_job_in_background(to_suspend, 0, SUSPENDED);
+                    }
+                    to_suspend = to_suspend->next_job;
+                }
+
+                /*Print out job status updates */
+                background_job *bj = all_background_jobs;
+                int i = 0;
+                while (bj != NULL) {
+                    char *status[] = {running, suspended, killed};
+                    i++;
+                    if (bj->verbose) {
+                        printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
+                        bj->verbose = FALSE;
+                    }
+                    bj = bj->next_background_job;
+
+                }
+
+                  dup2(saved_stdout, STDOUT_FILENO);
+                  close(fw);
+                  printf("gets here...\n");
+                  int num_jobs;
+
+                  job *j = all_jobs;
+                  while (j != NULL && j->next_job != NULL) {
+                    j = j->next_job;
+                  }
+
+                    process *p = j->first_process;
+
+                  FILE *fd = fopen("output.txt", "rb");
+                  fseek(fd, 0L, SEEK_END);
+                  int file_size = ftell(fd);
+                  printf("file size %d\n", file_size);
+                  rewind(fd);
+
+                  void *total_file = malloc(file_size);
+                  fread(total_file, file_size, 1, fd);
+
+                  //first open the directory sought and then check in that directory for the value
+                  char *newfolder = NULL;
+                  char *path = malloc(strlen(p->args[0]));
+                  memset(path, 0, strlen(p->args[0]));
+                  char path_copy[strlen(p->args[0]) + 1];
+                  char copy[strlen(p->args[0]) + 1];
+                  strcpy(path_copy, p->args[0]);
+                  strcpy(copy, p->args[0]);
+                  char *s = "/";
+                  //calculate the level of depth of dir
+                  char *token = strtok(copy, s);
+                  int count = 0;
+                  while (token != NULL) {
+                      count++;
+                      token = strtok(NULL, s);
+                  }
+                  // printf("count: %d\n", count);
+                  newfolder = strtok(path_copy, s);
+                  while (count > 1) {
+                      count--;
+                      // printf("new_folder: %s\n", newfolder);
+                      path = strcat(path, newfolder);
+                      path = strcat(path, "/");
+                      newfolder = strtok(NULL, s);
+                  }
+                  // printf("path: %s\n", path);
+                  char *absolute_path = convert_absolute(path);
+                  printf("converted: %s\n", absolute_path);
+                  free(path);
+                  // printf("newfolder: %s\n", newfolder);
+                  char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+                  memset(result, 0, strlen(absolute_path) + 1 + strlen(newfolder) + 1);
+                  result = strncat(result, absolute_path, strlen(absolute_path));
+                  result = strncat(result, "/", 1);
+                  result = strcat(result, newfolder);
+                  free(absolute_path);
+
+                  int file_descriptor;
+                  if ((file_descriptor = f_open(result, WRITE, NULL)) != EXITFAILURE) {
+                      f_write(total_file, file_size, 1, file_descriptor);
+                      f_close(file_descriptor);
+                  } else {
+                    printf("opening file error\n");
+                  }
+
+                  fclose(fd);
+                  free(total_file);
             }
-            to_suspend = to_suspend->next_job;
-        }
 
-        /*Print out job status updates */
-        background_job *bj = all_background_jobs;
-        int i = 0;
-        while (bj != NULL) {
-            char *status[] = {running, suspended, killed};
-            i++;
-            if (bj->verbose) {
-                printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
-                bj->verbose = FALSE;
-            }
-            bj = bj->next_background_job;
 
-        }
+            free_all_jobs();
 
-        free_all_jobs();
 
+        } else {
+
+          /* run list of jobs entered */
+          while (currentJob != NULL) {
+              if (!(currentJob->pass)) {
+                  launchJob(currentJob, !(currentJob->run_in_background));
+              }
+              currentJob = currentJob->next_job;
+          }
+
+          /* add job to background if it is flagged */
+          job *to_suspend = all_jobs;
+          while (to_suspend != NULL) {
+              if (to_suspend->suspend_this_job) {
+                  put_job_in_background(to_suspend, 0, SUSPENDED);
+              }
+              to_suspend = to_suspend->next_job;
+          }
+
+          /*Print out job status updates */
+          background_job *bj = all_background_jobs;
+          int i = 0;
+          while (bj != NULL) {
+              char *status[] = {running, suspended, killed};
+              i++;
+              if (bj->verbose) {
+                  printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
+                  bj->verbose = FALSE;
+              }
+              bj = bj->next_background_job;
+
+          }
+
+          free_all_jobs();
+      }
+      }
     }
 
     // fclose(mount_table_entry[root_index_into_mount_table])
@@ -126,7 +408,7 @@ int main (int argc, char **argv) {
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
-    free(pwd_directory); 
+    free(pwd_directory);
     return EXIT_SUCCESS;
 }
 
@@ -498,65 +780,65 @@ void launchJob(job *j, int foreground) {
     process *p;
     pid_t pid;
     int isBuiltIn;
-    for (p = j->first_process; p; p = p->next_process) {
-        isBuiltIn = isBuiltInCommand(*p);
+      for (p = j->first_process; p; p = p->next_process) {
+          isBuiltIn = isBuiltInCommand(*p);
 
-        //run as a built-in command
-        if (isBuiltIn != NOT_FOUND) {
-            executeBuiltInCommand(p, isBuiltIn);
-        }
-        else {
-            /* Fork the child processes.  */
-            pid = fork();
+          //run as a built-in command
+          if (isBuiltIn != NOT_FOUND) {
+              executeBuiltInCommand(p, isBuiltIn);
+          }
+          else {
+              /* Fork the child processes.  */
+              pid = fork();
 
-            if (pid == 0) {
-                /* This is the child process.  */
-                launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
-            } else if (pid < 0) {
-                /* The fork failed.  */
-                perror("fork");
-                exit(EXIT_FAILURE);
-            } else {
-                /* This is the parent process.  */
-                p->pid = pid;
+              if (pid == 0) {
+                  /* This is the child process.  */
+                  launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
+              } else if (pid < 0) {
+                  /* The fork failed.  */
+                  perror("fork");
+                  exit(EXIT_FAILURE);
+              } else {
+                  /* This is the parent process.  */
+                  p->pid = pid;
 
-                if (!j->pgid) {
-                    j->pgid = pid;
-                }
+                  if (!j->pgid) {
+                      j->pgid = pid;
+                  }
 
-                setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
-            }
-        }
-    }
+                  setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
+              }
+          }
+      }
 
-    if (isBuiltIn == NOT_FOUND) {
-        if (foreground) {
-            put_job_in_foreground(j, 0);
-        } else {
-            sigset_t mask;
+      if (isBuiltIn == NOT_FOUND) {
+          if (foreground) {
+              put_job_in_foreground(j, 0);
+          } else {
+              sigset_t mask;
 
-            if (sigemptyset(&mask) == ERROR) {
-                perror("I am sorry, but sigemptyset failed.\n");
-                exit(EXIT_FAILURE);
-            }
+              if (sigemptyset(&mask) == ERROR) {
+                  perror("I am sorry, but sigemptyset failed.\n");
+                  exit(EXIT_FAILURE);
+              }
 
-            if (sigaddset(&mask, SIGCHLD) == ERROR) {
-                perror("I am sorry, but sigaddset failed.\n");
-                exit(EXIT_FAILURE);
-            }
-            if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
-                perror("I am sorry, but sigprocmask failed.\n");
-                exit(EXIT_FAILURE);
-            }
+              if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                  perror("I am sorry, but sigaddset failed.\n");
+                  exit(EXIT_FAILURE);
+              }
+              if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                  perror("I am sorry, but sigprocmask failed.\n");
+                  exit(EXIT_FAILURE);
+              }
 
-            put_job_in_background(j, !CONTINUE, RUNNING);
+              put_job_in_background(j, !CONTINUE, RUNNING);
 
-            if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
-                perror("I am sorry, but sigprocmask failed.\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+              if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                  perror("I am sorry, but sigprocmask failed.\n");
+                  exit(EXIT_FAILURE);
+              }
+          }
+      }
 }
 
 /* Method to launch our process in either the foreground or the background. */
@@ -1273,7 +1555,7 @@ int ls_builtin(char **args) {
                 entry = f_readdir(file_table_index);
                 while (entry != NULL) {
                     inode *inode1 = get_inode(entry->inode_index);
-                    stat *st = malloc(sizeof(stat));
+                    file_stat *st = malloc(sizeof(stat));
                     memset(st, 0, sizeof(stat));
                     f_stat(inode1, st);
                     print_stat(st);
@@ -1296,7 +1578,7 @@ int ls_builtin(char **args) {
     return FALSE;
 }
 
-void print_stat (stat *entry) {
+void print_stat (file_stat *entry) {
     printf("file size - uid - gid - ctime - mtime - atime - type (0 = DIR, 1 = REGULAR) - permissions - inode index\n");
     printf("%d - ", entry->size);
     printf("%d - ", entry->uid);
@@ -1397,94 +1679,6 @@ int pwd_builtin(char **args) {
     return 0;
 }
 
-// directory_entry *in_valid_path(char *file_name) {
-//     directory_entry *directory_to_search = f_opendir(convert_absolute(file_name));
-//     int file_table_index = get_fd_from_inode_value(pwd_directory->inode_index);
-//     f_rewind(file_table_index);
-//     directory_entry *entry = f_readdir(file_table_index);
-//     while (entry != NULL) {
-//         if (strcmp(entry->filename, file_name) == 0) {
-//             found = entry;
-//             break;
-//         } else {
-//             entry = f_readdir(file_table_index);
-//         }
-//     }
-//
-//     return found;
-// }
-
-char *which_is_contained(char *token) {
-    for (int i = 0; i < strlen(token); i++) {
-        char c = token[i];
-        if (c == '<') {
-            return "<";
-        } else if (c == '>') {
-            if (i + 1 < strlen(token)) {
-                    return ">>";
-                } else {
-                    return ">";
-                }
-            } else {
-                return ">";
-            }
-        }
-
-    return NULL;
-}
-
-int contains_delimiter(char **args, int start, int end) {
-  for(int i=start; i<end; i++) {
-    if((strcmp(args[i], ">") ==0) || (strcmp(args[i], ">>") ==0) || (strcmp(args[i], "<") ==0)) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-int location_last_delimiter(char **args) {
-  int length_args = arrayLength(args);
-  // char *delim;
-  boolean last_found = FALSE;
-  int return_value;
-  int last_found_location = -1;
-  while(!last_found) {
-    for(int i=0; i<length_args-1; i++) {
-      if((return_value = contains_delimiter(args, i, length_args)) != -1) {
-        last_found_location = return_value;
-      } else {
-        last_found = TRUE;
-        break;
-      }
-    }
-  }
-
-  return last_found_location;
-}
-
-// boolean all_strings(char **args, int start, int stop) {
-//   for(int i=start; i<=stop; i++) {
-//     if(in_directory(args[i]) != NULL) {
-//       return FALSE;
-//     } else {
-//       return TRUE;
-//     }
-//   }
-// }
-
-boolean is_all_delimeters(char **args) {
-  int args_length = arrayLength(args);
-
-  for(int i=1; i<args_length; i++) {
-    if(!((strcmp(args[i], ">") ==0) || (strcmp(args[i], ">>") ==0) || (strcmp(args[i], "<") ==0))) {
-      return FALSE;
-    }
-  }
-
-  return TRUE;
-}
-
 int cat_builtin(char **args) {
     //get args length
     int args_length = arrayLength(args);
@@ -1533,7 +1727,7 @@ int cat_builtin(char **args) {
              }
              // printf("path: %s\n", path);
              char *absolute_path = convert_absolute(path);
-             // printf("converted: %s\n", absolute_path);
+             printf("converted: %s\n", absolute_path);
              free(path);
              // printf("newfolder: %s\n", newfolder);
              char *result = malloc(strlen(absolute_path) + 1 + strlen(newfolder) + 1);
@@ -1542,7 +1736,6 @@ int cat_builtin(char **args) {
              result = strncat(result, "/", 1);
              result = strcat(result, newfolder);
              free(absolute_path);
-             printf("resuting string: %s\n", result);
 
              int fd;
              if ((fd = f_open(result, READ, NULL)) != EXITFAILURE) {

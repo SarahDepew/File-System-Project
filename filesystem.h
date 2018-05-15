@@ -77,7 +77,7 @@ typedef struct permission_value {
 } permission_value;
 
 // structure for f_stat, information all taken from the inode/vnode
-typedef struct stat {
+typedef struct file_stat {
     int size; /* number of bytes in file */
     int uid; /* owner’s user ID */
     int gid; /* owner’s group ID */
@@ -87,7 +87,7 @@ typedef struct stat {
     int type; // dir or regular file
     struct permission_value permission; //file access information
     int inode_index; // the index number for this inode
-} stat;
+} file_stat;
 
 /* inode struct */
 typedef struct inode {
@@ -133,7 +133,7 @@ int f_write(void* buffer, int size, int ntimes, int fd );
 boolean f_close(int file_descriptor);
 boolean f_seek(int file_descriptor, int offset, int whence);
 boolean f_rewind(int file_descriptor);
-boolean f_stat(inode *inode1, stat *st);
+boolean f_stat(inode *inode1, file_stat *st);
 boolean f_remove(char *filepath);
 directory_entry* f_opendir(char* filepath);
 directory_entry* f_rmdir(char* filepath);
