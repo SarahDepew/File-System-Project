@@ -169,7 +169,7 @@ char *which_is_contained(char *token) {
 
         if (c == '<') {
             strcpy(return_val, "<");
-            break; 
+            break;
         } else if (c == '>') {
             if (i + 1 < strlen(token)) {
               printf("hi\n");

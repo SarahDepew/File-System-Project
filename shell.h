@@ -183,8 +183,8 @@ int unmount_builtin(char **args);
 void errorMessage();
 void print_args(char **args);
 
-directory_entry* goto_root();
-directory_entry* goto_destination(char* filepath);
+directory_entry* goto_root(boolean change_pwd);
+directory_entry* goto_destination(char* filepath, boolean change_pwd);
 char* get_parentdir_name(directory_entry* entry);
 char* convert_absolute(char* filepath);
 #endif //HW7_SHELL_H

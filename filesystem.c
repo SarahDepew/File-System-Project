@@ -43,11 +43,21 @@ boolean shutdown() {
     }
 
     for (int j = 0; j < FILETABLESIZE; j++) {
-        free(file_table[j]->file_inode);
+        if(file_table[j]->file_inode != NULL){
+          free(file_table[j]->file_inode);
+        }
         free(file_table[j]);
     }
-    free(root_dir_entry);
+    // if(root_dir_entry != NULL){
+    //   free(root_dir_entry);
+    // }
     return TRUE;
+}
+
+//when free in shutdown() causes direct loss
+//This way it truns into indirect. So I guess it is better? TODO.
+void free_root_dir(){
+    free(root_dir_entry);
 }
 
 int first_free_location_in_mount() {
@@ -692,7 +702,6 @@ void print_file_table() {
             }
         }
     }
-    printf("%s\n", "------done printing-----------");
 }
 
 void print_table_entry (file_table_entry *entry) {
@@ -745,7 +754,8 @@ directory_entry* f_opendir(char* filepath) {
         root_dir_entry->filename[1] = 0;
         dir_entry = root_dir_entry;
     } else {
-        // printf("%s\n", "root already exists, in opendir-----2");
+        printf("%s\n", "root already exists, in opendir-----2");
+        // print_file_table();
         file_table[0]->byte_offset = 0;
         // memset(root_dir_entry, 0, sizeof(directory_entry));
         // root_dir_entry->inode_index = 0;
@@ -753,17 +763,20 @@ directory_entry* f_opendir(char* filepath) {
         // root_dir_entry->filename[0] = '/';
         // root_dir_entry->filename[1] = 0;
         dir_entry = root_dir_entry;
+        printf("dir_entry info : %s\n", dir_entry->filename);
+        printf("dir_entry info: %d\n", dir_entry->inode_index);
         free(root_node);
     }
     table_freehead = find_next_freehead();
     token = strtok(path, s);
+    printf("token: %s\n", token);
     int i = 0;
     while (token != NULL && count >= 1) {
         //get the directory entry
         int found = FALSE;
         file_table[i]->byte_offset = 0;
         while (found == FALSE) {
-            // printf("%s , %d\n", token, i);
+            printf("%s , %d\n", token, i);
             dir_entry = f_readdir(i);
             if (dir_entry == NULL) {
                 //reach the last byte in the file
@@ -815,7 +828,7 @@ directory_entry* f_opendir(char* filepath) {
         token = strtok(NULL, s);
     }
     table_freehead = find_next_freehead();
-    // printf("%s\n", "end of open_dir-----");
+    printf("%s\n", "end of open_dir-----");
     return dir_entry;
 }
 
@@ -881,7 +894,9 @@ directory_entry* f_mkdir(char* filepath) {
         //this node is the inode of parent dir
         int dir_fd = get_fd_from_inode_value(dir->inode_index);
         inode *node = file_table[dir_fd]->file_inode;
+        printf("get inode accoring to new index: %d\n", new_inode_index);
         inode *new_inode = get_inode(new_inode_index);
+        printf("result of the inode: %d\n", new_inode->inode_index);
         currentD->inode_index = new_inode_index;
         parent->inode_index = node->inode_index;
         current_mounted_disk->superblock1->free_inode = new_inode->next_inode;
@@ -947,6 +962,8 @@ directory_entry* f_mkdir(char* filepath) {
             new_inode->parent_inode_index = node->inode_index;
             // printf("parent_inode_index should be: %d\n", node->inode_index);
             if (new_inode->inode_index != new_inode_index) {
+                printf("new_inode: %d\n", new_inode->inode_index);
+                printf("new index should be: %d\n", new_inode_index );
                 printf("%s\n", "There is a problem.");
             }
             new_inode->dblocks[0] = current_mounted_disk->superblock1->free_block;
@@ -1233,6 +1250,7 @@ directory_entry* f_rmdir(char* filepath) {
         return NULL;
     }
     inode *start_node = get_inode(start_ent->inode_index);
+    printf("start ent name: %s\n", start_ent->filename);
     f_rmdir_helper(filepath, start_node);
     return start_ent;
 }
@@ -1246,12 +1264,14 @@ int get_size_directory_entry_block(directory_entry* entry) {
 }
 
 directory_entry* get_first_direntry(inode* node) {
+    printf("%s\n", "in get fiest dirent");
     directory_entry *result = malloc(sizeof(directory_entry));
     memset(result, 0, sizeof(directory_entry));
     void *data = get_data_block(node->dblocks[0]);
     int index = *(int *) (data + 2 * sizeof(directory_entry));
     char *name = (char *) (data + 2 * sizeof(directory_entry) + sizeof(int));
     result->inode_index = index;
+    printf("name: %s\n", name);
     strcpy(result->filename, name);
     free(data);
     return result;
@@ -1259,24 +1279,32 @@ directory_entry* get_first_direntry(inode* node) {
 
 void f_rmdir_helper(char* filepath, inode* node) {
     if (node->type == REG) {
+        printf("%s\n", "should not be here");
         f_remove(filepath);
         free(filepath);
         free(node);
     } else {
         if (node->size == sizeof(directory_entry) * 2) {
+            printf("%s\n", "empty dir ready to remove in helper");
             //the directroy is empty
             //remove the directory
             f_remove(filepath);
             free(filepath);
             free(node);
         } else {
+            printf("%s\n","not ready to remove in helper" );
             directory_entry *entry = get_first_direntry(node);
             free(node);
+            printf("should be same as name: %s\n",entry->filename );
             inode *new_node = get_inode(entry->inode_index);
             int new_length = strlen(filepath) + strlen(entry->filename) + 2;
             char *new_path = malloc(new_length);
             memset(new_path, 0, new_length);
+            new_path = strncat(new_path, filepath, strlen(filepath));
+            new_path = strncat(new_path, "/", 1);
+            new_path = strcat(new_path, entry->filename);
             free(entry);
+            printf("newpath in helper: %s\n", new_path);
             f_rmdir_helper(new_path, new_node);
         }
     }
@@ -1309,8 +1337,6 @@ boolean f_remove(char *filepath) {
         path = strcat(path, filename);
         filename = strtok(NULL, s);
     }
-    printf("path: %s\n", path);
-    printf("filename: %s\n", filename);
     //TODO: need to check if the file is already in the file_table. Any sart way of doing that?
     directory_entry *dir = f_opendir(path);
     if (dir == NULL) {
@@ -1318,6 +1344,8 @@ boolean f_remove(char *filepath) {
         free(path);
         return FALSE;
     } else {
+        printf("dir->name: %s\n", dir->filename);
+
         int index = -1;
         inode *directory_inode = get_inode_from_file_table_from_directory_entry(dir, &index);
         superblock *superblock1 = current_mounted_disk->superblock1;
@@ -1330,16 +1358,22 @@ boolean f_remove(char *filepath) {
             directory_entry *current_entry = f_readdir(index);
             directory_entry *directory_to_replace = NULL;
             // int byte_offset_of_directory_to_replace = 0;
-            while (current_entry != NULL && strcmp(current_entry->filename, filename) != 0) {
+            while (current_entry != NULL){
+              if(strcmp(current_entry->filename, filename) != 0) {
                 current_entry = f_readdir(index);
                 // byte_offset_of_directory_to_replace += sizeof(directory_entry);
+              }else{
+                break;
+              }
             }
 
+
             if (current_entry == NULL) {
+                printf("%s\n", "no such file. retry");
                 return FALSE; //wasn't able to find the entry in the directory
             } else {
-                // printf("entry->filename: %s\n", current_entry->filename);
-                // printf("entry->index: %d\n", current_entry->inode_index);
+                printf("entry->filename: %s\n", current_entry->filename);
+                printf("entry->index: %d\n", current_entry->inode_index);
                 directory_to_replace = current_entry;
             }
             // print_file_table();
@@ -1356,6 +1390,7 @@ boolean f_remove(char *filepath) {
             int directory_file_size = directory_inode->size;
             int last_directory_byte_index = directory_file_size - sizeof(directory_entry);
             //check if the directory entry is the only one in the data block... (if so, then we need to reclaim the data block...)
+            printf("last_directory_byte_index: %d\n", last_directory_byte_index);
             int block_to_fetch = last_directory_byte_index / BLOCKSIZE;
 
             directory_entry *directory_to_move = malloc(sizeof(directory_entry));
@@ -1369,10 +1404,12 @@ boolean f_remove(char *filepath) {
                                                         final_block_index * BLOCKSIZE +
                                                         last_directory_byte_index % BLOCKSIZE, SEEK_SET);
             fread(directory_to_move, sizeof(directory_entry), 1, current_mounted_disk->disk_image_ptr);
-
+            printf("final block index: %d\n", final_block_index);
             //need to write directory_to_replace back to the disk, now, since it has been deleted...
             directory_to_replace->inode_index = directory_to_move->inode_index;
+            printf("directory_to_move inode:%d\n",directory_to_move->inode_index );
             strcpy(directory_to_replace->filename, directory_to_move->filename);
+            printf("dir to replace: %s\n", directory_to_replace->filename);
             // fseek(); //TODO: replace with our fseek when needed
             file_table[index]->byte_offset -= sizeof(directory_entry); //pointer in file is now at the correct location to fwrite...
             int current_block_index = -1;
@@ -1411,6 +1448,8 @@ boolean f_remove(char *filepath) {
             free_data_block(data_block_containing_directory_to_replace);
 
             directory_inode->size -= sizeof(directory_entry);
+            printf("directory_inode size: %d\n", directory_inode->size);
+            printf("directory_inode index(0): %d\n",directory_inode->inode_index );
             fseek(current_mounted_disk->disk_image_ptr,
                   SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + superblock1->inode_offset * BLOCKSIZE +
                   directory_inode->inode_index * sizeof(inode), SEEK_SET);
@@ -1419,12 +1458,13 @@ boolean f_remove(char *filepath) {
             //TODO: Release the i-node to the pool of free inodes and re-write the value to the disk...
             //TODO: talk to Rose and see what else needs to be done here..
             int new_head = file_inode->inode_index;
+            // file_inode->next_inode = superblock1->free_inode;
+            printf("new_head: %d\n", new_head);
             int old_head = superblock1->free_inode;
-
             //read in the current_head inode and write the new and correct value to disk...
             superblock1->free_inode = new_head;
             file_inode->next_inode = old_head;
-
+            printf("old_head: %d\n",old_head );
             fseek(current_mounted_disk->disk_image_ptr,
                   SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK + superblock1->inode_offset * BLOCKSIZE + new_head * sizeof(inode),
                   SEEK_SET);
@@ -1451,15 +1491,19 @@ boolean f_remove(char *filepath) {
                 free_data_block(block_to_replace);
             }
             //write the superblock to the disk...
-            fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK + SIZEOFSUPERBLOCK +
-                                                        current_mounted_disk->superblock1->inode_offset *
-                                                        current_mounted_disk->superblock1->size +
-                                                        new_head * sizeof(inode), SEEK_SET);
+            fseek(current_mounted_disk->disk_image_ptr, SIZEOFBOOTBLOCK, SEEK_SET );
+              // + SIZEOFSUPERBLOCK + current_mounted_disk->superblock1->inode_offset *
+                                                        // current_mounted_disk->superblock1->size +
+                                                        // new_head * sizeof(inode), SEEK_SET);
             fwrite(superblock1, SIZEOFSUPERBLOCK, 1, current_mounted_disk->disk_image_ptr);
 
             //TODO: close the directory
             // f_closedir(dir);
             printf("%s\n", "endof f_remove");
+            // print_superblock(superblock1);
+            // inode* node = get_inode(new_head);
+            // printf("check if inode correct: %d\n", node->inode_index);
+            // print_file_table();
             return TRUE;
         }
     }
@@ -1713,6 +1757,7 @@ int addto_file_table(inode* node, int access) {
     int fd = already_in_table(node);
     if (fd != -1) {
         // printf("%s\n", "already_in_table. so not adding to file table");
+        free(node);
         return fd;
     }
     fd = find_next_freehead();
